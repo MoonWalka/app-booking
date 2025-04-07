@@ -1,58 +1,31 @@
-// client/src/services/artistsService.js
-import { 
-  collection, 
-  getDocs, 
-  getDoc, 
-  doc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc 
-} from 'firebase/firestore';
-import { db } from '../firebase';
+// client/src/components/artists/ArtistsList.js
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { getArtists } from '../../services/artistsService';
 
-const artistsCollection = collection(db, 'artists');
+const ArtistsList = () => {
+  const [artists, setArtists] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-export const getArtists = async () => {
-  const snapshot = await getDocs(artistsCollection);
-  return snapshot.docs.map(doc => ({
-    _id: doc.id,
-    ...doc.data()
-  }));
-};
-
-export const getArtistById = async (id) => {
-  const docRef = doc(db, 'artists', id);
-  const snapshot = await getDoc(docRef);
-  
-  if (snapshot.exists()) {
-    return {
-      _id: snapshot.id,
-      ...snapshot.data()
+  useEffect(() => {
+    const fetchArtists = async () => {
+      try {
+        setLoading(true);
+        const data = await getArtists();
+        setArtists(data);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
     };
-  }
-  
-  return null;
+
+    fetchArtists();
+  }, []);
+
+  // Le reste du composant reste inchangé
+  // ...
 };
 
-export const addArtist = async (artistData) => {
-  const docRef = await addDoc(artistsCollection, artistData);
-  return {
-    _id: docRef.id,
-    ...artistData
-  };
-};
-
-export const updateArtist = async (id, artistData) => {
-  const docRef = doc(db, 'artists', id);
-  await updateDoc(docRef, artistData);
-  return {
-    _id: id,
-    ...artistData
-  };
-};
-
-export const deleteArtist = async (id) => {
-  const docRef = doc(db, 'artists', id);
-  await deleteDoc(docRef);
-  return id;
-};
+export default ArtistsList;
