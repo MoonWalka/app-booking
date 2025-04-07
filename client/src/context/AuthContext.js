@@ -1,11 +1,8 @@
-// client/src/context/AuthContext.js
+# Dans votre GitHub Codespaces, créez une version de AuthContext.js sans Firebase
+cat > client/src/context/AuthContext.js << 'EOL'
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged 
-} from 'firebase/auth';
-import { auth } from '../firebase';
+import axios from 'axios';
+import jwt_decode from 'jwt-decode';
 
 const AuthContext = createContext();
 
@@ -18,47 +15,73 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setIsAuthenticated(!!user);
+    const checkToken = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        try {
+          // Vérifier si le token est expiré
+          const decoded = jwt_decode(token);
+          const currentTime = Date.now() / 1000;
+          
+          if (decoded.exp < currentTime) {
+            // Token expiré
+            localStorage.removeItem('token');
+            setIsAuthenticated(false);
+            setCurrentUser(null);
+          } else {
+            // Token valide
+            setCurrentUser(decoded);
+            setIsAuthenticated(true);
+          }
+        } catch (error) {
+          // Token invalide
+          localStorage.removeItem('token');
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+        }
+      }
+      
       setLoading(false);
-    });
-
-    return unsubscribe;
+    };
+    
+    checkToken();
   }, []);
 
   const login = async (email, password) => {
     try {
+      const response = await axios.post('/api/auth/login', { email, password });
+      const { token, user } = response.data;
+      
+      localStorage.setItem('token', token);
+      setCurrentUser(user);
+      setIsAuthenticated(true);
       setError(null);
-      await signInWithEmailAndPassword(auth, email, password);
+      
       return true;
     } catch (error) {
-      console.error('Erreur de connexion', error);
-      setError(error.message || 'Erreur de connexion');
+      setError(error.response?.data?.message || 'Erreur de connexion');
       return false;
     }
   };
 
-  const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Erreur de déconnexion', error);
-    }
-  };
-
-  const value = {
-    currentUser,
-    isAuthenticated,
-    loading,
-    error,
-    login,
-    logout
+  const logout = () => {
+    localStorage.removeItem('token');
+    setCurrentUser(null);
+    setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+    <React.Fragment>
+      <AuthContext.Provider value={{ currentUser, isAuthenticated, loading, error, login, logout }}>
+        {children}
+      </AuthContext.Provider>
+    </React.Fragment>
   );
 };
+EOL
+
+# Commitez et poussez les changements
+git add client/src/context/AuthContext.js
+git commit -m "Revenir à la version originale de AuthContext.js sans Firebase"
+git push origin main
