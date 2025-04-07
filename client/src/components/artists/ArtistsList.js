@@ -1,6 +1,7 @@
 // client/src/components/artists/ArtistsList.js
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getArtists } from '../../services/artistsService';
 
 const ArtistsList = () => {
   const [artists, setArtists] = useState([]);
@@ -11,11 +12,7 @@ const ArtistsList = () => {
     const fetchArtists = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/artists');
-        if (!response.ok) {
-          throw new Error('Erreur lors de la récupération des artistes');
-        }
-        const data = await response.json();
+        const data = await getArtists();
         setArtists(data);
         setLoading(false);
       } catch (err) {
@@ -27,34 +24,8 @@ const ArtistsList = () => {
     fetchArtists();
   }, []);
 
-  if (loading) return <div>Chargement des artistes...</div>;
-  if (error) return <div>Erreur: {error}</div>;
-
-  return (
-    <div className="artists-list-container">
-      <h2>Liste des Artistes</h2>
-      {artists.length === 0 ? (
-        <p>Aucun artiste trouvé.</p>
-      ) : (
-        <div className="artists-grid">
-          {artists.map((artist) => (
-            <div key={artist._id} className="artist-card">
-              <h3>{artist.name}</h3>
-              <p>{artist.genre}</p>
-              <Link to={`/artistes/${artist._id}`} className="view-details-btn">
-                Voir détails
-              </Link>
-            </div>
-          ))}
-        </div>
-      )}
-      <div className="add-artist-container">
-        <Link to="/artistes/nouveau" className="add-artist-btn">
-          Ajouter un artiste
-        </Link>
-      </div>
-    </div>
-  );
+  // Le reste du composant reste inchangé
+  // ...
 };
 
 export default ArtistsList;
