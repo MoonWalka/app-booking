@@ -1,5 +1,3 @@
-# Dans votre GitHub Codespaces, créez une version de AuthContext.js sans Firebase
-cat > client/src/context/AuthContext.js << 'EOL'
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import jwt_decode from 'jwt-decode';
@@ -79,9 +77,3 @@ export const AuthProvider = ({ children }) => {
     </React.Fragment>
   );
 };
-EOL
-
-# Commitez et poussez les changements
-git add client/src/context/AuthContext.js
-git commit -m "Revenir à la version originale de AuthContext.js sans Firebase"
-git push origin main
