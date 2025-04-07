@@ -7,6 +7,7 @@ import './App.css';
 import Layout from './components/common/Layout';
 import Login from './components/auth/Login';
 import NotFound from './components/common/NotFound';
+import Dashboard from "./components/dashboard/Dashboard";
 import ProgrammersList from './components/programmers/ProgrammersList';
 import ProgrammerDetail from './components/programmers/ProgrammerDetail';
 import ConcertsList from './components/concerts/ConcertsList';
@@ -42,7 +43,7 @@ function App() {
             <Layout />
           </ProtectedRoute>
         }>
-          <Route index element={<div>Dashboard</div>} />
+          <Route index element={<Dashboard />} />
           <Route path="programmateurs" element={<ProgrammersList />} />
           <Route path="programmateurs/:id" element={<ProgrammerDetail />} />
           <Route path="concerts" element={<ConcertsList />} />
