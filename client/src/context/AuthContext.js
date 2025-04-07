@@ -1,6 +1,11 @@
+// client/src/context/AuthContext.js
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
-import jwt_decode from 'jwt-decode';
+import { 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged 
+} from 'firebase/auth';
+import { auth } from '../firebase';
 
 const AuthContext = createContext();
 
@@ -13,66 +18,33 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const checkToken = async () => {
-      const token = localStorage.getItem('token');
-      
-      if (token) {
-        try {
-          // Vérifier si le token est expiré
-          const decoded = jwt_decode(token);
-          const currentTime = Date.now() / 1000;
-          
-          if (decoded.exp < currentTime) {
-            // Token expiré
-            localStorage.removeItem('token');
-            setIsAuthenticated(false);
-            setCurrentUser(null);
-          } else {
-            // Token valide
-            setIsAuthenticated(true);
-            setCurrentUser(decoded);
-            // Configurer le header par défaut pour les requêtes axios
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          }
-        } catch (error) {
-          console.error('Erreur de décodage du token', error);
-          localStorage.removeItem('token');
-          setIsAuthenticated(false);
-          setCurrentUser(null);
-        }
-      }
-      
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setIsAuthenticated(!!user);
       setLoading(false);
-    };
+    });
 
-    checkToken();
+    return unsubscribe;
   }, []);
 
   const login = async (email, password) => {
     try {
       setError(null);
-      const response = await axios.post('/api/auth/login', { email, password });
-      const { token, user } = response.data;
-      
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-      setIsAuthenticated(true);
-      setCurrentUser(user);
-      
+      await signInWithEmailAndPassword(auth, email, password);
       return true;
     } catch (error) {
       console.error('Erreur de connexion', error);
-      setError(error.response?.data?.message || 'Erreur de connexion');
+      setError(error.message || 'Erreur de connexion');
       return false;
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
-    setIsAuthenticated(false);
-    setCurrentUser(null);
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Erreur de déconnexion', error);
+    }
   };
 
   const value = {
@@ -85,8 +57,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <React.Fragment>
+    <AuthContext.Provider value={value}>
       {children}
-    </React.Fragment>
+    </AuthContext.Provider>
   );
 };
