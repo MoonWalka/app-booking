@@ -19,36 +19,37 @@ const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   
   if (loading) {
-    return 
-Chargement...
-;
+    return <div>Chargement...</div>;
   }
   
-  return isAuthenticated ? children : ;
+  return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
 function App() {
   return (
-    
-      } />
-      
-      
-          
+    <div className="App">
+      <Routes>
+        <Route path="/login" element={<Login />} />
         
-      }>
-        } />
-        } />
-        } />
-        } />
-        } />
-        } />
-        } />
-        } />
-        } />
-      
-      
-      } />
-    
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<Dashboard />} />
+          <Route path="programmateurs" element={<ProgrammersList />} />
+          <Route path="programmateurs/:id" element={<ProgrammerDetail />} />
+          <Route path="concerts" element={<ConcertsList />} />
+          <Route path="concerts/:id" element={<ConcertDetail />} />
+          <Route path="emails" element={<EmailSystem />} />
+          <Route path="documents" element={<DocumentsManager />} />
+          <Route path="artistes" element={<ArtistsList />} />
+          <Route path="artistes/:id" element={<ArtistDetail />} />
+        </Route>
+        
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </div>
   );
 }
 
