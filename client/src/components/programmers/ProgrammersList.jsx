@@ -11,36 +11,27 @@ const ProgrammersList = () => {
   
   // État pour le formulaire d'ajout de programmateur
   const [newProgrammer, setNewProgrammer] = useState({
-    name: '',
-    structure: '',
+    businessName: '',
+    contact: '',
+    role: '',
+    address: '',
+    venue: '',
+    vatNumber: '',
+    siret: '',
     email: '',
     phone: '',
-    city: '',
-    region: '',
     website: '',
     notes: ''
   });
   
-  // Régions françaises pour le formulaire
-  const regions = [
-    'Auvergne-Rhône-Alpes',
-    'Bourgogne-Franche-Comté',
-    'Bretagne',
-    'Centre-Val de Loire',
-    'Corse',
-    'Grand Est',
-    'Hauts-de-France',
-    'Île-de-France',
-    'Normandie',
-    'Nouvelle-Aquitaine',
-    'Occitanie',
-    'Pays de la Loire',
-    'Provence-Alpes-Côte d\'Azur',
-    'Guadeloupe',
-    'Martinique',
-    'Guyane',
-    'La Réunion',
-    'Mayotte',
+  // Options pour le champ "qualité"
+  const roleOptions = [
+    'Programmateur',
+    'Président',
+    'Gérant',
+    'Directeur',
+    'Administrateur',
+    'Chargé de production',
     'Autre'
   ];
 
@@ -85,12 +76,15 @@ const ProgrammersList = () => {
       
       // Réinitialiser le formulaire
       setNewProgrammer({
-        name: '',
-        structure: '',
+        businessName: '',
+        contact: '',
+        role: '',
+        address: '',
+        venue: '',
+        vatNumber: '',
+        siret: '',
         email: '',
         phone: '',
-        city: '',
-        region: '',
         website: '',
         notes: ''
       });
@@ -130,40 +124,100 @@ const ProgrammersList = () => {
           <h3>Ajouter un nouveau programmateur</h3>
           <form onSubmit={handleSubmit} className="add-programmer-form">
             <div className="form-group">
-              <label htmlFor="name">Nom du programmateur *</label>
+              <label htmlFor="businessName">Raison sociale</label>
               <input
                 type="text"
-                id="name"
-                name="name"
-                value={newProgrammer.name}
+                id="businessName"
+                name="businessName"
+                value={newProgrammer.businessName}
                 onChange={handleInputChange}
-                required
-                placeholder="Nom du programmateur"
+                placeholder="Nom de l'entreprise ou de l'organisation"
               />
             </div>
             
             <div className="form-group">
-              <label htmlFor="structure">Structure *</label>
+              <label htmlFor="contact">Contact</label>
               <input
                 type="text"
-                id="structure"
-                name="structure"
-                value={newProgrammer.structure}
+                id="contact"
+                name="contact"
+                value={newProgrammer.contact}
                 onChange={handleInputChange}
-                required
-                placeholder="Nom de la salle, festival, association..."
+                placeholder="Nom et prénom du contact"
               />
             </div>
             
             <div className="form-group">
-              <label htmlFor="email">Email *</label>
+              <label htmlFor="role">Qualité</label>
+              <select
+                id="role"
+                name="role"
+                value={newProgrammer.role}
+                onChange={handleInputChange}
+              >
+                <option value="">Sélectionner une qualité</option>
+                {roleOptions.map(role => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="address">Adresse de la raison sociale</label>
+              <textarea
+                id="address"
+                name="address"
+                value={newProgrammer.address}
+                onChange={handleInputChange}
+                rows="3"
+                placeholder="Adresse complète"
+              ></textarea>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="venue">Lieu ou festival</label>
+              <input
+                type="text"
+                id="venue"
+                name="venue"
+                value={newProgrammer.venue}
+                onChange={handleInputChange}
+                placeholder="Nom du lieu ou du festival"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="vatNumber">Numéro intracommunautaire</label>
+              <input
+                type="text"
+                id="vatNumber"
+                name="vatNumber"
+                value={newProgrammer.vatNumber}
+                onChange={handleInputChange}
+                placeholder="FR12345678901"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="siret">SIRET</label>
+              <input
+                type="text"
+                id="siret"
+                name="siret"
+                value={newProgrammer.siret}
+                onChange={handleInputChange}
+                placeholder="123 456 789 00012"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
               <input
                 type="email"
                 id="email"
                 name="email"
                 value={newProgrammer.email}
                 onChange={handleInputChange}
-                required
                 placeholder="email@exemple.com"
               />
             </div>
@@ -178,34 +232,6 @@ const ProgrammersList = () => {
                 onChange={handleInputChange}
                 placeholder="06 12 34 56 78"
               />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="city">Ville *</label>
-              <input
-                type="text"
-                id="city"
-                name="city"
-                value={newProgrammer.city}
-                onChange={handleInputChange}
-                required
-                placeholder="Ville"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="region">Région</label>
-              <select
-                id="region"
-                name="region"
-                value={newProgrammer.region}
-                onChange={handleInputChange}
-              >
-                <option value="">Sélectionner une région</option>
-                {regions.map(region => (
-                  <option key={region} value={region}>{region}</option>
-                ))}
-              </select>
             </div>
             
             <div className="form-group">
@@ -251,9 +277,9 @@ const ProgrammersList = () => {
           <table className="programmers-table">
             <thead>
               <tr>
-                <th>Nom</th>
-                <th>Structure</th>
-                <th>Ville</th>
+                <th>Raison sociale</th>
+                <th>Contact</th>
+                <th>Lieu/Festival</th>
                 <th>Email</th>
                 <th>Actions</th>
               </tr>
@@ -261,9 +287,9 @@ const ProgrammersList = () => {
             <tbody>
               {programmers.map((programmer) => (
                 <tr key={programmer.id}>
-                  <td>{programmer.name || 'Non spécifié'}</td>
-                  <td>{programmer.structure || 'Non spécifié'}</td>
-                  <td>{programmer.city || 'Non spécifié'}</td>
+                  <td>{programmer.businessName || 'Non spécifié'}</td>
+                  <td>{programmer.contact || 'Non spécifié'}</td>
+                  <td>{programmer.venue || 'Non spécifié'}</td>
                   <td>{programmer.email || 'Non spécifié'}</td>
                   <td>
                     <Link to={`/programmateurs/${programmer.id}`} className="view-details-btn">

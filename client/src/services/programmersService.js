@@ -17,18 +17,21 @@ const ensureCollection = async (collectionName) => {
   try {
     // Vérifier si la collection existe en essayant de récupérer des documents
     const collectionRef = collection(db, collectionName);
-    const snapshot = await getDocs(query(collectionRef, orderBy('name')));
+    const snapshot = await getDocs(query(collectionRef, orderBy('createdAt', 'desc')));
     
     // Si la collection n'existe pas ou est vide, créer un document initial
     if (snapshot.empty) {
       console.log(`Collection ${collectionName} vide, création d'un document initial...`);
       const initialDoc = {
-        name: "Programmateur Exemple",
-        structure: "Salle de Concert Exemple",
+        businessName: "Salle de Concert Exemple",
+        contact: "Jean Dupont",
+        role: "Programmateur",
+        address: "123 rue de la Musique, 75001 Paris",
+        venue: "La Scène Parisienne",
+        vatNumber: "FR12345678901",
+        siret: "123 456 789 00012",
         email: "contact@exemple.fr",
         phone: "01 23 45 67 89",
-        city: "Paris",
-        region: "Île-de-France",
         website: "https://www.exemple.fr",
         notes: "Programmateur exemple créé automatiquement",
         createdAt: new Date()
@@ -49,24 +52,30 @@ const ensureCollection = async (collectionName) => {
 const mockProgrammers = [
   {
     id: 'mock-programmer-1',
-    name: 'Marie Dupont',
-    structure: 'Association Vibrations',
+    businessName: "Association Vibrations",
+    contact: "Marie Dupont",
+    role: "Présidente",
+    address: "45 rue de la République, 69001 Lyon",
+    venue: "Festival Vibrations",
+    vatNumber: "FR98765432101",
+    siret: "987 654 321 00011",
     email: 'marie.dupont@vibrations.fr',
     phone: '06 12 34 56 78',
-    city: 'Lyon',
-    region: 'Auvergne-Rhône-Alpes',
     website: 'https://www.vibrations-asso.fr',
     notes: 'Programmation de musiques actuelles',
     createdAt: new Date()
   },
   {
     id: 'mock-programmer-2',
-    name: 'Jean Martin',
-    structure: 'La Cigale',
+    businessName: "SARL La Cigale",
+    contact: "Jean Martin",
+    role: "Gérant",
+    address: "120 boulevard de Rochechouart, 75018 Paris",
+    venue: "La Cigale",
+    vatNumber: "FR45678901234",
+    siret: "456 789 012 00013",
     email: 'jean.martin@lacigale.fr',
     phone: '01 23 45 67 89',
-    city: 'Paris',
-    region: 'Île-de-France',
     website: 'https://www.lacigale.fr',
     notes: 'Salle de concert parisienne',
     createdAt: new Date()
@@ -82,7 +91,7 @@ export const getProgrammers = async () => {
     await ensureCollection('programmers');
     
     console.log("Tentative de récupération des programmateurs depuis Firebase...");
-    const q = query(programmersCollection, orderBy('name'));
+    const q = query(programmersCollection, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     
     if (snapshot.empty) {
