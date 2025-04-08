@@ -25,14 +25,11 @@ const ArtistDetail = () => {
         setArtist(artistData);
         
         // Récupérer les concerts associés à cet artiste
-        console.log(`Récupération des concerts pour l'artiste ID: ${id}`);
         const concertsData = await getConcertsByArtist(id);
-        console.log('Concerts récupérés:', concertsData);
         setConcerts(concertsData);
         
         setLoading(false);
       } catch (err) {
-        console.error('Erreur lors de la récupération des données:', err);
         setError(err.message);
         setLoading(false);
       }
@@ -50,31 +47,6 @@ const ArtistDetail = () => {
         setError(err.message);
       }
     }
-  };
-
-  // Fonction pour formater le statut du concert pour l'affichage et les classes CSS
-  const formatStatus = (status) => {
-    if (!status) return { text: 'Non spécifié', className: 'status-non-specifie' };
-    
-    // Convertir le statut en format compatible avec les classes CSS
-    const statusLower = status.toLowerCase().replace(/ /g, '_');
-    
-    // Mapper les statuts aux classes CSS et textes d'affichage
-    const statusMap = {
-      'en_attente': { text: 'En attente', className: 'status-en-attente' },
-      'confirmé': { text: 'Confirmé', className: 'status-confirme' },
-      'contrat_envoyé': { text: 'Contrat envoyé', className: 'status-contrat-envoye' },
-      'contrat_signé': { text: 'Contrat signé', className: 'status-contrat-signe' },
-      'acompte_reçu': { text: 'Acompte reçu', className: 'status-acompte-recu' },
-      'soldé': { text: 'Soldé', className: 'status-solde' },
-      'annulé': { text: 'Annulé', className: 'status-annule' }
-    };
-    
-    // Retourner le texte et la classe correspondant au statut, ou une valeur par défaut
-    return statusMap[statusLower] || { 
-      text: status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' '), 
-      className: `status-${statusLower}` 
-    };
   };
 
   if (loading) return <div className="loading">Chargement des détails de l'artiste...</div>;
@@ -152,48 +124,32 @@ const ArtistDetail = () => {
       </div>
 
       <div className="concerts-section">
-        <h3>Concerts programmés ({concerts.length})</h3>
-        {concerts && concerts.length > 0 ? (
-          <div className="concerts-table-container">
-            <table className="concerts-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Heure</th>
-                  <th>Lieu</th>
-                  <th>Ville</th>
-                  <th>Statut</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {concerts.map((concert) => {
-                  const status = formatStatus(concert.status);
-                  return (
-                    <tr key={concert.id} className="concert-row">
-                      <td>{concert.date ? new Date(concert.date).toLocaleDateString() : 'Non spécifiée'}</td>
-                      <td>{concert.time || 'Non spécifiée'}</td>
-                      <td>{concert.venue || 'Non spécifié'}</td>
-                      <td>{concert.city || 'Non spécifiée'}</td>
-                      <td>
-                        <span className={`status-badge ${status.className}`}>
-                          {status.text}
-                        </span>
-                      </td>
-                      <td>
-                        <button 
-                          onClick={() => navigate(`/concerts/${concert.id}`)} 
-                          className="view-concert-btn"
-                        >
-                          Détails
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        <h3>Concerts programmés</h3>
+        {concerts.length > 0 ? (
+          <ul className="concerts-list">
+            {concerts.map((concert) => (
+              <li key={concert.id} className="concert-item">
+                <div className="concert-date">
+                  {new Date(concert.date).toLocaleDateString()} | {concert.time}
+                </div>
+                <div className="concert-venue">{concert.venue}</div>
+                <div className="concert-city">{concert.city}</div>
+                <div className="concert-status">
+                  <span className={`status-badge status-${concert.status}`}>
+                    {concert.status.charAt(0).toUpperCase() + concert.status.slice(1).replace('_', ' ')}
+                  </span>
+                </div>
+                <div className="concert-actions">
+                  <button 
+                    onClick={() => navigate(`/concerts/${concert.id}`)} 
+                    className="view-concert-btn"
+                  >
+                    Détails
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         ) : (
           <p className="no-concerts">Aucun concert programmé pour cet artiste.</p>
         )}

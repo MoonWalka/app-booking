@@ -17,7 +17,6 @@ import ArtistDetail from './components/artists/ArtistDetail';
 import EmailSystem from './components/emails/EmailSystem';
 import DocumentsManager from './components/documents/DocumentsManager';
 import TestFirebaseIntegration from './components/tests/TestFirebaseIntegration';
-import ArtistEdit from './components/artists/ArtistEdit';
 
 // Route protégée
 const ProtectedRoute = ({ children }) => {
