@@ -19,6 +19,7 @@ import DocumentsManager from './components/documents/DocumentsManager';
 import TestFirebaseIntegration from './components/tests/TestFirebaseIntegration';
 import ArtistEdit from './components/artists/ArtistEdit';
 import ContractsTable from './components/contracts/ContractsTable';
+import FormValidationList from './components/formValidation/FormValidationList';
 
 // Route protégée
 const ProtectedRoute = ({ children }) => {
@@ -68,6 +69,7 @@ function App() {
           <Route path="artistes/:id" element={<ArtistDetail />} />
           <Route path="emails" element={<EmailSystem />} />
           <Route path="documents" element={<DocumentsManager />} />
+          <Route path="validation-formulaires" element={<FormValidationList />} />
           <Route path="tests" element={<TestFirebaseIntegration />} />
         </Route>
         

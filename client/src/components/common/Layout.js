@@ -65,6 +65,12 @@ const Layout = () => {
             </span>
             Programmateurs
           </Link>
+          <Link to="/validation-formulaires" className={`nav-item ${isActive('/validation-formulaires') ? 'active' : ''}`}>
+            <span className="nav-icon">
+              <i className="fas fa-clipboard-check"></i>
+            </span>
+            Validation Formulaire
+          </Link>
           <Link to="/emails" className={`nav-item ${isActive('/emails') ? 'active' : ''}`}>
             <span className="nav-icon">
               <i className="fas fa-envelope"></i>
@@ -95,6 +101,7 @@ const Layout = () => {
             {location.pathname === '/concerts' && 'Gestion des concerts'}
             {location.pathname === '/artistes' && 'Gestion des artistes'}
             {location.pathname === '/programmateurs' && 'Gestion des programmateurs'}
+            {location.pathname === '/validation-formulaires' && 'Validation des formulaires'}
             {location.pathname === '/emails' && 'Système d\'emails'}
             {location.pathname === '/documents' && 'Gestion des documents'}
             {location.pathname === '/parametres' && 'Paramètres'}
