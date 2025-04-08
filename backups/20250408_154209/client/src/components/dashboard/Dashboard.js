@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getConcerts } from '../../services/concertsService';
+import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { db } from '../../firebase';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -16,29 +17,40 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Récupérer les concerts depuis Firebase
-        console.log("Tentative de récupération des concerts pour le dashboard...");
-        const allConcerts = await getConcerts();
-        console.log("Concerts récupérés pour le dashboard:", allConcerts);
-        
-        // Filtrer les concerts à venir (30 prochains jours)
-        const today = new Date();
-        const thirtyDaysLater = new Date();
-        thirtyDaysLater.setDate(today.getDate() + 30);
-        
-        const upcomingConcerts = allConcerts
-          .filter(concert => {
-            if (!concert.date) return false;
-            const concertDate = new Date(concert.date);
-            return concertDate >= today && concertDate <= thirtyDaysLater;
-          })
-          .sort((a, b) => new Date(a.date) - new Date(b.date));
-        
-        console.log("Concerts à venir filtrés:", upcomingConcerts);
-
-        // Simuler des données pour les autres sections du dashboard
+        // Simuler des données pour le dashboard
         const mockData = {
-          upcomingConcerts: upcomingConcerts, // Utiliser les données réelles de Firebase
+          upcomingConcerts: [
+            {
+              id: '1',
+              artist: { name: 'Les Harmonies Urbaines' },
+              venue: 'Salle des Fêtes',
+              city: 'Lyon',
+              date: '2025-05-15',
+              time: '20:30',
+              status: 'confirmé',
+              programmer: { name: 'Marie Dupont' }
+            },
+            {
+              id: '2',
+              artist: { name: 'Échos Poétiques' },
+              venue: 'Le Loft',
+              city: 'Paris',
+              date: '2025-05-17',
+              time: '21:00',
+              status: 'contrat_envoyé',
+              programmer: { name: 'Jean Martin' }
+            },
+            {
+              id: '3',
+              artist: { name: 'Rythmes Solaires' },
+              venue: 'Centre Culturel',
+              city: 'Toulouse',
+              date: '2025-05-22',
+              time: '19:30',
+              status: 'acompte_reçu',
+              programmer: { name: 'Sophie Legrand' }
+            }
+          ],
           unpaidInvoices: [
             {
               id: '1',
@@ -284,13 +296,16 @@ const Dashboard = () => {
                             <td>{concert.programmer.name}</td>
                             <td>
                               <span className={`status-badge status-${concert.status}`}>
-                                {concert.status}
+                                {concert.status.charAt(0).toUpperCase() + concert.status.slice(1).replace('_', ' ')}
                               </span>
                             </td>
                             <td className="actions-cell">
-                              <Link to={`/concerts/${concert.id}`} className="action-btn view-btn">
+                              <button className="action-btn edit-btn">
+                                <i className="fas fa-edit"></i>
+                              </button>
+                              <button className="action-btn view-btn">
                                 <i className="fas fa-eye"></i>
-                              </Link>
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -299,8 +314,8 @@ const Dashboard = () => {
                   )}
                 </div>
                 <div className="section-footer">
-                  <Link to="/concerts" className="add-btn">
-                    <i className="fas fa-plus"></i> Gérer les concerts
+                  <Link to="/concerts/new" className="add-btn">
+                    <i className="fas fa-plus"></i> Ajouter un concert
                   </Link>
                 </div>
               </div>
@@ -427,17 +442,14 @@ const Dashboard = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {dashboardData.missingContracts.map(contract => (
-                          <tr key={contract.id}>
-                            <td>{contract.artist.name}</td>
-                            <td>{contract.venue}</td>
-                            <td>{formatDate(contract.date)} | {contract.time}</td>
+                        {dashboardData.missingContracts.map(concert => (
+                          <tr key={concert.id}>
+                            <td>{concert.artist.name}</td>
+                            <td>{concert.venue}</td>
+                            <td>{formatDate(concert.date)} | {concert.time}</td>
                             <td className="actions-cell">
-                              <button className="action-btn edit-btn">
-                                <i className="fas fa-edit"></i>
-                              </button>
-                              <button className="action-btn view-btn">
-                                <i className="fas fa-eye"></i>
+                              <button className="action-btn generate-btn">
+                                <i className="fas fa-file-alt"></i> Générer le contrat
                               </button>
                             </td>
                           </tr>
@@ -451,6 +463,26 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      <div className="quick-actions">
+        <h2 className="quick-actions-title">
+          <i className="fas fa-bolt"></i> Actions rapides
+        </h2>
+        <div className="quick-actions-buttons">
+          <button className="quick-action-btn">
+            <i className="fas fa-envelope"></i> Envoyer un email
+          </button>
+          <button className="quick-action-btn">
+            <i className="fas fa-file-contract"></i> Créer un contrat
+          </button>
+          <button className="quick-action-btn">
+            <i className="fas fa-file-invoice-dollar"></i> Générer une facture
+          </button>
+          <button className="quick-action-btn">
+            <i className="fas fa-calendar-plus"></i> Ajouter un concert
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
