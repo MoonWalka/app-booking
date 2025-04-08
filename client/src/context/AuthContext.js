@@ -1,13 +1,13 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
-import jwt_decode from 'jwt-decode';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { app } from '../firebase';
 
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
 // Configuration pour le mode bypass d'authentification
-const BYPASS_AUTH = true; // Mettre à true pour désactiver l'authentification
+const BYPASS_AUTH = false; // Mettre à false pour activer l'authentification réelle
 const TEST_USER = {
   id: 'test-user-id',
   email: 'test@example.com',
@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(BYPASS_AUTH);
   const [loading, setLoading] = useState(!BYPASS_AUTH);
   const [error, setError] = useState(null);
+  const auth = getAuth(app);
 
   useEffect(() => {
     if (BYPASS_AUTH) {
@@ -27,35 +28,26 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    const checkToken = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          // Vérifier si le token est expiré
-          const decoded = jwt_decode(token);
-          const currentTime = Date.now() / 1000;
-          if (decoded.exp < currentTime) {
-            // Token expiré
-            localStorage.removeItem('token');
-            setIsAuthenticated(false);
-            setCurrentUser(null);
-          } else {
-            // Token valide
-            setCurrentUser(decoded);
-            setIsAuthenticated(true);
-          }
-        } catch (error) {
-          // Token invalide
-          localStorage.removeItem('token');
-          setIsAuthenticated(false);
-          setCurrentUser(null);
-        }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Utilisateur connecté
+        setCurrentUser({
+          id: user.uid,
+          email: user.email,
+          name: user.displayName || user.email.split('@')[0],
+          role: 'admin' // Par défaut, tous les utilisateurs sont admin pour l'instant
+        });
+        setIsAuthenticated(true);
+      } else {
+        // Utilisateur déconnecté
+        setCurrentUser(null);
+        setIsAuthenticated(false);
       }
       setLoading(false);
-    };
+    });
 
-    checkToken();
-  }, []);
+    return () => unsubscribe();
+  }, [auth]);
 
   const login = async (email, password) => {
     if (BYPASS_AUTH) {
@@ -67,28 +59,30 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      setCurrentUser(user);
-      setIsAuthenticated(true);
+      setLoading(true);
+      await signInWithEmailAndPassword(auth, email, password);
       setError(null);
       return true;
     } catch (error) {
-      setError(error.response?.data?.message || 'Erreur de connexion');
+      console.error('Erreur de connexion:', error);
+      setError(error.message);
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     if (BYPASS_AUTH) {
       console.log('Mode bypass d\'authentification activé - Logout ignoré');
       return;
     }
 
-    localStorage.removeItem('token');
-    setCurrentUser(null);
-    setIsAuthenticated(false);
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
   };
 
   return (
