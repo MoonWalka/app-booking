@@ -84,3 +84,13 @@
   color: #6c757d;
   font-style: italic;
 }
+
+/* Styles pour les sélecteurs d'heure */
+.time-selects .time-inputs {
+  display: flex;
+  gap: 10px;
+}
+
+.time-selects .time-inputs select {
+  flex: 1;
+}

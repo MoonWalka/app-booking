@@ -36,16 +36,6 @@ const ConcertsList = () => {
     'Soldé',
     'Annulé'
   ];
-  
-  // Générer les options pour les heures (00h à 23h)
-  const hours = Array.from({ length: 24 }, (_, i) => 
-    i < 10 ? `0${i}` : `${i}`
-  );
-  
-  // Générer les options pour les minutes (00 à 59)
-  const minutes = Array.from({ length: 60 }, (_, i) => 
-    i < 10 ? `0${i}` : `${i}`
-  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -103,16 +93,6 @@ const ConcertsList = () => {
           structure: selectedProgrammer.structure || ''
         }
       });
-    } else if (name === 'hour' || name === 'minute') {
-      // Gérer les sélections d'heure et de minute
-      const currentTime = newConcert.time ? newConcert.time.split(':') : ['00', '00'];
-      const hour = name === 'hour' ? value : currentTime[0];
-      const minute = name === 'minute' ? value : currentTime[1];
-      
-      setNewConcert({
-        ...newConcert,
-        time: `${hour}:${minute}`
-      });
     } else {
       setNewConcert({
         ...newConcert,
@@ -169,11 +149,6 @@ const ConcertsList = () => {
 
   if (loading && concerts.length === 0) return <div className="loading">Chargement des concerts...</div>;
   if (error) return <div className="error-message">Erreur: {error}</div>;
-
-  // Extraire l'heure et les minutes du temps actuel
-  const currentTime = newConcert.time ? newConcert.time.split(':') : ['', ''];
-  const currentHour = currentTime[0];
-  const currentMinute = currentTime[1];
 
   return (
     <div className="concerts-list-container">
@@ -237,37 +212,16 @@ const ConcertsList = () => {
               />
             </div>
             
-            <div className="form-group time-selects">
-              <label>Heure *</label>
-              <div className="time-inputs">
-                <select
-                  id="hour"
-                  name="hour"
-                  value={currentHour}
-                  onChange={handleInputChange}
-                  required
-                  aria-label="Heure"
-                >
-                  <option value="">Heure</option>
-                  {hours.map(hour => (
-                    <option key={hour} value={hour}>{hour}h</option>
-                  ))}
-                </select>
-                
-                <select
-                  id="minute"
-                  name="minute"
-                  value={currentMinute}
-                  onChange={handleInputChange}
-                  required
-                  aria-label="Minute"
-                >
-                  <option value="">Minute</option>
-                  {minutes.map(minute => (
-                    <option key={minute} value={minute}>{minute}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="form-group">
+              <label htmlFor="time">Heure *</label>
+              <input
+                type="time"
+                id="time"
+                name="time"
+                value={newConcert.time}
+                onChange={handleInputChange}
+                required
+              />
             </div>
             
             <div className="form-group">
