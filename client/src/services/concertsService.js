@@ -272,13 +272,17 @@ export const addConcert = async (concertData) => {
       const contractData = {
         concertId: docRef.id,
         date: concertData.date,
+        optionDate: concertData.optionDate || null,
         artist: concertData.artist,
+        project: concertData.project || null,
         venue: concertData.venue,
         city: concertData.city,
         programmer: concertData.programmer,
-        preContract: { status: 'pending', date: null },
-        contract: { status: 'pending', date: null },
-        invoice: { status: 'pending', amount: concertData.price || 0, date: null },
+        amount: concertData.price || 0,
+        formStatus: 'pending',
+        contractSentStatus: 'pending',
+        contractSignedStatus: 'pending',
+        invoiceStatus: 'pending',
         status: 'en_cours',
         createdAt: new Date()
       };
@@ -312,13 +316,17 @@ export const addConcert = async (concertData) => {
         const contractData = {
           concertId: mockId,
           date: concertData.date,
+          optionDate: concertData.optionDate || null,
           artist: concertData.artist,
+          project: concertData.project || null,
           venue: concertData.venue,
           city: concertData.city,
           programmer: concertData.programmer,
-          preContract: { status: 'pending', date: null },
-          contract: { status: 'pending', date: null },
-          invoice: { status: 'pending', amount: concertData.price || 0, date: null },
+          amount: concertData.price || 0,
+          formStatus: 'pending',
+          contractSentStatus: 'pending',
+          contractSignedStatus: 'pending',
+          invoiceStatus: 'pending',
           status: 'en_cours',
           createdAt: new Date()
         };
