@@ -108,7 +108,7 @@
 }
 
 .col-actions {
-  width: 120px;
+  width: 100px;
   text-align: center;
 }
 
@@ -150,10 +150,6 @@
 
 .action-btn:hover {
   background-color: #e9ecef;
-}
-
-.edit-btn {
-  color: #3498db;
 }
 
 .view-btn {

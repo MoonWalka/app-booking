@@ -12,7 +12,7 @@ import {
   setDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { createContract } from './contractsService';
+import { createContract, deleteContractsByConcert } from './contractsService';
 
 // Assurez-vous que la collection existe
 const ensureCollection = async (collectionName) => {
@@ -409,11 +409,27 @@ export const deleteConcert = async (id) => {
     const docRef = doc(db, 'concerts', id);
     await deleteDoc(docRef);
     
-    console.log(`Concert ${id} supprimé avec succès`);
+    // Supprimer également tous les contrats liés à ce concert
+    try {
+      const deletedContractIds = await deleteContractsByConcert(id);
+      console.log(`Concert ${id} et ${deletedContractIds.length} contrats associés supprimés avec succès`);
+    } catch (contractError) {
+      console.error(`Erreur lors de la suppression des contrats liés au concert ${id}:`, contractError);
+    }
+    
     return id;
   } catch (error) {
     console.error(`Erreur lors de la suppression du concert ${id}:`, error);
     console.log("Simulation de la suppression d'un concert");
+    
+    // Tenter de supprimer les contrats associés même en cas d'erreur
+    try {
+      const deletedContractIds = await deleteContractsByConcert(id);
+      console.log(`${deletedContractIds.length} contrats associés au concert ${id} supprimés avec succès`);
+    } catch (contractError) {
+      console.error(`Erreur lors de la suppression des contrats liés au concert ${id}:`, contractError);
+    }
+    
     // Simuler la suppression d'un concert en cas d'erreur
     return id;
   }
