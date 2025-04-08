@@ -7,7 +7,7 @@ import './App.css';
 import Layout from './components/common/Layout';
 import Login from './components/auth/Login';
 import NotFound from './components/common/NotFound';
-import Dashboard from "./components/dashboard/Dashboard";
+import Dashboard from './components/dashboard/Dashboard';
 import ProgrammersList from './components/programmers/ProgrammersList';
 import ProgrammerDetail from './components/programmers/ProgrammerDetail';
 import ConcertsList from './components/concerts/ConcertsList';
@@ -16,6 +16,7 @@ import ArtistsList from './components/artists/ArtistsList';
 import ArtistDetail from './components/artists/ArtistDetail';
 import EmailSystem from './components/emails/EmailSystem';
 import DocumentsManager from './components/documents/DocumentsManager';
+import TestResults from './components/tests/TestResults';
 
 // Route protégée
 const ProtectedRoute = ({ children }) => {
@@ -52,6 +53,7 @@ function App() {
           <Route path="artistes/:id" element={<ArtistDetail />} />
           <Route path="emails" element={<EmailSystem />} />
           <Route path="documents" element={<DocumentsManager />} />
+          <Route path="tests" element={<TestResults />} />
         </Route>
         
         <Route path="*" element={<NotFound />} />
