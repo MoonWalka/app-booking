@@ -3,21 +3,11 @@ import { Link } from 'react-router-dom';
 import './ContractsTable.css';
 
 // Services
-import { fetchContracts, updateContractStatus } from '../../services/contractsService';
+import { fetchContracts, updateContract } from '../../services/contractsService';
 
 const ContractsTable = () => {
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    artist: '',
-    location: '',
-    status: 'all',
-    dateRange: { start: null, end: null }
-  });
-  const [sortConfig, setSortConfig] = useState({
-    key: 'date',
-    direction: 'ascending'
-  });
 
   // Récupération des données
   useEffect(() => {
@@ -25,7 +15,7 @@ const ContractsTable = () => {
       try {
         setLoading(true);
         // Utiliser le service pour récupérer les contrats depuis Firebase
-        const contractsData = await fetchContracts(filters);
+        const contractsData = await fetchContracts();
         setContracts(contractsData);
         setLoading(false);
       } catch (error) {
@@ -35,152 +25,111 @@ const ContractsTable = () => {
     };
 
     loadContracts();
-  }, [filters]);
-
-  // Fonction pour changer le tri
-  const requestSort = (key) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  // Fonction de tri
-  const sortedContracts = useMemo(() => {
-    const sortableContracts = [...contracts];
-    if (sortConfig.key) {
-      sortableContracts.sort((a, b) => {
-        let aValue, bValue;
-        
-        // Extraction des valeurs selon la clé de tri
-        switch(sortConfig.key) {
-          case 'date':
-            aValue = new Date(a.date);
-            bValue = new Date(b.date);
-            break;
-          case 'artist':
-            aValue = a.artist?.name?.toLowerCase() || '';
-            bValue = b.artist?.name?.toLowerCase() || '';
-            break;
-          case 'venue':
-            aValue = a.venue?.toLowerCase() || '';
-            bValue = b.venue?.toLowerCase() || '';
-            break;
-          case 'city':
-            aValue = a.city?.toLowerCase() || '';
-            bValue = b.city?.toLowerCase() || '';
-            break;
-          case 'programmer':
-            aValue = a.programmer?.name?.toLowerCase() || '';
-            bValue = b.programmer?.name?.toLowerCase() || '';
-            break;
-          case 'status':
-            aValue = a.status?.toLowerCase() || '';
-            bValue = b.status?.toLowerCase() || '';
-            break;
-          default:
-            aValue = a[sortConfig.key];
-            bValue = b[sortConfig.key];
-        }
-        
-        // Comparaison
-        if (aValue < bValue) {
-          return sortConfig.direction === 'ascending' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'ascending' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return sortableContracts;
-  }, [contracts, sortConfig]);
-
-  // Gestion de la progression des contrats
-  const getContractStatus = (contract) => {
-    const { preContract, contract: contractSigned, invoice } = contract;
-    
-    // Calcul du pourcentage de progression
-    let progress = 0;
-    let statusText = '';
-    let statusColor = '';
-    let statusIcon = '';
-    
-    if (preContract.status === 'signed') {
-      progress += 33;
-    }
-    
-    if (contractSigned.status === 'signed') {
-      progress += 33;
-    }
-    
-    if (invoice.status === 'paid') {
-      progress += 34;
-    }
-    
-    // Détermination du statut textuel, de la couleur et de l'icône
-    if (progress === 0) {
-      statusText = 'Non démarré';
-      statusColor = 'gray';
-      statusIcon = 'fas fa-file';
-    } else if (progress < 33) {
-      statusText = 'Pré-contrat';
-      statusColor = 'orange';
-      statusIcon = 'fas fa-file-signature';
-    } else if (progress < 66) {
-      statusText = 'Contrat en cours';
-      statusColor = 'blue';
-      statusIcon = 'fas fa-paper-plane';
-    } else if (progress < 100) {
-      statusText = 'Facturation';
-      statusColor = 'purple';
-      statusIcon = 'fas fa-file-invoice-dollar';
-    } else {
-      statusText = 'Complété';
-      statusColor = 'green';
-      statusIcon = 'fas fa-check-circle';
-    }
-    
-    return {
-      progress,
-      statusText,
-      statusColor,
-      statusIcon
-    };
-  };
-
-  // Fonction pour filtrer les contrats
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Fonction pour réinitialiser les filtres
-  const resetFilters = () => {
-    setFilters({
-      artist: '',
-      location: '',
-      status: 'all',
-      dateRange: { start: null, end: null }
-    });
-  };
-
-  // Fonction pour afficher les détails d'un contrat
-  const showContractDetails = (contractId) => {
-    // Cette fonction sera implémentée plus tard pour naviguer vers la page de détails
-    console.log(`Afficher les détails du contrat ${contractId}`);
-    // navigate(`/contrats/${contractId}`);
-  };
+  }, []);
 
   // Formatage de la date
   const formatDate = (dateString) => {
-    if (!dateString) return 'Non défini';
+    if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR');
+  };
+
+  // Formatage du montant
+  const formatAmount = (amount) => {
+    if (!amount && amount !== 0) return '-';
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+  };
+
+  // Gestion du changement de statut
+  const handleStatusChange = async (contractId, field, newStatus) => {
+    try {
+      // Trouver le contrat à mettre à jour
+      const contractToUpdate = contracts.find(c => c.id === contractId);
+      if (!contractToUpdate) return;
+
+      // Créer une copie du contrat avec le statut mis à jour
+      const updatedContract = { ...contractToUpdate };
+      
+      // Mettre à jour le statut selon le champ
+      switch (field) {
+        case 'formStatus':
+          updatedContract.formStatus = newStatus;
+          break;
+        case 'contractSentStatus':
+          updatedContract.contractSentStatus = newStatus;
+          break;
+        case 'contractSignedStatus':
+          updatedContract.contractSignedStatus = newStatus;
+          break;
+        case 'invoiceStatus':
+          updatedContract.invoiceStatus = newStatus;
+          break;
+        default:
+          break;
+      }
+
+      // Mettre à jour le contrat dans Firebase
+      await updateContract(contractId, updatedContract);
+
+      // Mettre à jour l'état local
+      setContracts(prevContracts => 
+        prevContracts.map(c => c.id === contractId ? updatedContract : c)
+      );
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+    }
+  };
+
+  // Rendu des icônes de statut
+  const renderStatusIcon = (status, contractId, field) => {
+    let icon, color, title;
+
+    switch (status) {
+      case 'validated':
+        icon = 'fas fa-check-circle';
+        color = '#28a745';
+        title = 'Validé';
+        break;
+      case 'pending':
+        icon = 'fas fa-clock';
+        color = '#ffc107';
+        title = 'À faire';
+        break;
+      case 'cancelled':
+        icon = 'fas fa-times-circle';
+        color = '#dc3545';
+        title = 'Annulé';
+        break;
+      default:
+        icon = 'fas fa-question-circle';
+        color = '#6c757d';
+        title = 'Non défini';
+        break;
+    }
+
+    // Déterminer le prochain statut lors du clic
+    const getNextStatus = (currentStatus) => {
+      switch (currentStatus) {
+        case 'validated': return 'pending';
+        case 'pending': return 'cancelled';
+        case 'cancelled': return 'validated';
+        default: return 'validated';
+      }
+    };
+
+    return (
+      <span 
+        className="status-icon" 
+        style={{ color }}
+        title={title}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleStatusChange(contractId, field, getNextStatus(status));
+        }}
+      >
+        <i className={icon}></i>
+      </span>
+    );
   };
 
   if (loading) {
@@ -188,194 +137,75 @@ const ContractsTable = () => {
   }
 
   return (
-    <div className="contracts-table-container">
-      {/* En-tête avec titre et statistiques */}
+    <div className="contracts-dashboard">
       <div className="contracts-header">
         <h1>Gestion des Contrats</h1>
-        <div className="contracts-stats">
-          <div className="stat-card">
-            <div className="stat-icon">
-              <i className="fas fa-file-contract"></i>
-            </div>
-            <div className="stat-content">
-              <h3>Total</h3>
-              <p className="stat-number">{contracts.length}</p>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon">
-              <i className="fas fa-clock"></i>
-            </div>
-            <div className="stat-content">
-              <h3>En cours</h3>
-              <p className="stat-number">
-                {contracts.filter(c => c.status === 'en_cours').length}
-              </p>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon">
-              <i className="fas fa-check-circle"></i>
-            </div>
-            <div className="stat-content">
-              <h3>Confirmés</h3>
-              <p className="stat-number">
-                {contracts.filter(c => c.status === 'confirmé').length}
-              </p>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon">
-              <i className="fas fa-comments"></i>
-            </div>
-            <div className="stat-content">
-              <h3>En négociation</h3>
-              <p className="stat-number">
-                {contracts.filter(c => c.status === 'en_négociation').length}
-              </p>
-            </div>
-          </div>
+        <div className="header-actions">
+          <Link to="/concerts/new" className="add-button">
+            <i className="fas fa-plus"></i> Nouveau concert
+          </Link>
         </div>
       </div>
       
-      {/* Composants de filtres et recherche */}
-      <div className="table-filters">
-        <div className="filter-group">
-          <input
-            type="text"
-            name="artist"
-            placeholder="Rechercher par artiste"
-            value={filters.artist}
-            onChange={handleFilterChange}
-            className="filter-input"
-          />
-        </div>
-        <div className="filter-group">
-          <input
-            type="text"
-            name="location"
-            placeholder="Rechercher par lieu"
-            value={filters.location}
-            onChange={handleFilterChange}
-            className="filter-input"
-          />
-        </div>
-        <div className="filter-group">
-          <select
-            name="status"
-            value={filters.status}
-            onChange={handleFilterChange}
-            className="filter-select"
-          >
-            <option value="all">Tous les statuts</option>
-            <option value="en_cours">En cours</option>
-            <option value="confirmé">Confirmé</option>
-            <option value="en_négociation">En négociation</option>
-          </select>
-        </div>
-        <button className="filter-reset-btn" onClick={resetFilters}>
-          <i className="fas fa-undo"></i> Réinitialiser
-        </button>
-        <Link to="/concerts" className="add-contract-btn">
-          <i className="fas fa-plus"></i> Nouveau concert
-        </Link>
-      </div>
-      
-      {/* Tableau principal */}
       <div className="table-responsive">
         <table className="contracts-table">
           <thead>
             <tr>
-              <th onClick={() => requestSort('date')} className={sortConfig.key === 'date' ? `sorted-${sortConfig.direction}` : ''}>
-                Date <i className="fas fa-sort"></i>
-              </th>
-              <th onClick={() => requestSort('artist')} className={sortConfig.key === 'artist' ? `sorted-${sortConfig.direction}` : ''}>
-                Artiste <i className="fas fa-sort"></i>
-              </th>
-              <th onClick={() => requestSort('venue')} className={sortConfig.key === 'venue' ? `sorted-${sortConfig.direction}` : ''}>
-                Lieu <i className="fas fa-sort"></i>
-              </th>
-              <th onClick={() => requestSort('city')} className={sortConfig.key === 'city' ? `sorted-${sortConfig.direction}` : ''}>
-                Ville <i className="fas fa-sort"></i>
-              </th>
-              <th onClick={() => requestSort('programmer')} className={sortConfig.key === 'programmer' ? `sorted-${sortConfig.direction}` : ''}>
-                Programmateur <i className="fas fa-sort"></i>
-              </th>
-              <th>Progression</th>
-              <th onClick={() => requestSort('status')} className={sortConfig.key === 'status' ? `sorted-${sortConfig.direction}` : ''}>
-                Statut <i className="fas fa-sort"></i>
-              </th>
-              <th>Actions</th>
+              <th className="col-artist">Artiste</th>
+              <th className="col-project">Projet</th>
+              <th className="col-venue">Lieu (concert)</th>
+              <th className="col-option-date">Prise d'option</th>
+              <th className="col-start-date">Début</th>
+              <th className="col-amount">Montant (€)</th>
+              <th className="col-status">Formulaire</th>
+              <th className="col-status">Contrat envoyé</th>
+              <th className="col-status">Contrat signé</th>
+              <th className="col-status">Facture émise</th>
+              <th className="col-actions">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {sortedContracts.length === 0 ? (
+            {contracts.length === 0 ? (
               <tr>
-                <td colSpan="8" className="no-data">Aucun contrat trouvé</td>
+                <td colSpan="11" className="no-data">Aucun contrat trouvé</td>
               </tr>
             ) : (
-              sortedContracts.map(contract => {
-                const contractStatus = getContractStatus(contract);
-                return (
-                  <tr key={contract.id} onClick={() => showContractDetails(contract.id)}>
-                    <td>{formatDate(contract.date)}</td>
-                    <td>{contract.artist?.name || 'Non défini'}</td>
-                    <td>{contract.venue || 'Non défini'}</td>
-                    <td>{contract.city || 'Non défini'}</td>
-                    <td>{contract.programmer?.name || 'Non défini'}</td>
-                    <td>
-                      <div className="progress-container">
-                        <div 
-                          className="progress-bar" 
-                          style={{ 
-                            width: `${contractStatus.progress}%`,
-                            backgroundColor: contractStatus.statusColor 
-                          }}
-                        ></div>
-                        <span className="progress-text">{contractStatus.progress}%</span>
-                      </div>
-                      <div className="progress-status" style={{ color: contractStatus.statusColor }}>
-                        <i className={contractStatus.statusIcon}></i> {contractStatus.statusText}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`status-badge status-${contract.status}`}>
-                        {contract.status?.charAt(0).toUpperCase() + contract.status?.slice(1).replace('_', ' ') || 'Non défini'}
-                      </span>
-                    </td>
-                    <td className="actions-cell">
-                      <button className="action-btn edit-btn" onClick={(e) => { e.stopPropagation(); }}>
-                        <i className="fas fa-edit"></i>
-                      </button>
-                      <button className="action-btn view-btn" onClick={(e) => { e.stopPropagation(); }}>
-                        <i className="fas fa-eye"></i>
-                      </button>
-                      <button className="action-btn delete-btn" onClick={(e) => { e.stopPropagation(); }}>
-                        <i className="fas fa-trash"></i>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
+              contracts.map(contract => (
+                <tr key={contract.id}>
+                  <td className="col-artist">{contract.artist?.name || '-'}</td>
+                  <td className="col-project">{contract.project || '-'}</td>
+                  <td className="col-venue">{contract.venue || '-'}</td>
+                  <td className="col-option-date">{formatDate(contract.optionDate)}</td>
+                  <td className="col-start-date">{formatDate(contract.date)}</td>
+                  <td className="col-amount">{formatAmount(contract.amount)}</td>
+                  <td className="col-status status-cell">
+                    {renderStatusIcon(contract.formStatus || 'pending', contract.id, 'formStatus')}
+                  </td>
+                  <td className="col-status status-cell">
+                    {renderStatusIcon(contract.contractSentStatus || 'pending', contract.id, 'contractSentStatus')}
+                  </td>
+                  <td className="col-status status-cell">
+                    {renderStatusIcon(contract.contractSignedStatus || 'pending', contract.id, 'contractSignedStatus')}
+                  </td>
+                  <td className="col-status status-cell">
+                    {renderStatusIcon(contract.invoiceStatus || 'pending', contract.id, 'invoiceStatus')}
+                  </td>
+                  <td className="col-actions actions-cell">
+                    <button className="action-btn edit-btn" title="Modifier" onClick={(e) => { e.stopPropagation(); }}>
+                      <i className="fas fa-edit"></i>
+                    </button>
+                    <button className="action-btn view-btn" title="Voir" onClick={(e) => { e.stopPropagation(); }}>
+                      <i className="fas fa-eye"></i>
+                    </button>
+                    <button className="action-btn delete-btn" title="Supprimer" onClick={(e) => { e.stopPropagation(); }}>
+                      <i className="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
-      </div>
-      
-      {/* Pagination et informations sur le nombre total */}
-      <div className="table-footer">
-        <div className="pagination">
-          <button className="pagination-btn" disabled>
-            <i className="fas fa-chevron-left"></i> Précédent
-          </button>
-          <span className="pagination-info">Page 1 sur 1</span>
-          <button className="pagination-btn" disabled>
-            Suivant <i className="fas fa-chevron-right"></i>
-          </button>
-        </div>
-        <div className="total-info">
-          Affichage de {sortedContracts.length} contrat(s) sur {contracts.length} au total
-        </div>
       </div>
     </div>
   );

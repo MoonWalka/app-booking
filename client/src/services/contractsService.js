@@ -17,26 +17,23 @@ export const fetchContracts = async (filters = {}) => {
     
     // Application des filtres si nécessaire
     if (filters) {
-      // Exemple: filtrer par artiste
+      // Filtrer par artiste
       if (filters.artist) {
         contractsQuery = query(contractsQuery, where('artist.name', '>=', filters.artist), 
                                              where('artist.name', '<=', filters.artist + '\uf8ff'));
       }
       
-      // Exemple: filtrer par lieu
-      if (filters.location) {
-        contractsQuery = query(contractsQuery, where('venue', '>=', filters.location), 
-                                             where('venue', '<=', filters.location + '\uf8ff'));
+      // Filtrer par lieu
+      if (filters.venue) {
+        contractsQuery = query(contractsQuery, where('venue', '>=', filters.venue), 
+                                             where('venue', '<=', filters.venue + '\uf8ff'));
       }
       
-      // Exemple: filtrer par statut
-      if (filters.status && filters.status !== 'all') {
-        contractsQuery = query(contractsQuery, where('status', '==', filters.status));
+      // Filtrer par projet
+      if (filters.project) {
+        contractsQuery = query(contractsQuery, where('project', '>=', filters.project), 
+                                             where('project', '<=', filters.project + '\uf8ff'));
       }
-      
-      // Exemple: filtrer par plage de dates
-      // Note: Ce type de filtre est plus complexe et pourrait nécessiter plusieurs requêtes
-      // ou un traitement côté client selon les besoins spécifiques
     }
     
     // Ajout d'un tri par date
@@ -63,37 +60,81 @@ export const fetchContracts = async (filters = {}) => {
       {
         id: '1',
         date: '2025-05-15',
+        optionDate: '2025-03-01',
         artist: { id: 'a1', name: 'Les Harmonies Urbaines' },
+        project: 'Tournée Printemps',
         venue: 'L\'Olympia',
         city: 'Paris',
         programmer: { id: 'p1', name: 'Jean Dupont' },
-        preContract: { status: 'signed', date: '2025-03-10' },
-        contract: { status: 'pending', date: null },
-        invoice: { status: 'pending', amount: 2500, date: null },
+        amount: 2500,
+        formStatus: 'validated',
+        contractSentStatus: 'validated',
+        contractSignedStatus: 'pending',
+        invoiceStatus: 'pending',
         status: 'en_cours'
       },
       {
         id: '2',
         date: '2025-06-20',
+        optionDate: '2025-04-01',
         artist: { id: 'a2', name: 'Échos Poétiques' },
+        project: 'Festival d\'été',
         venue: 'Zénith',
         city: 'Lille',
         programmer: { id: 'p2', name: 'Marie Martin' },
-        preContract: { status: 'signed', date: '2025-04-05' },
-        contract: { status: 'signed', date: '2025-04-20' },
-        invoice: { status: 'pending', amount: 3000, date: null },
+        amount: 3000,
+        formStatus: 'validated',
+        contractSentStatus: 'validated',
+        contractSignedStatus: 'validated',
+        invoiceStatus: 'pending',
         status: 'confirmé'
       },
       {
         id: '3',
         date: '2025-07-10',
+        optionDate: null,
         artist: { id: 'a3', name: 'Rythmes Solaires' },
+        project: 'Showcase',
         venue: 'La Cigale',
         city: 'Paris',
         programmer: { id: 'p3', name: 'Sophie Lefebvre' },
-        preContract: { status: 'pending', date: null },
-        contract: { status: 'pending', date: null },
-        invoice: { status: 'pending', amount: 1800, date: null },
+        amount: 1800,
+        formStatus: 'pending',
+        contractSentStatus: 'pending',
+        contractSignedStatus: 'pending',
+        invoiceStatus: 'pending',
+        status: 'en_négociation'
+      },
+      {
+        id: '4',
+        date: '2025-08-05',
+        optionDate: '2025-05-15',
+        artist: { id: 'a4', name: 'Jazz Fusion Quartet' },
+        project: 'Jazz Tour',
+        venue: 'New Morning',
+        city: 'Paris',
+        programmer: { id: 'p4', name: 'Pierre Dubois' },
+        amount: 2200,
+        formStatus: 'validated',
+        contractSentStatus: 'validated',
+        contractSignedStatus: 'validated',
+        invoiceStatus: 'validated',
+        status: 'confirmé'
+      },
+      {
+        id: '5',
+        date: '2025-09-12',
+        optionDate: '2025-06-20',
+        artist: { id: 'a5', name: 'Électro Symphonie' },
+        project: 'Électro Night',
+        venue: 'Bataclan',
+        city: 'Paris',
+        programmer: { id: 'p5', name: 'Lucie Moreau' },
+        amount: 2800,
+        formStatus: 'validated',
+        contractSentStatus: 'cancelled',
+        contractSignedStatus: 'pending',
+        invoiceStatus: 'pending',
         status: 'en_négociation'
       }
     ];
@@ -132,10 +173,22 @@ export const getContractById = async (id) => {
  */
 export const createContract = async (contractData) => {
   try {
-    const docRef = await addDoc(collection(db, CONTRACTS_COLLECTION), contractData);
+    // S'assurer que les nouveaux champs sont présents
+    const completeContractData = {
+      ...contractData,
+      project: contractData.project || null,
+      optionDate: contractData.optionDate || null,
+      amount: contractData.amount || 0,
+      formStatus: contractData.formStatus || 'pending',
+      contractSentStatus: contractData.contractSentStatus || 'pending',
+      contractSignedStatus: contractData.contractSignedStatus || 'pending',
+      invoiceStatus: contractData.invoiceStatus || 'pending'
+    };
+    
+    const docRef = await addDoc(collection(db, CONTRACTS_COLLECTION), completeContractData);
     return {
       id: docRef.id,
-      ...contractData
+      ...completeContractData
     };
   } catch (error) {
     console.error('Erreur lors de la création du contrat:', error);
@@ -153,7 +206,7 @@ export const createContract = async (contractData) => {
  * Met à jour un contrat existant
  * @param {string} id - ID du contrat
  * @param {Object} contractData - Nouvelles données du contrat
- * @returns {Promise<void>}
+ * @returns {Promise<Object>} Contrat mis à jour
  */
 export const updateContract = async (id, contractData) => {
   try {
@@ -171,7 +224,7 @@ export const updateContract = async (id, contractData) => {
 /**
  * Supprime un contrat
  * @param {string} id - ID du contrat
- * @returns {Promise<void>}
+ * @returns {Promise<string>} ID du contrat supprimé
  */
 export const deleteContract = async (id) => {
   try {
@@ -270,21 +323,30 @@ export const getContractsByConcert = async (concertId) => {
 };
 
 /**
- * Met à jour le statut d'un contrat
- * @param {string} id - ID du contrat
- * @param {string} status - Nouveau statut
- * @returns {Promise<Object>} Contrat mis à jour
+ * Récupère les contrats par projet
+ * @param {string} project - Nom du projet
+ * @returns {Promise<Array>} Liste des contrats
  */
-export const updateContractStatus = async (id, status) => {
+export const getContractsByProject = async (project) => {
   try {
-    const contractRef = doc(db, CONTRACTS_COLLECTION, id);
-    await updateDoc(contractRef, { status });
+    const contractsQuery = query(
+      collection(db, CONTRACTS_COLLECTION), 
+      where('project', '==', project),
+      orderBy('date', 'desc')
+    );
+    const querySnapshot = await getDocs(contractsQuery);
     
-    // Récupérer le contrat mis à jour
-    const updatedContract = await getContractById(id);
-    return updatedContract;
+    const contracts = [];
+    querySnapshot.forEach((doc) => {
+      contracts.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    return contracts;
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du statut du contrat:', error);
+    console.error('Erreur lors de la récupération des contrats par projet:', error);
     throw error;
   }
 };
