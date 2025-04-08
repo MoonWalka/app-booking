@@ -35,6 +35,18 @@ const Layout = () => {
             </span>
             Tableau de bord
           </Link>
+          <Link to="/contrats" className={`nav-item ${isActive('/contrats') ? 'active' : ''}`}>
+            <span className="nav-icon">
+              <i className="fas fa-file-contract"></i>
+            </span>
+            Contrats
+          </Link>
+          <Link to="/factures" className={`nav-item ${isActive('/factures') ? 'active' : ''}`}>
+            <span className="nav-icon">
+              <i className="fas fa-file-invoice-dollar"></i>
+            </span>
+            Factures
+          </Link>
           <Link to="/concerts" className={`nav-item ${isActive('/concerts') ? 'active' : ''}`}>
             <span className="nav-icon">
               <i className="fas fa-calendar-alt"></i>
@@ -78,6 +90,8 @@ const Layout = () => {
         <header className="main-header">
           <div className="page-title">
             {location.pathname === '/' && 'Tableau de bord'}
+            {location.pathname === '/contrats' && 'Gestion des contrats'}
+            {location.pathname === '/factures' && 'Gestion des factures'}
             {location.pathname === '/concerts' && 'Gestion des concerts'}
             {location.pathname === '/artistes' && 'Gestion des artistes'}
             {location.pathname === '/programmateurs' && 'Gestion des programmateurs'}

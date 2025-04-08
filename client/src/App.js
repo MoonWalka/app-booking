@@ -18,6 +18,7 @@ import EmailSystem from './components/emails/EmailSystem';
 import DocumentsManager from './components/documents/DocumentsManager';
 import TestFirebaseIntegration from './components/tests/TestFirebaseIntegration';
 import ArtistEdit from './components/artists/ArtistEdit';
+import ContractsTable from './components/contracts/ContractsTable';
 
 // Route protégée
 const ProtectedRoute = ({ children }) => {
@@ -57,6 +58,8 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<Dashboard />} />
+          <Route path="contrats" element={<ContractsTable />} />
+          <Route path="factures" element={<div>Module Factures à venir</div>} />
           <Route path="programmateurs" element={<ProgrammersList />} />
           <Route path="programmateurs/:id" element={<ProgrammerDetail />} />
           <Route path="concerts" element={<ConcertsList />} />
