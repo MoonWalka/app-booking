@@ -59,6 +59,7 @@ export const fetchContracts = async (filters = {}) => {
     const mockContracts = [
       {
         id: '1',
+        concertId: 'mock-concert-1',
         date: '2025-05-15',
         optionDate: '2025-03-01',
         artist: { id: 'a1', name: 'Les Harmonies Urbaines' },
@@ -75,6 +76,7 @@ export const fetchContracts = async (filters = {}) => {
       },
       {
         id: '2',
+        concertId: 'mock-concert-2',
         date: '2025-06-20',
         optionDate: '2025-04-01',
         artist: { id: 'a2', name: 'Échos Poétiques' },
@@ -91,6 +93,7 @@ export const fetchContracts = async (filters = {}) => {
       },
       {
         id: '3',
+        concertId: 'mock-concert-3',
         date: '2025-07-10',
         optionDate: null,
         artist: { id: 'a3', name: 'Rythmes Solaires' },
@@ -107,6 +110,7 @@ export const fetchContracts = async (filters = {}) => {
       },
       {
         id: '4',
+        concertId: 'mock-concert-4',
         date: '2025-08-05',
         optionDate: '2025-05-15',
         artist: { id: 'a4', name: 'Jazz Fusion Quartet' },
@@ -123,6 +127,7 @@ export const fetchContracts = async (filters = {}) => {
       },
       {
         id: '5',
+        concertId: 'mock-concert-5',
         date: '2025-09-12',
         optionDate: '2025-06-20',
         artist: { id: 'a5', name: 'Électro Symphonie' },
@@ -232,6 +237,45 @@ export const deleteContract = async (id) => {
     return id;
   } catch (error) {
     console.error('Erreur lors de la suppression du contrat:', error);
+    throw error;
+  }
+};
+
+/**
+ * Supprime les contrats liés à un concert
+ * @param {string} concertId - ID du concert
+ * @returns {Promise<Array>} Liste des IDs des contrats supprimés
+ */
+export const deleteContractsByConcert = async (concertId) => {
+  try {
+    // Récupérer tous les contrats liés au concert
+    const contractsQuery = query(
+      collection(db, CONTRACTS_COLLECTION), 
+      where('concertId', '==', concertId)
+    );
+    const querySnapshot = await getDocs(contractsQuery);
+    
+    // Si aucun contrat n'est trouvé, retourner un tableau vide
+    if (querySnapshot.empty) {
+      return [];
+    }
+    
+    // Supprimer chaque contrat et collecter les IDs
+    const deletedIds = [];
+    const deletePromises = [];
+    
+    querySnapshot.forEach((doc) => {
+      deletedIds.push(doc.id);
+      deletePromises.push(deleteDoc(doc.ref));
+    });
+    
+    // Attendre que toutes les suppressions soient terminées
+    await Promise.all(deletePromises);
+    
+    console.log(`${deletedIds.length} contrats liés au concert ${concertId} ont été supprimés`);
+    return deletedIds;
+  } catch (error) {
+    console.error(`Erreur lors de la suppression des contrats liés au concert ${concertId}:`, error);
     throw error;
   }
 };

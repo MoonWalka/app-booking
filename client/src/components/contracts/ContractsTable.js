@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './ContractsTable.css';
 
 // Services
-import { fetchContracts, updateContract } from '../../services/contractsService';
+import { fetchContracts, updateContract, deleteContract } from '../../services/contractsService';
 
 const ContractsTable = () => {
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   // Récupération des données
   useEffect(() => {
@@ -77,6 +78,29 @@ const ContractsTable = () => {
       );
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
+    }
+  };
+
+  // Fonction pour visualiser le concert associé
+  const viewConcert = (concertId) => {
+    if (concertId) {
+      navigate(`/concerts/${concertId}`);
+    } else {
+      alert('Aucun concert associé à ce contrat');
+    }
+  };
+
+  // Fonction pour supprimer un contrat
+  const handleDeleteContract = async (contractId) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce contrat ?')) {
+      try {
+        await deleteContract(contractId);
+        // Mettre à jour l'état local en supprimant le contrat
+        setContracts(prevContracts => prevContracts.filter(c => c.id !== contractId));
+      } catch (error) {
+        console.error('Erreur lors de la suppression du contrat:', error);
+        alert('Erreur lors de la suppression du contrat');
+      }
     }
   };
 
@@ -191,13 +215,24 @@ const ContractsTable = () => {
                     {renderStatusIcon(contract.invoiceStatus || 'pending', contract.id, 'invoiceStatus')}
                   </td>
                   <td className="col-actions actions-cell">
-                    <button className="action-btn edit-btn" title="Modifier" onClick={(e) => { e.stopPropagation(); }}>
-                      <i className="fas fa-edit"></i>
-                    </button>
-                    <button className="action-btn view-btn" title="Voir" onClick={(e) => { e.stopPropagation(); }}>
+                    <button 
+                      className="action-btn view-btn" 
+                      title="Voir le concert" 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        viewConcert(contract.concertId);
+                      }}
+                    >
                       <i className="fas fa-eye"></i>
                     </button>
-                    <button className="action-btn delete-btn" title="Supprimer" onClick={(e) => { e.stopPropagation(); }}>
+                    <button 
+                      className="action-btn delete-btn" 
+                      title="Supprimer" 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleDeleteContract(contract.id);
+                      }}
+                    >
                       <i className="fas fa-trash"></i>
                     </button>
                   </td>
