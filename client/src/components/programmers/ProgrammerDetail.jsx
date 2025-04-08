@@ -12,15 +12,29 @@ const ProgrammerDetail = () => {
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    structure: '',
+    businessName: '',
+    contact: '',
+    role: '',
+    address: '',
+    venue: '',
+    vatNumber: '',
+    siret: '',
     email: '',
     phone: '',
-    city: '',
-    region: '',
     website: '',
     notes: ''
   });
+
+  // Options pour le champ "qualité"
+  const roleOptions = [
+    'Programmateur',
+    'Président',
+    'Gérant',
+    'Directeur',
+    'Administrateur',
+    'Chargé de production',
+    'Autre'
+  ];
 
   useEffect(() => {
     const fetchProgrammer = async () => {
@@ -38,12 +52,15 @@ const ProgrammerDetail = () => {
         console.log('Programmateur récupéré:', data);
         setProgrammer(data);
         setFormData({
-          name: data.name || '',
-          structure: data.structure || '',
+          businessName: data.businessName || '',
+          contact: data.contact || '',
+          role: data.role || '',
+          address: data.address || '',
+          venue: data.venue || '',
+          vatNumber: data.vatNumber || '',
+          siret: data.siret || '',
           email: data.email || '',
           phone: data.phone || '',
-          city: data.city || '',
-          region: data.region || '',
           website: data.website || '',
           notes: data.notes || ''
         });
@@ -113,38 +130,101 @@ const ProgrammerDetail = () => {
       {isEditing ? (
         <form onSubmit={handleSubmit} className="edit-form">
           <div className="form-group">
-            <label htmlFor="name">Nom du programmateur *</label>
+            <label htmlFor="businessName">Raison sociale</label>
             <input
               type="text"
-              id="name"
-              name="name"
-              value={formData.name}
+              id="businessName"
+              name="businessName"
+              value={formData.businessName}
               onChange={handleInputChange}
-              required
+              placeholder="Nom de l'entreprise ou de l'organisation"
             />
           </div>
           
           <div className="form-group">
-            <label htmlFor="structure">Structure *</label>
+            <label htmlFor="contact">Contact</label>
             <input
               type="text"
-              id="structure"
-              name="structure"
-              value={formData.structure}
+              id="contact"
+              name="contact"
+              value={formData.contact}
               onChange={handleInputChange}
-              required
+              placeholder="Nom et prénom du contact"
             />
           </div>
           
           <div className="form-group">
-            <label htmlFor="email">Email *</label>
+            <label htmlFor="role">Qualité</label>
+            <select
+              id="role"
+              name="role"
+              value={formData.role}
+              onChange={handleInputChange}
+            >
+              <option value="">Sélectionner une qualité</option>
+              {roleOptions.map(role => (
+                <option key={role} value={role}>{role}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="address">Adresse de la raison sociale</label>
+            <textarea
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleInputChange}
+              rows="3"
+              placeholder="Adresse complète"
+            ></textarea>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="venue">Lieu ou festival</label>
+            <input
+              type="text"
+              id="venue"
+              name="venue"
+              value={formData.venue}
+              onChange={handleInputChange}
+              placeholder="Nom du lieu ou du festival"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="vatNumber">Numéro intracommunautaire</label>
+            <input
+              type="text"
+              id="vatNumber"
+              name="vatNumber"
+              value={formData.vatNumber}
+              onChange={handleInputChange}
+              placeholder="FR12345678901"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="siret">SIRET</label>
+            <input
+              type="text"
+              id="siret"
+              name="siret"
+              value={formData.siret}
+              onChange={handleInputChange}
+              placeholder="123 456 789 00012"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
             <input
               type="email"
               id="email"
               name="email"
               value={formData.email}
               onChange={handleInputChange}
-              required
+              placeholder="email@exemple.com"
             />
           </div>
           
@@ -156,29 +236,7 @@ const ProgrammerDetail = () => {
               name="phone"
               value={formData.phone}
               onChange={handleInputChange}
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="city">Ville *</label>
-            <input
-              type="text"
-              id="city"
-              name="city"
-              value={formData.city}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="region">Région</label>
-            <input
-              type="text"
-              id="region"
-              name="region"
-              value={formData.region}
-              onChange={handleInputChange}
+              placeholder="06 12 34 56 78"
             />
           </div>
           
@@ -202,6 +260,7 @@ const ProgrammerDetail = () => {
               value={formData.notes}
               onChange={handleInputChange}
               rows="4"
+              placeholder="Informations complémentaires"
             ></textarea>
           </div>
           
@@ -218,33 +277,48 @@ const ProgrammerDetail = () => {
         <>
           <div className="programmer-info">
             <div className="info-row">
-              <span className="info-label">Nom:</span>
-              <span className="info-value">{programmer.name}</span>
+              <span className="info-label">Raison sociale:</span>
+              <span className="info-value">{programmer.businessName || 'Non spécifié'}</span>
             </div>
             
             <div className="info-row">
-              <span className="info-label">Structure:</span>
-              <span className="info-value">{programmer.structure}</span>
+              <span className="info-label">Contact:</span>
+              <span className="info-value">{programmer.contact || 'Non spécifié'}</span>
+            </div>
+            
+            <div className="info-row">
+              <span className="info-label">Qualité:</span>
+              <span className="info-value">{programmer.role || 'Non spécifié'}</span>
+            </div>
+            
+            <div className="info-row">
+              <span className="info-label">Adresse:</span>
+              <span className="info-value">{programmer.address || 'Non spécifié'}</span>
+            </div>
+            
+            <div className="info-row">
+              <span className="info-label">Lieu ou festival:</span>
+              <span className="info-value">{programmer.venue || 'Non spécifié'}</span>
+            </div>
+            
+            <div className="info-row">
+              <span className="info-label">N° intracommunautaire:</span>
+              <span className="info-value">{programmer.vatNumber || 'Non spécifié'}</span>
+            </div>
+            
+            <div className="info-row">
+              <span className="info-label">SIRET:</span>
+              <span className="info-value">{programmer.siret || 'Non spécifié'}</span>
             </div>
             
             <div className="info-row">
               <span className="info-label">Email:</span>
-              <span className="info-value">{programmer.email}</span>
+              <span className="info-value">{programmer.email || 'Non spécifié'}</span>
             </div>
             
             <div className="info-row">
               <span className="info-label">Téléphone:</span>
               <span className="info-value">{programmer.phone || 'Non spécifié'}</span>
-            </div>
-            
-            <div className="info-row">
-              <span className="info-label">Ville:</span>
-              <span className="info-value">{programmer.city}</span>
-            </div>
-            
-            <div className="info-row">
-              <span className="info-label">Région:</span>
-              <span className="info-value">{programmer.region || 'Non spécifiée'}</span>
             </div>
             
             {programmer.website && (
