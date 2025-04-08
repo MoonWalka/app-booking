@@ -87,19 +87,6 @@ export const getProgrammers = async () => {
     
     if (snapshot.empty) {
       console.log("Aucun programmateur trouvé dans Firebase, utilisation des données simulées");
-      
-      // Essayer d'ajouter les données simulées à Firebase
-      try {
-        console.log("Tentative d'ajout des données simulées à Firebase...");
-        for (const programmer of mockProgrammers) {
-          const { id, ...programmerData } = programmer;
-          await setDoc(doc(db, 'programmers', id), programmerData);
-        }
-        console.log("Données simulées ajoutées à Firebase avec succès");
-      } catch (addError) {
-        console.error("Erreur lors de l'ajout des données simulées:", addError);
-      }
-      
       return mockProgrammers;
     }
     

@@ -18,7 +18,7 @@ const ensureCollection = async (collectionName) => {
   try {
     // Vérifier si la collection existe en essayant de récupérer des documents
     const collectionRef = collection(db, collectionName);
-    const snapshot = await getDocs(query(collectionRef, orderBy('date', 'desc')));
+    const snapshot = await getDocs(query(collectionRef, orderBy('date')));
     
     // Si la collection n'existe pas ou est vide, créer un document initial
     if (snapshot.empty) {
@@ -112,19 +112,6 @@ export const getConcerts = async () => {
     
     if (snapshot.empty) {
       console.log("Aucun concert trouvé dans Firebase, utilisation des données simulées");
-      
-      // Essayer d'ajouter les données simulées à Firebase
-      try {
-        console.log("Tentative d'ajout des données simulées à Firebase...");
-        for (const concert of mockConcerts) {
-          const { id, ...concertData } = concert;
-          await setDoc(doc(db, 'concerts', id), concertData);
-        }
-        console.log("Données simulées ajoutées à Firebase avec succès");
-      } catch (addError) {
-        console.error("Erreur lors de l'ajout des données simulées:", addError);
-      }
-      
       return mockConcerts;
     }
     

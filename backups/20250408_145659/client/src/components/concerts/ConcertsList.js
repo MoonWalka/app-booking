@@ -1,7 +1,6 @@
+// client/src/components/concerts/ConcertsList.js
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getConcerts } from '../../services/concertsService';
-import './ConcertsList.css';
 
 const ConcertsList = () => {
   const [concerts, setConcerts] = useState([]);
@@ -12,13 +11,14 @@ const ConcertsList = () => {
     const fetchConcerts = async () => {
       try {
         setLoading(true);
-        console.log("Tentative de récupération des concerts via Firebase...");
-        const data = await getConcerts();
-        console.log("Concerts récupérés:", data);
+        const response = await fetch('/api/concerts');
+        if (!response.ok) {
+          throw new Error('Erreur lors de la récupération des concerts');
+        }
+        const data = await response.json();
         setConcerts(data);
         setLoading(false);
       } catch (err) {
-        console.error("Erreur dans le composant lors de la récupération des concerts:", err);
         setError(err.message);
         setLoading(false);
       }
@@ -27,39 +27,35 @@ const ConcertsList = () => {
     fetchConcerts();
   }, []);
 
-  if (loading) return <div className="loading">Chargement des concerts...</div>;
-  if (error) return <div className="error-message">Erreur: {error}</div>;
+  if (loading) return <div>Chargement des concerts...</div>;
+  if (error) return <div>Erreur: {error}</div>;
 
   return (
     <div className="concerts-list-container">
       <h2>Liste des Concerts</h2>
       {concerts.length === 0 ? (
-        <p className="no-results">Aucun concert trouvé.</p>
+        <p>Aucun concert trouvé.</p>
       ) : (
         <div className="concerts-table-container">
           <table className="concerts-table">
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Heure</th>
                 <th>Artiste</th>
                 <th>Lieu</th>
                 <th>Ville</th>
-                <th>Statut</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {concerts.map((concert) => (
-                <tr key={concert.id}>
-                  <td>{concert.date ? new Date(concert.date).toLocaleDateString() : 'Non spécifié'}</td>
-                  <td>{concert.time || 'Non spécifié'}</td>
+                <tr key={concert._id}>
+                  <td>{new Date(concert.date).toLocaleDateString()}</td>
                   <td>{concert.artist?.name || 'Non spécifié'}</td>
-                  <td>{concert.venue || 'Non spécifié'}</td>
-                  <td>{concert.city || 'Non spécifié'}</td>
-                  <td>{concert.status || 'Non spécifié'}</td>
+                  <td>{concert.venue}</td>
+                  <td>{concert.city}</td>
                   <td>
-                    <Link to={`/concerts/${concert.id}`} className="view-details-btn">
+                    <Link to={`/concerts/${concert._id}`} className="view-btn">
                       Voir
                     </Link>
                   </td>

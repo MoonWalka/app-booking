@@ -1,7 +1,7 @@
+// client/src/components/concerts/ConcertsList.js
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getConcerts } from '../../services/concertsService';
-import './ConcertsList.css';
 
 const ConcertsList = () => {
   const [concerts, setConcerts] = useState([]);
@@ -12,7 +12,7 @@ const ConcertsList = () => {
     const fetchConcerts = async () => {
       try {
         setLoading(true);
-        console.log("Tentative de récupération des concerts via Firebase...");
+        console.log("Tentative de récupération des concerts...");
         const data = await getConcerts();
         console.log("Concerts récupérés:", data);
         setConcerts(data);
