@@ -308,3 +308,191 @@
     flex-direction: column;
   }
 }
+
+/* Styles pour le tableau des concerts */
+.concerts-table-container {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.concerts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.concerts-table th,
+.concerts-table td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.concerts-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  color: #444;
+}
+
+.concerts-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.concert-row td {
+  vertical-align: middle;
+}
+
+/* Styles pour les badges de statut */
+.status-badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-en-attente {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.status-confirme {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-contrat-envoye {
+  background-color: #fff8e1;
+  color: #f57f17;
+}
+
+.status-contrat-signe {
+  background-color: #e0f7fa;
+  color: #00838f;
+}
+
+.status-acompte-recu {
+  background-color: #e8eaf6;
+  color: #3949ab;
+}
+
+.status-solde {
+  background-color: #e0f2f1;
+  color: #00796b;
+}
+
+.status-annule {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.status-non-specifie {
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
+/* Styles pour le formulaire d'édition d'artiste */
+.artist-edit-container {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.artist-edit-container h2 {
+  margin-bottom: 20px;
+  color: #333;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+}
+
+.edit-form {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cancel-btn, .save-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.cancel-btn {
+  background-color: #6c757d;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background-color: #5a6268;
+}
+
+.save-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.save-btn:hover {
+  background-color: #218838;
+}
+
+.save-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .concerts-table th,
+  .concerts-table td {
+    padding: 8px 5px;
+    font-size: 12px;
+  }
+  
+  .status-badge {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+  
+  .view-concert-btn {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+}
