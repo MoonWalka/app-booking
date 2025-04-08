@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import './ContractsTable.css';
 
-// Services à créer plus tard
-import { fetchContracts } from '../../services/contractsService';
+// Services
+import { fetchContracts, updateContractStatus } from '../../services/contractsService';
 
 const ContractsTable = () => {
   const [contracts, setContracts] = useState([]);
@@ -24,72 +24,9 @@ const ContractsTable = () => {
     const loadContracts = async () => {
       try {
         setLoading(true);
-        // Temporairement, nous utilisons des données fictives
-        // Plus tard, nous implémenterons fetchContracts avec Firebase
-        const mockContracts = [
-          {
-            id: '1',
-            date: '2025-05-15',
-            artist: { id: 'a1', name: 'Les Harmonies Urbaines' },
-            venue: 'L\'Olympia',
-            city: 'Paris',
-            programmer: { id: 'p1', name: 'Jean Dupont' },
-            preContract: { status: 'signed', date: '2025-03-10' },
-            contract: { status: 'pending', date: null },
-            invoice: { status: 'pending', amount: 2500, date: null },
-            status: 'en_cours'
-          },
-          {
-            id: '2',
-            date: '2025-06-20',
-            artist: { id: 'a2', name: 'Échos Poétiques' },
-            venue: 'Zénith',
-            city: 'Lille',
-            programmer: { id: 'p2', name: 'Marie Martin' },
-            preContract: { status: 'signed', date: '2025-04-05' },
-            contract: { status: 'signed', date: '2025-04-20' },
-            invoice: { status: 'pending', amount: 3000, date: null },
-            status: 'confirmé'
-          },
-          {
-            id: '3',
-            date: '2025-07-10',
-            artist: { id: 'a3', name: 'Rythmes Solaires' },
-            venue: 'La Cigale',
-            city: 'Paris',
-            programmer: { id: 'p3', name: 'Sophie Lefebvre' },
-            preContract: { status: 'pending', date: null },
-            contract: { status: 'pending', date: null },
-            invoice: { status: 'pending', amount: 1800, date: null },
-            status: 'en_négociation'
-          },
-          {
-            id: '4',
-            date: '2025-05-30',
-            artist: { id: 'a4', name: 'Jazz Fusion Quartet' },
-            venue: 'New Morning',
-            city: 'Paris',
-            programmer: { id: 'p4', name: 'Pierre Dubois' },
-            preContract: { status: 'signed', date: '2025-03-15' },
-            contract: { status: 'signed', date: '2025-04-10' },
-            invoice: { status: 'paid', amount: 2200, date: '2025-04-25' },
-            status: 'confirmé'
-          },
-          {
-            id: '5',
-            date: '2025-08-05',
-            artist: { id: 'a5', name: 'Électro Symphonie' },
-            venue: 'Bataclan',
-            city: 'Paris',
-            programmer: { id: 'p5', name: 'Lucie Moreau' },
-            preContract: { status: 'signed', date: '2025-04-20' },
-            contract: { status: 'pending', date: null },
-            invoice: { status: 'pending', amount: 2800, date: null },
-            status: 'en_cours'
-          }
-        ];
-        
-        setContracts(mockContracts);
+        // Utiliser le service pour récupérer les contrats depuis Firebase
+        const contractsData = await fetchContracts(filters);
+        setContracts(contractsData);
         setLoading(false);
       } catch (error) {
         console.error('Erreur lors du chargement des contrats:', error);
@@ -123,24 +60,24 @@ const ContractsTable = () => {
             bValue = new Date(b.date);
             break;
           case 'artist':
-            aValue = a.artist.name.toLowerCase();
-            bValue = b.artist.name.toLowerCase();
+            aValue = a.artist?.name?.toLowerCase() || '';
+            bValue = b.artist?.name?.toLowerCase() || '';
             break;
           case 'venue':
-            aValue = a.venue.toLowerCase();
-            bValue = b.venue.toLowerCase();
+            aValue = a.venue?.toLowerCase() || '';
+            bValue = b.venue?.toLowerCase() || '';
             break;
           case 'city':
-            aValue = a.city.toLowerCase();
-            bValue = b.city.toLowerCase();
+            aValue = a.city?.toLowerCase() || '';
+            bValue = b.city?.toLowerCase() || '';
             break;
           case 'programmer':
-            aValue = a.programmer.name.toLowerCase();
-            bValue = b.programmer.name.toLowerCase();
+            aValue = a.programmer?.name?.toLowerCase() || '';
+            bValue = b.programmer?.name?.toLowerCase() || '';
             break;
           case 'status':
-            aValue = a.status.toLowerCase();
-            bValue = b.status.toLowerCase();
+            aValue = a.status?.toLowerCase() || '';
+            bValue = b.status?.toLowerCase() || '';
             break;
           default:
             aValue = a[sortConfig.key];
@@ -168,6 +105,7 @@ const ContractsTable = () => {
     let progress = 0;
     let statusText = '';
     let statusColor = '';
+    let statusIcon = '';
     
     if (preContract.status === 'signed') {
       progress += 33;
@@ -181,28 +119,34 @@ const ContractsTable = () => {
       progress += 34;
     }
     
-    // Détermination du statut textuel et de la couleur
+    // Détermination du statut textuel, de la couleur et de l'icône
     if (progress === 0) {
       statusText = 'Non démarré';
       statusColor = 'gray';
+      statusIcon = 'fas fa-file';
     } else if (progress < 33) {
       statusText = 'Pré-contrat';
       statusColor = 'orange';
+      statusIcon = 'fas fa-file-signature';
     } else if (progress < 66) {
       statusText = 'Contrat en cours';
       statusColor = 'blue';
+      statusIcon = 'fas fa-paper-plane';
     } else if (progress < 100) {
       statusText = 'Facturation';
       statusColor = 'purple';
+      statusIcon = 'fas fa-file-invoice-dollar';
     } else {
       statusText = 'Complété';
       statusColor = 'green';
+      statusIcon = 'fas fa-check-circle';
     }
     
     return {
       progress,
       statusText,
-      statusColor
+      statusColor,
+      statusIcon
     };
   };
 
@@ -332,9 +276,9 @@ const ContractsTable = () => {
         <button className="filter-reset-btn" onClick={resetFilters}>
           <i className="fas fa-undo"></i> Réinitialiser
         </button>
-        <button className="add-contract-btn">
-          <i className="fas fa-plus"></i> Nouveau contrat
-        </button>
+        <Link to="/concerts" className="add-contract-btn">
+          <i className="fas fa-plus"></i> Nouveau concert
+        </Link>
       </div>
       
       {/* Tableau principal */}
@@ -375,10 +319,10 @@ const ContractsTable = () => {
                 return (
                   <tr key={contract.id} onClick={() => showContractDetails(contract.id)}>
                     <td>{formatDate(contract.date)}</td>
-                    <td>{contract.artist.name}</td>
-                    <td>{contract.venue}</td>
-                    <td>{contract.city}</td>
-                    <td>{contract.programmer.name}</td>
+                    <td>{contract.artist?.name || 'Non défini'}</td>
+                    <td>{contract.venue || 'Non défini'}</td>
+                    <td>{contract.city || 'Non défini'}</td>
+                    <td>{contract.programmer?.name || 'Non défini'}</td>
                     <td>
                       <div className="progress-container">
                         <div 
@@ -391,12 +335,12 @@ const ContractsTable = () => {
                         <span className="progress-text">{contractStatus.progress}%</span>
                       </div>
                       <div className="progress-status" style={{ color: contractStatus.statusColor }}>
-                        {contractStatus.statusText}
+                        <i className={contractStatus.statusIcon}></i> {contractStatus.statusText}
                       </div>
                     </td>
                     <td>
                       <span className={`status-badge status-${contract.status}`}>
-                        {contract.status.charAt(0).toUpperCase() + contract.status.slice(1).replace('_', ' ')}
+                        {contract.status?.charAt(0).toUpperCase() + contract.status?.slice(1).replace('_', ' ') || 'Non défini'}
                       </span>
                     </td>
                     <td className="actions-cell">
