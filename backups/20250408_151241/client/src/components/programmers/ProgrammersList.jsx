@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getProgrammers } from '../../services/programmersService';
-import './ProgrammersList.css';
 
 const ProgrammersList = () => {
   const [programmers, setProgrammers] = useState([]);
@@ -12,7 +11,7 @@ const ProgrammersList = () => {
     const fetchProgrammers = async () => {
       try {
         setLoading(true);
-        console.log("Tentative de récupération des programmateurs via Firebase...");
+        console.log("Tentative de récupération des programmateurs...");
         const data = await getProgrammers();
         console.log("Programmateurs récupérés:", data);
         setProgrammers(data);

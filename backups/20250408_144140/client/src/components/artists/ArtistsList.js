@@ -14,7 +14,7 @@ const ArtistsList = () => {
   // État pour le formulaire d'ajout d'artiste
   const [newArtist, setNewArtist] = useState({
     name: '',
-    genre: 'Rock', // Valeur par défaut pour éviter le problème de sélection
+    genre: '',
     location: '',
     members: 1,
     contactEmail: '',
@@ -39,11 +39,9 @@ const ArtistsList = () => {
       try {
         setLoading(true);
         const data = await getArtists();
-        console.log("Données d'artistes récupérées:", data); // Log pour le débogage
         setArtists(data);
         setLoading(false);
       } catch (err) {
-        console.error("Erreur dans le composant lors de la récupération des artistes:", err);
         setError(err.message);
         setLoading(false);
       }
@@ -70,9 +68,6 @@ const ArtistsList = () => {
         [name]: value
       });
     }
-    
-    // Log pour le débogage
-    console.log(`Champ ${name} mis à jour avec la valeur: ${value}`);
   };
 
   const handleSubmit = async (e) => {
@@ -86,14 +81,12 @@ const ArtistsList = () => {
         members: parseInt(newArtist.members, 10) || 1
       };
       
-      console.log("Données de l'artiste à ajouter:", artistData); // Log pour le débogage
-      
       await addArtist(artistData);
       
       // Réinitialiser le formulaire
       setNewArtist({
         name: '',
-        genre: 'Rock', // Maintenir la valeur par défaut
+        genre: '',
         location: '',
         members: 1,
         contactEmail: '',
@@ -115,7 +108,6 @@ const ArtistsList = () => {
       
       setLoading(false);
     } catch (err) {
-      console.error("Erreur lors de l'ajout de l'artiste:", err);
       setError(err.message);
       setLoading(false);
     }
@@ -170,6 +162,7 @@ const ArtistsList = () => {
                 onChange={handleInputChange}
                 required
               >
+                <option value="">Sélectionnez un genre</option>
                 {genres.map(genre => (
                   <option key={genre} value={genre}>{genre}</option>
                 ))}
