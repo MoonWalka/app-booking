@@ -32,34 +32,16 @@ export const getProgrammers = async () => {
         email: 'marie.dupont@vibrations.fr',
         phone: '06 12 34 56 78',
         city: 'Lyon',
-        region: 'Auvergne-Rhône-Alpes',
-        styles: ['Jazz', 'Folk'],
-        capacity: 300,
-        lastContact: '2025-03-15'
+        region: 'Auvergne-Rhône-Alpes'
       },
       {
         id: '2',
-        name: 'Jean Martin',
-        structure: 'Le Loft',
-        email: 'jean.martin@leloft.com',
-        phone: '06 98 76 54 32',
-        city: 'Paris',
-        region: 'Île-de-France',
-        styles: ['Électro', 'Hip-Hop'],
-        capacity: 500,
-        lastContact: '2025-03-20'
-      },
-      {
-        id: '3',
-        name: 'Sophie Legrand',
-        structure: 'Centre Culturel Municipal',
-        email: 'sophie.legrand@ccm.fr',
-        phone: '06 45 67 89 01',
-        city: 'Toulouse',
-        region: 'Occitanie',
-        styles: ['Classique', 'World'],
-        capacity: 800,
-        lastContact: '2025-03-10'
+        name: 'Thomas Martin',
+        structure: 'Festival Éclectique',
+        email: 'thomas.martin@eclectique.fr',
+        phone: '07 23 45 67 89',
+        city: 'Nantes',
+        region: 'Pays de la Loire'
       }
     ];
   }
@@ -67,17 +49,16 @@ export const getProgrammers = async () => {
 
 export const getProgrammerById = async (id) => {
   try {
-    const docRef = doc(db, 'programmers', id);
+    const docRef = doc(programmersCollection, id);
     const snapshot = await getDoc(docRef);
-    
     if (snapshot.exists()) {
       return {
         id: snapshot.id,
         ...snapshot.data()
       };
+    } else {
+      return null;
     }
-    
-    return null;
   } catch (error) {
     console.error("Erreur lors de la récupération du programmateur:", error);
     return null;
@@ -102,8 +83,11 @@ export const addProgrammer = async (programmerData) => {
 
 export const updateProgrammer = async (id, programmerData) => {
   try {
-    const docRef = doc(db, 'programmers', id);
-    await updateDoc(docRef, programmerData);
+    const docRef = doc(programmersCollection, id);
+    await updateDoc(docRef, {
+      ...programmerData,
+      updatedAt: new Date()
+    });
     return {
       id,
       ...programmerData
@@ -116,9 +100,9 @@ export const updateProgrammer = async (id, programmerData) => {
 
 export const deleteProgrammer = async (id) => {
   try {
-    const docRef = doc(db, 'programmers', id);
+    const docRef = doc(programmersCollection, id);
     await deleteDoc(docRef);
-    return id;
+    return true;
   } catch (error) {
     console.error("Erreur lors de la suppression du programmateur:", error);
     throw error;
