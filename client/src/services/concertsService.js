@@ -12,6 +12,7 @@ import {
   setDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { createContract } from './contractsService';
 
 // Assurez-vous que la collection existe
 const ensureCollection = async (collectionName) => {
@@ -265,6 +266,29 @@ export const addConcert = async (concertData) => {
     });
     
     console.log(`Concert ajouté avec succès, ID: ${docRef.id}`);
+    
+    // Créer automatiquement un contrat associé au concert
+    try {
+      const contractData = {
+        concertId: docRef.id,
+        date: concertData.date,
+        artist: concertData.artist,
+        venue: concertData.venue,
+        city: concertData.city,
+        programmer: concertData.programmer,
+        preContract: { status: 'pending', date: null },
+        contract: { status: 'pending', date: null },
+        invoice: { status: 'pending', amount: concertData.price || 0, date: null },
+        status: 'en_cours',
+        createdAt: new Date()
+      };
+      
+      const newContract = await createContract(contractData);
+      console.log(`Contrat créé automatiquement pour le concert ${docRef.id}:`, newContract);
+    } catch (contractError) {
+      console.error("Erreur lors de la création automatique du contrat:", contractError);
+    }
+    
     return {
       id: docRef.id,
       ...concertData
@@ -282,6 +306,29 @@ export const addConcert = async (concertData) => {
       });
       
       console.log(`Concert ajouté avec un ID manuel: ${mockId}`);
+      
+      // Créer automatiquement un contrat associé au concert simulé
+      try {
+        const contractData = {
+          concertId: mockId,
+          date: concertData.date,
+          artist: concertData.artist,
+          venue: concertData.venue,
+          city: concertData.city,
+          programmer: concertData.programmer,
+          preContract: { status: 'pending', date: null },
+          contract: { status: 'pending', date: null },
+          invoice: { status: 'pending', amount: concertData.price || 0, date: null },
+          status: 'en_cours',
+          createdAt: new Date()
+        };
+        
+        const newContract = await createContract(contractData);
+        console.log(`Contrat créé automatiquement pour le concert simulé ${mockId}:`, newContract);
+      } catch (contractError) {
+        console.error("Erreur lors de la création automatique du contrat simulé:", contractError);
+      }
+      
       return {
         id: mockId,
         ...concertData,
