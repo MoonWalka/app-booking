@@ -16,14 +16,20 @@ import ArtistsList from './components/artists/ArtistsList';
 import ArtistDetail from './components/artists/ArtistDetail';
 import EmailSystem from './components/emails/EmailSystem';
 import DocumentsManager from './components/documents/DocumentsManager';
-import TestResults from './components/tests/TestResults';
+import TestFirebaseIntegration from './components/tests/TestFirebaseIntegration';
 
 // Route protégée
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, bypassEnabled } = useAuth();
   
   if (loading) {
     return <div>Chargement...</div>;
+  }
+  
+  // Si le mode bypass est activé, on autorise l'accès même sans authentification
+  if (bypassEnabled) {
+    console.log('Mode bypass d\'authentification activé - Accès autorisé');
+    return children;
   }
   
   if (!isAuthenticated) {
@@ -34,10 +40,15 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
+  const { bypassEnabled } = useAuth();
+
   return (
     <div className="App">
       <Routes>
-        <Route path="/login" element={<Login />} />
+        {/* Si le mode bypass est activé, la page de login redirige vers le dashboard */}
+        <Route path="/login" element={
+          bypassEnabled ? <Navigate to="/" /> : <Login />
+        } />
         
         <Route path="/" element={
           <ProtectedRoute>
@@ -53,11 +64,29 @@ function App() {
           <Route path="artistes/:id" element={<ArtistDetail />} />
           <Route path="emails" element={<EmailSystem />} />
           <Route path="documents" element={<DocumentsManager />} />
-          <Route path="tests" element={<TestResults />} />
+          <Route path="tests" element={<TestFirebaseIntegration />} />
         </Route>
         
         <Route path="*" element={<NotFound />} />
       </Routes>
+      
+      {/* Bannière d'information sur le mode bypass */}
+      {bypassEnabled && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#fff3cd',
+          color: '#856404',
+          padding: '10px',
+          textAlign: 'center',
+          borderTop: '1px solid #ffeeba',
+          zIndex: 1000
+        }}>
+          Mode test activé - Authentification désactivée
+        </div>
+      )}
     </div>
   );
 }
