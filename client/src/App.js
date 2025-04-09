@@ -25,6 +25,17 @@ import FormValidationList from './components/formValidation/FormValidationList';
 import PublicFormPage from './components/public/PublicFormPage';
 import FormSubmittedPage from './components/public/FormSubmittedPage';
 
+//route publique ajouté par chatGPT
+<Routes>
+  <Route path="/form/:token" element={<PublicFormPage />} />
+  <Route path="/form-submitted" element={<FormSubmittedPage />} />
+  <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+    <Route index element={<Dashboard />} />
+    {/* Autres routes protégées */}
+  </Route>
+  <Route path="*" element={<NotFound />} />
+</Routes>
+
 // Route protégée
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading, bypassEnabled } = useAuth();
