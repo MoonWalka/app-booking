@@ -207,8 +207,8 @@ const ConcertDetail = () => {
         return;
       }
       
-      // Vérifier si un lien existe déjà
-      if (formLink) {
+      // Vérifier si un lien existe déjà pour le concert ET si la date correspond
+      if (formLink && formLink.concertDate === concert.date) {
         setShowLinkModal(true);
         setLoading(false);
         return;
@@ -222,8 +222,8 @@ const ConcertDetail = () => {
         programmerId: concert.programmer.id,
         programmerName: concert.programmer.name
       });
-      console.log("Lien généré :", newLink); 
       
+      console.log("Lien généré :", newLink);
       setFormLink(newLink);
       setShowLinkModal(true);
       setLoading(false);
