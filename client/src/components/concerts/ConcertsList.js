@@ -138,6 +138,7 @@ const ConcertsList = () => {
       console.log("Données du concert à ajouter:", concertData);
       
       await addConcert(concertData);
+      console.log("concertData envoyé :", concertData);
       
       // Réinitialiser le formulaire
       setNewConcert({
