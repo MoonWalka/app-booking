@@ -1,40 +1,121 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import './App.css';
+
+// Composants
 import Layout from './components/common/Layout';
-import ArtistsList from './components/artists/ArtistsList';
-import ArtistDetail from './components/artists/ArtistDetail';
+import Login from './components/auth/Login';
+import NotFound from './components/common/NotFound';
+import Dashboard from './components/dashboard/Dashboard';
 import ProgrammersList from './components/programmers/ProgrammersList';
 import ProgrammerDetail from './components/programmers/ProgrammerDetail';
 import ConcertsList from './components/concerts/ConcertsList';
 import ConcertDetail from './components/concerts/ConcertDetail';
+import ArtistsList from './components/artists/ArtistsList';
+import ArtistDetail from './components/artists/ArtistDetail';
+import EmailSystem from './components/emails/EmailSystem';
+import DocumentsManager from './components/documents/DocumentsManager';
+import TestFirebaseIntegration from './components/tests/TestFirebaseIntegration';
+import ArtistEdit from './components/artists/ArtistEdit';
 import ContractsTable from './components/contracts/ContractsTable';
 import FormValidationList from './components/formValidation/FormValidationList';
-import PublicFormPage from './components/public/PublicFormPage';
-import FormSubmittedPage from './components/public/FormSubmittedPage';
-import './App.css';
+
+// Composants publics pour les formulaires
+// Importation conditionnelle pour éviter les erreurs si les fichiers n'existent pas
+let PublicFormPage = () => <div>Formulaire non disponible</div>;
+let FormSubmittedPage = () => <div>Formulaire soumis</div>;
+
+try {
+  // Tentative d'importation des composants publics
+  const PublicFormPageModule = require('./components/public/PublicFormPage');
+  const FormSubmittedPageModule = require('./components/public/FormSubmittedPage');
+  
+  PublicFormPage = PublicFormPageModule.default || PublicFormPageModule;
+  FormSubmittedPage = FormSubmittedPageModule.default || FormSubmittedPageModule;
+  
+  console.log('Composants de formulaires publics chargés avec succès');
+} catch (error) {
+  console.warn('Impossible de charger les composants de formulaires publics:', error.message);
+}
+
+// Route protégée
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading, bypassEnabled } = useAuth();
+  
+  if (loading) {
+    return <div>Chargement...</div>;
+  }
+  
+  // Si le mode bypass est activé, on autorise l'accès même sans authentification
+  if (bypassEnabled) {
+    console.log('Mode bypass d\'authentification activé - Accès autorisé');
+    return children;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+  
+  return children;
+};
 
 function App() {
+  const { bypassEnabled } = useAuth();
+
   return (
-    <Router>
+    <div className="App">
       <Routes>
-        {/* Routes publiques pour les formulaires */}
+        {/* Routes publiques pour les formulaires - HORS AUTHENTIFICATION */}
         <Route path="/form/:token" element={<PublicFormPage />} />
         <Route path="/form-submitted" element={<FormSubmittedPage />} />
         
-        {/* Routes protégées par le layout */}
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Navigate to="/concerts" replace />} />
-          <Route path="artists" element={<ArtistsList />} />
-          <Route path="artists/:id" element={<ArtistDetail />} />
-          <Route path="programmers" element={<ProgrammersList />} />
-          <Route path="programmers/:id" element={<ProgrammerDetail />} />
+        {/* Si le mode bypass est activé, la page de login redirige vers le dashboard */}
+        <Route path="/login" element={
+          bypassEnabled ? <Navigate to="/" /> : <Login />
+        } />
+        
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<Dashboard />} />
+          <Route path="contrats" element={<ContractsTable />} />
+          <Route path="factures" element={<div>Module Factures à venir</div>} />
+          <Route path="programmateurs" element={<ProgrammersList />} />
+          <Route path="programmateurs/:id" element={<ProgrammerDetail />} />
           <Route path="concerts" element={<ConcertsList />} />
           <Route path="concerts/:id" element={<ConcertDetail />} />
-          <Route path="contrats" element={<ContractsTable />} />
-          <Route path="form-validation" element={<FormValidationList />} />
+          <Route path="artistes" element={<ArtistsList />} />
+          <Route path="artistes/:id" element={<ArtistDetail />} />
+          <Route path="emails" element={<EmailSystem />} />
+          <Route path="documents" element={<DocumentsManager />} />
+          <Route path="validation-formulaires" element={<FormValidationList />} />
+          <Route path="tests" element={<TestFirebaseIntegration />} />
         </Route>
+        
+        <Route path="*" element={<NotFound />} />
       </Routes>
-    </Router>
+      
+      {/* Bannière d'information sur le mode bypass */}
+      {bypassEnabled && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#fff3cd',
+          color: '#856404',
+          padding: '10px',
+          textAlign: 'center',
+          borderTop: '1px solid #ffeeba',
+          zIndex: 1000
+        }}>
+          Mode test activé - Authentification désactivée
+        </div>
+      )}
+    </div>
   );
 }
 
