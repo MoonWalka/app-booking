@@ -9,7 +9,8 @@ import {
   query,
   orderBy,
   where,
-  setDoc
+  setDoc,
+  Timestamp
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { createContract, deleteContractsByConcert } from './contractsService';
@@ -34,7 +35,8 @@ const ensureCollection = async (collectionName) => {
           name: 'Programmateur Exemple',
           structure: 'Salle Exemple'
         },
-        date: '2025-12-31',
+        // Conversion de la chaîne en Timestamp
+        date: Timestamp.fromDate(new Date('2025-12-31')),
         time: '20:00',
         venue: 'Salle de concert',
         city: 'Paris',
@@ -260,18 +262,25 @@ export const addConcert = async (concertData) => {
     await ensureCollection('concerts');
     
     console.log("Tentative d'ajout d'un concert à Firebase:", concertData);
-    const docRef = await addDoc(concertsCollection, {
+    // Conversion du champ "date" en Timestamp si nécessaire
+    const convertedConcertData = {
       ...concertData,
+      date: typeof concertData.date === 'string'
+              ? Timestamp.fromDate(new Date(concertData.date))
+              : concertData.date,
       createdAt: new Date()
-    });
+    };
     
+    const docRef = await addDoc(concertsCollection, convertedConcertData);
     console.log(`Concert ajouté avec succès, ID: ${docRef.id}`);
     
-    // Créer automatiquement un contrat associé au concert
+    // Créer automatiquement un contrat associé au concert avec conversion de la date
     try {
       const contractData = {
         concertId: docRef.id,
-        date: concertData.date,
+        date: typeof concertData.date === 'string'
+                ? Timestamp.fromDate(new Date(concertData.date))
+                : concertData.date,
         optionDate: concertData.optionDate || null,
         artist: concertData.artist,
         project: concertData.project || null,
@@ -295,27 +304,32 @@ export const addConcert = async (concertData) => {
     
     return {
       id: docRef.id,
-      ...concertData
+      ...convertedConcertData
     };
   } catch (error) {
     console.error("Erreur lors de l'ajout du concert:", error);
     console.log("Simulation de l'ajout d'un concert");
     
-    // Essayer d'ajouter le concert avec un ID généré manuellement
+    // En cas d'erreur, essayer d'ajouter le concert avec un ID généré manuellement
     try {
       const mockId = 'mock-concert-' + Date.now();
-      await setDoc(doc(db, 'concerts', mockId), {
+      const convertedConcertData = {
         ...concertData,
+        date: typeof concertData.date === 'string'
+                ? Timestamp.fromDate(new Date(concertData.date))
+                : concertData.date,
         createdAt: new Date()
-      });
-      
+      };
+      await setDoc(doc(db, 'concerts', mockId), convertedConcertData);
       console.log(`Concert ajouté avec un ID manuel: ${mockId}`);
       
       // Créer automatiquement un contrat associé au concert simulé
       try {
         const contractData = {
           concertId: mockId,
-          date: concertData.date,
+          date: typeof concertData.date === 'string'
+                  ? Timestamp.fromDate(new Date(concertData.date))
+                  : concertData.date,
           optionDate: concertData.optionDate || null,
           artist: concertData.artist,
           project: concertData.project || null,
@@ -339,13 +353,12 @@ export const addConcert = async (concertData) => {
       
       return {
         id: mockId,
-        ...concertData,
-        createdAt: new Date()
+        ...convertedConcertData
       };
     } catch (addError) {
       console.error("Erreur lors de l'ajout manuel du concert:", addError);
       
-      // Simuler l'ajout d'un concert en cas d'erreur
+      // Simulation minimale de l'ajout en cas d'échec
       const mockId = 'mock-concert-' + Date.now();
       return {
         id: mockId,
@@ -393,7 +406,7 @@ export const updateConcert = async (id, concertData) => {
     } catch (setError) {
       console.error(`Erreur lors de la création/remplacement du concert ${id}:`, setError);
       
-      // Simuler la mise à jour d'un concert en cas d'erreur
+      // Simulation de la mise à jour en cas d'erreur
       return {
         id,
         ...concertData,
