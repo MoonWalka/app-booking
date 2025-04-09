@@ -215,12 +215,13 @@ const ConcertDetail = () => {
       }
       
       // Générer un nouveau lien
-      const newLink = await generateFormLink(
-        id,
-        concert,
-        concert.programmer.id,
-        concert.programmer.name
-      );
+const newLink = await generateFormLink({
+  concertId: id,
+  concertName: concert.venue || '',
+  concertDate: concert.date || '',
+  programmerId: concert.programmer.id,
+  programmerName: concert.programmer.name
+});
       
       setFormLink(newLink);
       setShowLinkModal(true);
