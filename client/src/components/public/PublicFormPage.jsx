@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getFormLinkByToken } from '../../services/formLinkService';
-import { createFormSubmission} from '../../services/formSubmissionsService';
+import { createFormSubmission } from '../../services/formSubmissionsService';
 import './PublicFormPage.css';
 
 const PublicFormPage = () => {
@@ -91,7 +91,7 @@ const PublicFormPage = () => {
       };
       
       // Soumettre le formulaire
-      const result = await createFormSubmission(submissionData, formLink.id);
+      const result = await createFormSubmission(submissionData);
       console.log('Form submission result:', result);
       
       if (result) {

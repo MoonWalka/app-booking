@@ -21,7 +21,7 @@ import ArtistEdit from './components/artists/ArtistEdit';
 import ContractsTable from './components/contracts/ContractsTable';
 import FormValidationList from './components/formValidation/FormValidationList';
 
-// Importation directe des composants publics pour éviter les problèmes d'importation conditionnelle
+// Composants publics
 import PublicFormPage from './components/public/PublicFormPage';
 import FormSubmittedPage from './components/public/FormSubmittedPage';
 
@@ -49,13 +49,10 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   const { bypassEnabled } = useAuth();
 
-  console.log('App component rendered');
-
   return (
     <div className="App">
       <Routes>
-        {/* Routes publiques pour les formulaires - HORS AUTHENTIFICATION */}
-        {/* Ces routes doivent être définies AVANT les routes protégées pour éviter les conflits */}
+        {/* Routes publiques - accessibles sans authentification */}
         <Route path="/form/:token" element={<PublicFormPage />} />
         <Route path="/form-submitted" element={<FormSubmittedPage />} />
         
@@ -64,7 +61,6 @@ function App() {
           bypassEnabled ? <Navigate to="/" /> : <Login />
         } />
         
-        {/* Routes protégées */}
         <Route path="/" element={
           <ProtectedRoute>
             <Layout />
@@ -85,7 +81,6 @@ function App() {
           <Route path="tests" element={<TestFirebaseIntegration />} />
         </Route>
         
-        {/* Route de fallback pour les URLs non reconnues */}
         <Route path="*" element={<NotFound />} />
       </Routes>
       
