@@ -217,8 +217,8 @@ const ConcertDetail = () => {
       // Générer un nouveau lien
       const newLink = await createFormLink({
         concertId: id,
-        concertName: concert.title || concert.name || '',
-        concertDate: concert.date || '',
+        concertName: concert.venue || "",
+        concertDate: concert.date || "",
         programmerId: concert.programmer.id,
         programmerName: concert.programmer.name
       });
