@@ -10,7 +10,8 @@ import {
   orderBy,
   where,
   setDoc,
-  Timestamp
+  Timestamp,
+  limit
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -74,7 +75,12 @@ const mockFormSubmissions = [
     website: 'https://www.festivaldusud.fr',
     status: 'pending',
     submittedAt: new Date(),
-    notes: 'Formulaire exemple'
+    notes: 'Formulaire exemple',
+    // Nouveaux champs pour lier au concert
+    concertId: 'mock-concert-1',
+    concertName: 'Concert exemple',
+    concertDate: new Date(),
+    formLinkId: 'mock-link-1'
   },
   {
     id: 'mock-form-2',
@@ -93,7 +99,12 @@ const mockFormSubmissions = [
     status: 'processed',
     submittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 jours avant
     processedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 jours avant
-    notes: 'Formulaire traité'
+    notes: 'Formulaire traité',
+    // Nouveaux champs pour lier au concert
+    concertId: 'mock-concert-2',
+    concertName: 'Concert exemple 2',
+    concertDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours après
+    formLinkId: 'mock-link-2'
   },
   {
     id: 'mock-form-3',
@@ -111,7 +122,12 @@ const mockFormSubmissions = [
     website: 'https://www.petittheatre.fr',
     status: 'pending',
     submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 jours avant
-    notes: 'Formulaire sans programmateur associé'
+    notes: 'Formulaire sans programmateur associé',
+    // Nouveaux champs pour lier au concert
+    concertId: 'mock-concert-3',
+    concertName: 'Concert exemple 3',
+    concertDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 jours après
+    formLinkId: 'mock-link-3'
   }
 ];
 
@@ -144,6 +160,16 @@ export const getFormSubmissions = async (filters = {}) => {
       if (filters.programmerId) {
         formQuery = query(formQuery, where('programmerId', '==', filters.programmerId));
       }
+      
+      // Filtrer par concert
+      if (filters.concertId) {
+        formQuery = query(formQuery, where('concertId', '==', filters.concertId));
+      }
+      
+      // Filtrer par lien de formulaire
+      if (filters.formLinkId) {
+        formQuery = query(formQuery, where('formLinkId', '==', filters.formLinkId));
+      }
     }
     
     // Ajout d'un tri par date de soumission (du plus récent au plus ancien)
@@ -163,7 +189,8 @@ export const getFormSubmissions = async (filters = {}) => {
           await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, id), {
             ...formData,
             submittedAt: Timestamp.fromDate(formData.submittedAt),
-            processedAt: formData.processedAt ? Timestamp.fromDate(formData.processedAt) : null
+            processedAt: formData.processedAt ? Timestamp.fromDate(formData.processedAt) : null,
+            concertDate: formData.concertDate ? Timestamp.fromDate(formData.concertDate) : null
           });
         }
         console.log("Données simulées ajoutées à Firebase avec succès");
@@ -193,7 +220,8 @@ export const getFormSubmissions = async (filters = {}) => {
         await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, id), {
           ...formData,
           submittedAt: Timestamp.fromDate(formData.submittedAt),
-          processedAt: formData.processedAt ? Timestamp.fromDate(formData.processedAt) : null
+          processedAt: formData.processedAt ? Timestamp.fromDate(formData.processedAt) : null,
+          concertDate: formData.concertDate ? Timestamp.fromDate(formData.concertDate) : null
         });
       }
       console.log("Données simulées ajoutées à Firebase avec succès");
@@ -254,7 +282,13 @@ export const createFormSubmission = async (formData) => {
     const completeFormData = {
       ...formData,
       status: formData.status || 'pending',
-      submittedAt: Timestamp.fromDate(new Date())
+      submittedAt: Timestamp.fromDate(new Date()),
+      // Convertir la date du concert en Timestamp si elle existe
+      concertDate: formData.concertDate ? 
+        (formData.concertDate instanceof Date ? 
+          Timestamp.fromDate(formData.concertDate) : 
+          formData.concertDate) : 
+        null
     };
     
     console.log("Tentative d'ajout d'un formulaire à Firebase:", completeFormData);
@@ -275,7 +309,13 @@ export const createFormSubmission = async (formData) => {
       const completeFormData = {
         ...formData,
         status: formData.status || 'pending',
-        submittedAt: Timestamp.fromDate(new Date())
+        submittedAt: Timestamp.fromDate(new Date()),
+        // Convertir la date du concert en Timestamp si elle existe
+        concertDate: formData.concertDate ? 
+          (formData.concertDate instanceof Date ? 
+            Timestamp.fromDate(formData.concertDate) : 
+            formData.concertDate) : 
+          null
       };
       
       await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, mockId), completeFormData);
@@ -294,7 +334,8 @@ export const createFormSubmission = async (formData) => {
         id: mockId,
         ...formData,
         status: formData.status || 'pending',
-        submittedAt: new Date()
+        submittedAt: new Date(),
+        concertDate: formData.concertDate || null
       };
     }
   }
@@ -320,6 +361,13 @@ export const updateFormSubmission = async (id, formData) => {
       updateData.processedAt = Timestamp.fromDate(new Date());
     }
     
+    // Convertir la date du concert en Timestamp si elle existe
+    if (updateData.concertDate) {
+      updateData.concertDate = updateData.concertDate instanceof Date ? 
+        Timestamp.fromDate(updateData.concertDate) : 
+        updateData.concertDate;
+    }
+    
     await updateDoc(docRef, updateData);
     
     console.log(`Formulaire ${id} mis à jour avec succès`);
@@ -337,6 +385,13 @@ export const updateFormSubmission = async (id, formData) => {
       const updateData = { ...formData };
       if ((formData.status === 'processed' || formData.status === 'rejected') && !formData.processedAt) {
         updateData.processedAt = Timestamp.fromDate(new Date());
+      }
+      
+      // Convertir la date du concert en Timestamp si elle existe
+      if (updateData.concertDate) {
+        updateData.concertDate = updateData.concertDate instanceof Date ? 
+          Timestamp.fromDate(updateData.concertDate) : 
+          updateData.concertDate;
       }
       
       await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, id), updateData, { merge: true });
@@ -457,5 +512,85 @@ export const getFormSubmissionsByStatus = async (status) => {
     const mockForms = mockFormSubmissions.filter(form => form.status === status);
     console.log(`Utilisation de ${mockForms.length} formulaires simulés avec le statut ${status}`);
     return mockForms;
+  }
+};
+
+/**
+ * Récupère les formulaires soumis pour un concert spécifique
+ * @param {string} concertId - ID du concert
+ * @returns {Promise<Array>} Liste des formulaires soumis
+ */
+export const getFormSubmissionsByConcert = async (concertId) => {
+  try {
+    // S'assurer que la collection existe
+    await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
+    
+    console.log(`Tentative de récupération des formulaires pour le concert ${concertId}...`);
+    const formQuery = query(
+      formSubmissionsCollection, 
+      where('concertId', '==', concertId),
+      orderBy('submittedAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(formQuery);
+    
+    if (snapshot.empty) {
+      console.log(`Aucun formulaire trouvé pour le concert ${concertId}`);
+      return [];
+    }
+    
+    const formSubmissions = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    console.log(`${formSubmissions.length} formulaires récupérés pour le concert ${concertId}`);
+    return formSubmissions;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération des formulaires pour le concert ${concertId}:`, error);
+    // Retourner des formulaires simulés pour ce concert
+    const mockForms = mockFormSubmissions.filter(form => form.concertId === concertId);
+    console.log(`Utilisation de ${mockForms.length} formulaires simulés pour le concert ${concertId}`);
+    return mockForms;
+  }
+};
+
+/**
+ * Récupère un formulaire soumis par l'ID du lien de formulaire
+ * @param {string} formLinkId - ID du lien de formulaire
+ * @returns {Promise<Object>} Données du formulaire
+ */
+export const getFormSubmissionByFormLinkId = async (formLinkId) => {
+  try {
+    // S'assurer que la collection existe
+    await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
+    
+    console.log(`Tentative de récupération du formulaire pour le lien ${formLinkId}...`);
+    const formQuery = query(
+      formSubmissionsCollection, 
+      where('formLinkId', '==', formLinkId),
+      limit(1)
+    );
+    
+    const snapshot = await getDocs(formQuery);
+    
+    if (snapshot.empty) {
+      console.log(`Aucun formulaire trouvé pour le lien ${formLinkId}`);
+      return null;
+    }
+    
+    const formData = {
+      id: snapshot.docs[0].id,
+      ...snapshot.docs[0].data()
+    };
+    
+    console.log(`Formulaire pour le lien ${formLinkId} récupéré:`, formData);
+    return formData;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération du formulaire pour le lien ${formLinkId}:`, error);
+    // Retourner un formulaire simulé pour ce lien
+    const mockForm = mockFormSubmissions.find(form => form.formLinkId === formLinkId);
+    console.log(`Utilisation du formulaire simulé pour le lien ${formLinkId}:`, mockForm);
+    return mockForm;
   }
 };
