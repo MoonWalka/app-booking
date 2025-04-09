@@ -99,7 +99,7 @@ const ConcertsList = () => {
         ...newConcert,
         programmer: {
           id: selectedProgrammer.id,
-          name: selectedProgrammer.name,
+          name: selectedProgrammer.name || "Inconnu",
           structure: selectedProgrammer.structure || ''
         }
       });
