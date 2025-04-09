@@ -1,4 +1,3 @@
-// client/src/components/programmers/ProgrammerDetail.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProgrammerById, deleteProgrammer, updateProgrammer } from '../../services/programmersService';
@@ -15,6 +14,7 @@ const ProgrammerDetail = () => {
     businessName: '',
     contact: '',
     role: '',
+    structure: '', // <-- Ajout de la propriété structure
     address: '',
     venue: '',
     vatNumber: '',
@@ -55,6 +55,7 @@ const ProgrammerDetail = () => {
           businessName: data.businessName || '',
           contact: data.contact || '',
           role: data.role || '',
+          structure: data.structure || '', // <-- Remplissage de structure
           address: data.address || '',
           venue: data.venue || '',
           vatNumber: data.vatNumber || '',
@@ -166,6 +167,19 @@ const ProgrammerDetail = () => {
                 <option key={role} value={role}>{role}</option>
               ))}
             </select>
+          </div>
+          
+          {/* Nouveau champ pour la structure */}
+          <div className="form-group">
+            <label htmlFor="structure">Structure</label>
+            <input
+              type="text"
+              id="structure"
+              name="structure"
+              value={formData.structure}
+              onChange={handleInputChange}
+              placeholder="Nom de la structure"
+            />
           </div>
           
           <div className="form-group">
@@ -289,6 +303,12 @@ const ProgrammerDetail = () => {
             <div className="info-row">
               <span className="info-label">Qualité:</span>
               <span className="info-value">{programmer.role || 'Non spécifié'}</span>
+            </div>
+            
+            {/* Affichage de la structure */}
+            <div className="info-row">
+              <span className="info-label">Structure:</span>
+              <span className="info-value">{programmer.structure || 'Non spécifiée'}</span>
             </div>
             
             <div className="info-row">
