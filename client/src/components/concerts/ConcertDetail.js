@@ -1,9 +1,9 @@
-// client/src/components/concerts/ConcertDetail.js
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getConcertById, updateConcert, deleteConcert } from '../../services/concertsService';
 import { getArtists } from '../../services/artistsService';
 import { getProgrammers } from '../../services/programmersService';
+import { generateFormLink, getFormLinkByConcertId } from '../../services/formLinkService';
 import './ConcertDetail.css';
 
 const ConcertDetail = () => {
@@ -15,6 +15,9 @@ const ConcertDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [formLink, setFormLink] = useState(null);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [formData, setFormData] = useState({
     artist: { id: '', name: '' },
     programmer: { id: '', name: '', structure: '' },
@@ -88,6 +91,13 @@ const ConcertDetail = () => {
         const programmersData = await getProgrammers();
         console.log("Programmateurs récupérés:", programmersData);
         setProgrammers(programmersData);
+        
+        // Vérifier si un lien de formulaire existe déjà pour ce concert
+        const existingLink = await getFormLinkByConcertId(id);
+        if (existingLink) {
+          console.log("Lien de formulaire existant trouvé:", existingLink);
+          setFormLink(existingLink);
+        }
         
         setLoading(false);
       } catch (err) {
@@ -186,6 +196,65 @@ const ConcertDetail = () => {
     }
   };
 
+  const handleGenerateFormLink = async () => {
+    try {
+      setLoading(true);
+      
+      // Vérifier si le concert a un programmateur associé
+      if (!concert.programmer || !concert.programmer.id) {
+        alert("Ce concert n'a pas de programmateur associé. Veuillez d'abord ajouter un programmateur.");
+        setLoading(false);
+        return;
+      }
+      
+      // Vérifier si un lien existe déjà
+      if (formLink) {
+        setShowLinkModal(true);
+        setLoading(false);
+        return;
+      }
+      
+      // Générer un nouveau lien
+      const newLink = await generateFormLink(
+        id,
+        concert,
+        concert.programmer.id,
+        concert.programmer.name
+      );
+      
+      setFormLink(newLink);
+      setShowLinkModal(true);
+      setLoading(false);
+    } catch (err) {
+      console.error("Erreur lors de la génération du lien de formulaire:", err);
+      setError(err.message);
+      setLoading(false);
+      alert("Une erreur est survenue lors de la génération du lien de formulaire. Veuillez réessayer.");
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (!formLink) return;
+    
+    const baseUrl = window.location.origin;
+    const fullUrl = `${baseUrl}/form/${formLink.token}`;
+    
+    navigator.clipboard.writeText(fullUrl)
+      .then(() => {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 3000);
+      })
+      .catch(err => {
+        console.error("Erreur lors de la copie du lien:", err);
+        alert("Impossible de copier le lien. Veuillez le sélectionner et le copier manuellement.");
+      });
+  };
+
+  const closeLinkModal = () => {
+    setShowLinkModal(false);
+    setLinkCopied(false);
+  };
+
   if (loading && !concert) return <div className="loading">Chargement des détails du concert...</div>;
   if (error) return <div className="error-message">Erreur: {error}</div>;
   if (!concert) return <div className="not-found">Concert non trouvé</div>;
@@ -194,6 +263,10 @@ const ConcertDetail = () => {
   const currentTime = formData.time ? formData.time.split(':') : ['', ''];
   const currentHour = currentTime[0];
   const currentMinute = currentTime[1];
+
+  // Construire l'URL complète du formulaire
+  const baseUrl = window.location.origin;
+  const formUrl = formLink ? `${baseUrl}/form/${formLink.token}` : '';
 
   return (
     <div className="concert-detail-container">
@@ -409,6 +482,21 @@ const ConcertDetail = () => {
               <span className="info-label">Notes:</span>
               <span className="info-value">{concert.notes || 'Aucune note'}</span>
             </div>
+            
+            <div className="info-row form-link-status">
+              <span className="info-label">Formulaire:</span>
+              <span className="info-value">
+                {formLink ? (
+                  formLink.isSubmitted ? (
+                    <span className="form-submitted">Formulaire soumis</span>
+                  ) : (
+                    <span className="form-pending">Formulaire envoyé, en attente de réponse</span>
+                  )
+                ) : (
+                  <span className="form-not-sent">Formulaire non envoyé</span>
+                )}
+              </span>
+            </div>
           </div>
           
           <div className="concert-actions">
@@ -418,11 +506,94 @@ const ConcertDetail = () => {
             <button onClick={handleDelete} className="delete-btn">
               Supprimer
             </button>
+            <button 
+              onClick={handleGenerateFormLink} 
+              className="send-form-btn"
+              disabled={loading || !concert.programmer?.id}
+            >
+              {formLink ? 'Voir le lien du formulaire' : 'Envoyer le formulaire'}
+            </button>
             <button onClick={() => navigate('/concerts')} className="back-btn">
               Retour à la liste
             </button>
           </div>
         </>
+      )}
+      
+      {/* Modal pour afficher le lien du formulaire */}
+      {showLinkModal && formLink && (
+        <div className="form-link-modal-overlay">
+          <div className="form-link-modal">
+            <div className="form-link-modal-header">
+              <h3>{formLink.isSubmitted ? 'Formulaire déjà soumis' : 'Lien du formulaire'}</h3>
+              <button className="close-modal-btn" onClick={closeLinkModal}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div className="form-link-modal-content">
+              {formLink.isSubmitted ? (
+                <div className="form-submitted-message">
+                  <p>
+                    <i className="fas fa-check-circle"></i>
+                    Ce formulaire a déjà été soumis par le programmateur.
+                  </p>
+                  <p>
+                    Vous pouvez consulter les informations soumises dans l'onglet 
+                    <strong> Validation Formulaire</strong>.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="form-link-instructions">
+                    Voici le lien unique à envoyer au programmateur pour qu'il puisse remplir le formulaire :
+                  </p>
+                  
+                  <div className="form-link-container">
+                    <input
+                      type="text"
+                      value={formUrl}
+                      readOnly
+                      className="form-link-input"
+                    />
+                    <button 
+                      className="copy-link-btn"
+                      onClick={handleCopyLink}
+                    >
+                      {linkCopied ? (
+                        <>
+                          <i className="fas fa-check"></i> Copié
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-copy"></i> Copier
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  
+                  <div className="form-link-info">
+                    <p>
+                      <i className="fas fa-info-circle"></i>
+                      Ce lien est unique et associé à ce concert. Il permet au programmateur de remplir 
+                      ses informations sans avoir besoin de créer un compte.
+                    </p>
+                    <p>
+                      Une fois le formulaire soumis, les informations apparaîtront dans l'onglet 
+                      <strong> Validation Formulaire</strong>.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            <div className="form-link-modal-actions">
+              <button className="close-btn" onClick={closeLinkModal}>
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
