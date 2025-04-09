@@ -221,6 +221,7 @@ const ConcertDetail = () => {
         concert.programmer.id,
         concert.programmer.name
       );
+      console.log("Lien généré :", newLink); 
       
       setFormLink(newLink);
       setShowLinkModal(true);
