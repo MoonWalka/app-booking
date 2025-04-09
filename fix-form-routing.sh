@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Script pour corriger les problèmes de déploiement liés aux routes publiques
-# introduites par le script add-form-generation-feature.sh
+# Script pour corriger les problèmes de routing des formulaires publics
+# dans l'application app-booking
 
-echo "Début de la correction des problèmes de routes publiques..."
+echo "Début de la correction des problèmes de routing des formulaires publics..."
 
 # Vérification de l'existence du répertoire client
 if [ ! -d "./client" ]; then
@@ -11,13 +11,37 @@ if [ ! -d "./client" ]; then
   exit 1
 fi
 
-# Sauvegarde du App.js actuel
-echo "Sauvegarde du App.js actuel..."
+# Sauvegarde des fichiers qui seront modifiés
+echo "Sauvegarde des fichiers qui seront modifiés..."
+cp ./client/src/index.js ./client/src/index.js.backup
 cp ./client/src/App.js ./client/src/App.js.backup
-echo "Sauvegarde effectuée: ./client/src/App.js.backup"
+echo "Sauvegardes effectuées."
 
-# Modification du App.js pour intégrer correctement les routes publiques
-echo "Modification du App.js pour intégrer correctement les routes publiques..."
+# Modification du index.js pour utiliser HashRouter au lieu de BrowserRouter
+echo "Modification du index.js pour utiliser HashRouter..."
+cat > ./client/src/index.js << 'EOL'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import { HashRouter } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <HashRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </HashRouter>
+  </React.StrictMode>
+);
+EOL
+echo "index.js modifié avec succès pour utiliser HashRouter."
+
+# Modification du App.js pour s'assurer que les routes publiques sont correctement définies
+echo "Modification du App.js pour corriger les routes publiques..."
 cat > ./client/src/App.js << 'EOL'
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
@@ -42,23 +66,9 @@ import ArtistEdit from './components/artists/ArtistEdit';
 import ContractsTable from './components/contracts/ContractsTable';
 import FormValidationList from './components/formValidation/FormValidationList';
 
-// Composants publics pour les formulaires
-// Importation conditionnelle pour éviter les erreurs si les fichiers n'existent pas
-let PublicFormPage = () => <div>Formulaire non disponible</div>;
-let FormSubmittedPage = () => <div>Formulaire soumis</div>;
-
-try {
-  // Tentative d'importation des composants publics
-  const PublicFormPageModule = require('./components/public/PublicFormPage');
-  const FormSubmittedPageModule = require('./components/public/FormSubmittedPage');
-  
-  PublicFormPage = PublicFormPageModule.default || PublicFormPageModule;
-  FormSubmittedPage = FormSubmittedPageModule.default || FormSubmittedPageModule;
-  
-  console.log('Composants de formulaires publics chargés avec succès');
-} catch (error) {
-  console.warn('Impossible de charger les composants de formulaires publics:', error.message);
-}
+// Importation directe des composants publics pour éviter les problèmes d'importation conditionnelle
+import PublicFormPage from './components/public/PublicFormPage';
+import FormSubmittedPage from './components/public/FormSubmittedPage';
 
 // Route protégée
 const ProtectedRoute = ({ children }) => {
@@ -84,10 +94,13 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   const { bypassEnabled } = useAuth();
 
+  console.log('App component rendered');
+
   return (
     <div className="App">
       <Routes>
         {/* Routes publiques pour les formulaires - HORS AUTHENTIFICATION */}
+        {/* Ces routes doivent être définies AVANT les routes protégées pour éviter les conflits */}
         <Route path="/form/:token" element={<PublicFormPage />} />
         <Route path="/form-submitted" element={<FormSubmittedPage />} />
         
@@ -96,6 +109,7 @@ function App() {
           bypassEnabled ? <Navigate to="/" /> : <Login />
         } />
         
+        {/* Routes protégées */}
         <Route path="/" element={
           <ProtectedRoute>
             <Layout />
@@ -116,6 +130,7 @@ function App() {
           <Route path="tests" element={<TestFirebaseIntegration />} />
         </Route>
         
+        {/* Route de fallback pour les URLs non reconnues */}
         <Route path="*" element={<NotFound />} />
       </Routes>
       
@@ -144,17 +159,16 @@ export default App;
 EOL
 echo "App.js modifié avec succès."
 
-# Création des composants publics manquants si nécessaire
-echo "Vérification des composants publics..."
+# Vérification et création du répertoire public si nécessaire
+echo "Vérification du répertoire des composants publics..."
 if [ ! -d "./client/src/components/public" ]; then
   echo "Création du répertoire pour les composants publics..."
   mkdir -p ./client/src/components/public
 fi
 
-# Création du composant PublicFormPage.jsx s'il n'existe pas
-if [ ! -f "./client/src/components/public/PublicFormPage.jsx" ]; then
-  echo "Création du composant PublicFormPage.jsx..."
-  cat > ./client/src/components/public/PublicFormPage.jsx << 'EOL'
+# Création ou mise à jour du composant PublicFormPage.jsx
+echo "Création/mise à jour du composant PublicFormPage.jsx..."
+cat > ./client/src/components/public/PublicFormPage.jsx << 'EOL'
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getFormLinkByToken } from '../../services/formLinkService';
@@ -180,28 +194,42 @@ const PublicFormPage = () => {
     website: ''
   });
   
+  // Ajout de logs pour le débogage
+  console.log('PublicFormPage rendered, token:', token);
+  
   useEffect(() => {
     const fetchFormLink = async () => {
       try {
+        console.log('Fetching form link for token:', token);
         setLoading(true);
         const link = await getFormLinkByToken(token);
+        console.log('Form link result:', link);
         
         if (!link) {
+          console.error('No form link found for token:', token);
           setError('Ce lien de formulaire n\'est pas valide ou a expiré.');
         } else if (link.isSubmitted) {
+          console.log('Form already submitted for token:', token);
           setError('Ce formulaire a déjà été soumis.');
         } else {
+          console.log('Form link found and valid:', link);
           setFormLink(link);
         }
       } catch (err) {
-        console.error('Erreur lors de la récupération du lien:', err);
+        console.error('Error fetching form link:', err);
         setError('Une erreur est survenue lors du chargement du formulaire.');
       } finally {
         setLoading(false);
       }
     };
     
-    fetchFormLink();
+    if (token) {
+      fetchFormLink();
+    } else {
+      console.error('No token provided in URL');
+      setError('Aucun identifiant de formulaire fourni.');
+      setLoading(false);
+    }
   }, [token]);
   
   const handleChange = (e) => {
@@ -219,6 +247,7 @@ const PublicFormPage = () => {
     
     try {
       setLoading(true);
+      console.log('Submitting form data:', formData);
       
       // Préparer les données à soumettre
       const submissionData = {
@@ -234,16 +263,19 @@ const PublicFormPage = () => {
       
       // Soumettre le formulaire
       const result = await submitFormData(submissionData, formLink.id);
+      console.log('Form submission result:', result);
       
       if (result) {
         // Rediriger vers la page de confirmation
+        console.log('Redirecting to form-submitted page');
         navigate('/form-submitted');
       } else {
+        console.error('Form submission failed');
         setError('Une erreur est survenue lors de la soumission du formulaire.');
         setLoading(false);
       }
     } catch (err) {
-      console.error('Erreur lors de la soumission du formulaire:', err);
+      console.error('Error submitting form:', err);
       setError('Une erreur est survenue lors de la soumission du formulaire.');
       setLoading(false);
     }
@@ -268,7 +300,7 @@ const PublicFormPage = () => {
           <p>{error}</p>
           <button 
             className="form-button"
-            onClick={() => window.location.href = 'https://app-booking-jzti.onrender.com'}
+            onClick={() => window.location.href = window.location.origin}
           >
             Retour à l'accueil
           </button>
@@ -286,7 +318,11 @@ const PublicFormPage = () => {
             <div className="form-header">
               <p><strong>Concert :</strong> {formLink.concertName}</p>
               {formLink.concertDate && (
-                <p><strong>Date :</strong> {new Date(formLink.concertDate.seconds * 1000).toLocaleDateString()}</p>
+                <p><strong>Date :</strong> {
+                  formLink.concertDate.seconds 
+                    ? new Date(formLink.concertDate.seconds * 1000).toLocaleDateString()
+                    : new Date(formLink.concertDate).toLocaleDateString()
+                }</p>
               )}
             </div>
             
@@ -424,13 +460,11 @@ const PublicFormPage = () => {
 
 export default PublicFormPage;
 EOL
-  echo "Composant PublicFormPage.jsx créé avec succès."
-fi
+echo "Composant PublicFormPage.jsx créé/mis à jour avec succès."
 
-# Création du style PublicFormPage.css s'il n'existe pas
-if [ ! -f "./client/src/components/public/PublicFormPage.css" ]; then
-  echo "Création du style PublicFormPage.css..."
-  cat > ./client/src/components/public/PublicFormPage.css << 'EOL'
+# Création ou mise à jour du style PublicFormPage.css
+echo "Création/mise à jour du style PublicFormPage.css..."
+cat > ./client/src/components/public/PublicFormPage.css << 'EOL'
 .public-form-container {
   display: flex;
   justify-content: center;
@@ -537,17 +571,17 @@ if [ ! -f "./client/src/components/public/PublicFormPage.css" ]; then
   }
 }
 EOL
-  echo "Style PublicFormPage.css créé avec succès."
-fi
+echo "Style PublicFormPage.css créé/mis à jour avec succès."
 
-# Création du composant FormSubmittedPage.jsx s'il n'existe pas
-if [ ! -f "./client/src/components/public/FormSubmittedPage.jsx" ]; then
-  echo "Création du composant FormSubmittedPage.jsx..."
-  cat > ./client/src/components/public/FormSubmittedPage.jsx << 'EOL'
+# Création ou mise à jour du composant FormSubmittedPage.jsx
+echo "Création/mise à jour du composant FormSubmittedPage.jsx..."
+cat > ./client/src/components/public/FormSubmittedPage.jsx << 'EOL'
 import React from 'react';
 import './FormSubmittedPage.css';
 
 const FormSubmittedPage = () => {
+  console.log('FormSubmittedPage rendered');
+  
   return (
     <div className="form-submitted-container">
       <div className="form-submitted-card">
@@ -567,7 +601,7 @@ const FormSubmittedPage = () => {
         </p>
         <button 
           className="back-button"
-          onClick={() => window.location.href = 'https://app-booking-jzti.onrender.com'}
+          onClick={() => window.location.href = window.location.origin}
         >
           Retour à l'accueil
         </button>
@@ -578,13 +612,11 @@ const FormSubmittedPage = () => {
 
 export default FormSubmittedPage;
 EOL
-  echo "Composant FormSubmittedPage.jsx créé avec succès."
-fi
+echo "Composant FormSubmittedPage.jsx créé/mis à jour avec succès."
 
-# Création du style FormSubmittedPage.css s'il n'existe pas
-if [ ! -f "./client/src/components/public/FormSubmittedPage.css" ]; then
-  echo "Création du style FormSubmittedPage.css..."
-  cat > ./client/src/components/public/FormSubmittedPage.css << 'EOL'
+# Création ou mise à jour du style FormSubmittedPage.css
+echo "Création/mise à jour du style FormSubmittedPage.css..."
+cat > ./client/src/components/public/FormSubmittedPage.css << 'EOL'
 .form-submitted-container {
   display: flex;
   justify-content: center;
@@ -646,26 +678,23 @@ if [ ! -f "./client/src/components/public/FormSubmittedPage.css" ]; then
   }
 }
 EOL
-  echo "Style FormSubmittedPage.css créé avec succès."
-fi
+echo "Style FormSubmittedPage.css créé/mis à jour avec succès."
 
-# Modification du index.js pour utiliser HashRouter au lieu de BrowserRouter
-echo "Modification du index.js pour utiliser HashRouter..."
-if [ -f "./client/src/index.js" ]; then
-  # Sauvegarde du index.js actuel
-  cp ./client/src/index.js ./client/src/index.js.backup
-  
-  # Vérifier si BrowserRouter est utilisé
-  if grep -q "BrowserRouter" ./client/src/index.js; then
-    # Remplacer BrowserRouter par HashRouter
-    sed -i 's/BrowserRouter/HashRouter/g' ./client/src/index.js
-    echo "BrowserRouter remplacé par HashRouter dans index.js."
-  else
-    echo "BrowserRouter non trouvé dans index.js. Aucune modification nécessaire."
-  fi
-else
-  echo "Avertissement: Le fichier index.js n'a pas été trouvé dans ./client/src/"
-fi
+# Création d'un fichier .env pour configurer React Router
+echo "Création du fichier .env pour configurer React Router..."
+cat > ./client/.env << 'EOL'
+# Configuration pour React Router
+REACT_APP_ROUTER_BASE_URL=.
+EOL
+echo "Fichier .env créé avec succès."
+
+# Création d'un fichier _redirects pour Render
+echo "Création du fichier _redirects pour Render..."
+mkdir -p ./client/public
+cat > ./client/public/_redirects << 'EOL'
+/*    /index.html   200
+EOL
+echo "Fichier _redirects créé avec succès."
 
 # Mise à jour du package.json pour ajouter "homepage": "."
 echo "Mise à jour du package.json pour ajouter \"homepage\": \".\"..."

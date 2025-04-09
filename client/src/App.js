@@ -21,23 +21,9 @@ import ArtistEdit from './components/artists/ArtistEdit';
 import ContractsTable from './components/contracts/ContractsTable';
 import FormValidationList from './components/formValidation/FormValidationList';
 
-// Composants publics pour les formulaires
-// Importation conditionnelle pour éviter les erreurs si les fichiers n'existent pas
-let PublicFormPage = () => <div>Formulaire non disponible</div>;
-let FormSubmittedPage = () => <div>Formulaire soumis</div>;
-
-try {
-  // Tentative d'importation des composants publics
-  const PublicFormPageModule = require('./components/public/PublicFormPage');
-  const FormSubmittedPageModule = require('./components/public/FormSubmittedPage');
-  
-  PublicFormPage = PublicFormPageModule.default || PublicFormPageModule;
-  FormSubmittedPage = FormSubmittedPageModule.default || FormSubmittedPageModule;
-  
-  console.log('Composants de formulaires publics chargés avec succès');
-} catch (error) {
-  console.warn('Impossible de charger les composants de formulaires publics:', error.message);
-}
+// Importation directe des composants publics pour éviter les problèmes d'importation conditionnelle
+import PublicFormPage from './components/public/PublicFormPage';
+import FormSubmittedPage from './components/public/FormSubmittedPage';
 
 // Route protégée
 const ProtectedRoute = ({ children }) => {
@@ -63,10 +49,13 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   const { bypassEnabled } = useAuth();
 
+  console.log('App component rendered');
+
   return (
     <div className="App">
       <Routes>
         {/* Routes publiques pour les formulaires - HORS AUTHENTIFICATION */}
+        {/* Ces routes doivent être définies AVANT les routes protégées pour éviter les conflits */}
         <Route path="/form/:token" element={<PublicFormPage />} />
         <Route path="/form-submitted" element={<FormSubmittedPage />} />
         
@@ -75,6 +64,7 @@ function App() {
           bypassEnabled ? <Navigate to="/" /> : <Login />
         } />
         
+        {/* Routes protégées */}
         <Route path="/" element={
           <ProtectedRoute>
             <Layout />
@@ -95,6 +85,7 @@ function App() {
           <Route path="tests" element={<TestFirebaseIntegration />} />
         </Route>
         
+        {/* Route de fallback pour les URLs non reconnues */}
         <Route path="*" element={<NotFound />} />
       </Routes>
       
