@@ -256,3 +256,4 @@ export const getFormLinkById = async (id) => {
     return null;
   }
 };
+export { getFormLinksByConcert as getFormLinkByConcertId };
