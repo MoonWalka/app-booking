@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import './App.css';
 
-// Composants
+// Composants protégés
 import Layout from './components/common/Layout';
 import Login from './components/auth/Login';
 import NotFound from './components/common/NotFound';
@@ -21,35 +21,23 @@ import ArtistEdit from './components/artists/ArtistEdit';
 import ContractsTable from './components/contracts/ContractsTable';
 import FormValidationList from './components/formValidation/FormValidationList';
 
-// Composants publics
+// Composants publics (affichés sans authentification)
 import PublicFormPage from './components/public/PublicFormPage';
 import FormSubmittedPage from './components/public/FormSubmittedPage';
 
-//route publique ajouté par chatGPT
-<Routes>
-  <Route path="/form/:token" element={<PublicFormPage />} />
-  <Route path="/form-submitted" element={<FormSubmittedPage />} />
-  <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-    <Route index element={<Dashboard />} />
-    {/* Autres routes protégées */}
-  </Route>
-  <Route path="*" element={<NotFound />} />
-</Routes>
-
-// Route protégée
+// Composant ProtectedRoute pour sécuriser les routes privées
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading, bypassEnabled } = useAuth();
-  
+
   if (loading) {
     return <div>Chargement...</div>;
   }
   
-  // Si le mode bypass est activé, on autorise l'accès même sans authentification
   if (bypassEnabled) {
     console.log('Mode bypass d\'authentification activé - Accès autorisé');
     return children;
   }
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
@@ -63,20 +51,14 @@ function App() {
   return (
     <div className="App">
       <Routes>
-        {/* Routes publiques - accessibles sans authentification */}
+        {/* Routes publiques accessibles sans authentification */}
         <Route path="/form/:token" element={<PublicFormPage />} />
         <Route path="/form-submitted" element={<FormSubmittedPage />} />
+
+        <Route path="/login" element={ bypassEnabled ? <Navigate to="/" /> : <Login /> } />
         
-        {/* Si le mode bypass est activé, la page de login redirige vers le dashboard */}
-        <Route path="/login" element={
-          bypassEnabled ? <Navigate to="/" /> : <Login />
-        } />
-        
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
+        {/* Routes protégées accessibles uniquement aux utilisateurs authentifiés */}
+        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="contrats" element={<ContractsTable />} />
           <Route path="factures" element={<div>Module Factures à venir</div>} />
@@ -94,8 +76,7 @@ function App() {
         
         <Route path="*" element={<NotFound />} />
       </Routes>
-      
-      {/* Bannière d'information sur le mode bypass */}
+
       {bypassEnabled && (
         <div style={{
           position: 'fixed',
