@@ -257,5 +257,3 @@ export const getFormLinkById = async (id) => {
   }
 };
 export { getFormLinksByConcert as getFormLinkByConcertId };
-// Alias pour maintenir la compatibilité avec les imports existants
-export { createFormLink as generateFormLink };
