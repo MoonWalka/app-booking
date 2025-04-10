@@ -25,13 +25,13 @@ const ensureCollection = async (collectionName) => {
     
     // Vérifier si la collection existe en essayant de récupérer des documents
     const collectionRef = collection(db, collectionName);
-    const snapshot = await getDocs(query(collectionRef, orderBy('submittedAt', 'desc')));
+    const snapshot = await getDocs(query(collectionRef, limit(1)));
     
     console.log(`[ensureCollection] Résultat de la vérification: ${snapshot.empty ? 'collection vide' : snapshot.size + ' documents trouvés'}`);
     
     return true;
   } catch (error) {
-    console.error(`[ensureCollection] Erreur lors de la vérification/création de la collection ${collectionName}:`, error);
+    console.error(`[ensureCollection] Erreur lors de la vérification de la collection ${collectionName}:`, error);
     return false;
   }
 };
@@ -59,26 +59,31 @@ export const getFormSubmissions = async (filters = {}) => {
     if (filters) {
       // Filtrer par statut
       if (filters.status) {
+        console.log(`[getFormSubmissions] Filtrage par statut: ${filters.status}`);
         formQuery = query(formQuery, where('status', '==', filters.status));
       }
       
       // Filtrer par programmateur
       if (filters.programmerId) {
+        console.log(`[getFormSubmissions] Filtrage par programmateur: ${filters.programmerId}`);
         formQuery = query(formQuery, where('programmerId', '==', filters.programmerId));
       }
       
       // Filtrer par concert
       if (filters.concertId) {
+        console.log(`[getFormSubmissions] Filtrage par concert: ${filters.concertId}`);
         formQuery = query(formQuery, where('concertId', '==', filters.concertId));
       }
       
       // Filtrer par lien de formulaire
       if (filters.formLinkId) {
+        console.log(`[getFormSubmissions] Filtrage par lien de formulaire: ${filters.formLinkId}`);
         formQuery = query(formQuery, where('formLinkId', '==', filters.formLinkId));
       }
       
       // Filtrer par token commun
       if (filters.commonToken) {
+        console.log(`[getFormSubmissions] Filtrage par token commun: ${filters.commonToken}`);
         formQuery = query(formQuery, where('commonToken', '==', filters.commonToken));
       }
     }
@@ -100,6 +105,10 @@ export const getFormSubmissions = async (filters = {}) => {
     }));
     
     console.log(`[getFormSubmissions] ${formSubmissions.length} formulaires récupérés depuis Firebase`);
+    formSubmissions.forEach(form => {
+      console.log(`[getFormSubmissions] Formulaire ID: ${form.id}, Token: ${form.commonToken}, Status: ${form.status}`);
+    });
+    
     return formSubmissions;
   } catch (error) {
     console.error("[getFormSubmissions] Erreur lors de la récupération des formulaires:", error);
@@ -187,6 +196,7 @@ export const createFormSubmission = async (formData) => {
     
     console.log("[createFormSubmission] Tentative d'ajout d'un formulaire à Firebase avec addDoc:", completeFormData);
     console.log("[createFormSubmission] Vérification de la présence de concertId:", completeFormData.concertId ? 'Présent' : 'Manquant');
+    console.log("[createFormSubmission] Vérification de la présence du token commun:", completeFormData.commonToken ? 'Présent' : 'Manquant');
     
     try {
       const docRef = await addDoc(formSubmissionsCollection, completeFormData);

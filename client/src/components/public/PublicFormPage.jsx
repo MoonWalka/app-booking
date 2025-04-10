@@ -7,7 +7,6 @@ import './PublicFormPage.css';
 // Fonction utilitaire pour extraire le concertId de l'URL avec HashRouter
 const extractConcertIdFromHash = () => {
   const hash = window.location.hash;
-  console.log('extractConcertIdFromHash - hash brut:', hash);
   
   // Format attendu: /#/form/CONCERT_ID
   const match = hash.match(/\/#\/form\/([^\/\?]+)/);
@@ -102,6 +101,7 @@ const PublicFormPage = (props) => {
       phone: '',
       website: ''
     });
+    console.log('PublicFormPage - Formulaire réinitialisé');
   };
   
   const handleSubmit = async (e) => {
@@ -146,6 +146,7 @@ const PublicFormPage = (props) => {
       
       console.log('PublicFormPage - Données préparées pour la soumission:', submissionData);
       console.log('PublicFormPage - Vérification de la présence de concertId:', submissionData.concertId ? 'Présent' : 'Manquant');
+      console.log('PublicFormPage - Vérification de la présence du token commun:', submissionData.commonToken ? 'Présent' : 'Manquant');
       
       // Soumettre le formulaire avec un timeout pour éviter les blocages
       const timeoutPromise = new Promise((_, reject) => 
@@ -161,6 +162,8 @@ const PublicFormPage = (props) => {
       
       // Afficher le message de succès et réinitialiser le formulaire
       if (result && result.id) {
+        console.log('PublicFormPage - Soumission réussie avec ID:', result.id);
+        console.log('PublicFormPage - Token commun dans le résultat:', result.commonToken);
         setSubmissionSuccess(true);
         resetForm();
       } else {

@@ -13,17 +13,20 @@ const FormValidationList = () => {
   const [programmerData, setProgrammerData] = useState(null);
   const [showComparisonTable, setShowComparisonTable] = useState(false);
   const [updateStatus, setUpdateStatus] = useState({ status: '', message: '' });
+  const [refreshCount, setRefreshCount] = useState(0);
 
   // Charger les soumissions de formulaire
   useEffect(() => {
     const fetchFormSubmissions = async () => {
       try {
         setLoading(true);
+        console.log('FormValidationList - Chargement des soumissions en attente...');
         const submissions = await getFormSubmissions({ status: 'pending' });
+        console.log(`FormValidationList - ${submissions.length} soumissions récupérées`);
         setFormSubmissions(submissions);
         setLoading(false);
       } catch (err) {
-        console.error('Erreur lors du chargement des soumissions:', err);
+        console.error('FormValidationList - Erreur lors du chargement des soumissions:', err);
         setError('Erreur lors du chargement des soumissions. Veuillez réessayer.');
         setLoading(false);
       }
@@ -32,14 +35,18 @@ const FormValidationList = () => {
     fetchFormSubmissions();
     
     // Mettre en place un intervalle pour rafraîchir les soumissions toutes les 30 secondes
-    const refreshInterval = setInterval(fetchFormSubmissions, 30000);
+    const refreshInterval = setInterval(() => {
+      console.log('FormValidationList - Rafraîchissement automatique des soumissions');
+      setRefreshCount(prev => prev + 1);
+    }, 30000);
     
     // Nettoyer l'intervalle lors du démontage du composant
     return () => clearInterval(refreshInterval);
-  }, []);
+  }, [refreshCount]);
 
   // Gérer la sélection d'une soumission
   const handleSelectSubmission = async (submission) => {
+    console.log('FormValidationList - Sélection de la soumission:', submission);
     setSelectedSubmission(submission);
     setUpdateStatus({ status: '', message: '' });
     
@@ -48,15 +55,22 @@ const FormValidationList = () => {
       let programmer = null;
       
       if (submission.commonToken) {
+        console.log(`FormValidationList - Recherche du programmateur avec token: ${submission.commonToken}`);
         // Rechercher par token commun
         const programmers = await getProgrammerById(submission.commonToken);
         if (programmers) {
           programmer = programmers;
+          console.log('FormValidationList - Programmateur trouvé:', programmer);
+        } else {
+          console.log('FormValidationList - Aucun programmateur trouvé avec ce token');
         }
+      } else {
+        console.log('FormValidationList - Pas de token commun dans la soumission');
       }
       
       // Si aucun programmateur n'est trouvé, créer un objet vide
       if (!programmer) {
+        console.log('FormValidationList - Création d\'un objet programmateur vide');
         programmer = {
           id: null,
           businessName: '',
@@ -77,7 +91,7 @@ const FormValidationList = () => {
       setProgrammerData(programmer);
       setShowComparisonTable(true);
     } catch (err) {
-      console.error('Erreur lors de la récupération des données du programmateur:', err);
+      console.error('FormValidationList - Erreur lors de la récupération des données du programmateur:', err);
       setError('Erreur lors de la récupération des données du programmateur. Veuillez réessayer.');
     }
   };
@@ -86,12 +100,13 @@ const FormValidationList = () => {
   const handleIntegrateData = async (updatedData) => {
     try {
       setLoading(true);
+      console.log('FormValidationList - Début de l\'intégration des données');
       
       // Mettre à jour ou créer le programmateur
       let programmerId = programmerData.id;
       
       // Préparer les données du programmateur
-      const programmerData = {
+      const programmerDataToUpdate = {
         ...updatedData,
         commonToken: selectedSubmission.commonToken,
         // Ajouter d'autres champs nécessaires
@@ -100,33 +115,42 @@ const FormValidationList = () => {
           : updatedData.firstName || updatedData.lastName || 'Contact non spécifié'
       };
       
+      console.log('FormValidationList - Données du programmateur à mettre à jour:', programmerDataToUpdate);
+      
       if (programmerId) {
         // Mettre à jour le programmateur existant
-        await updateProgrammer(programmerId, programmerData);
+        console.log(`FormValidationList - Mise à jour du programmateur existant: ${programmerId}`);
+        await updateProgrammer(programmerId, programmerDataToUpdate);
       } else {
         // Créer un nouveau programmateur avec le token commun comme ID
         programmerId = selectedSubmission.commonToken;
-        await updateProgrammer(programmerId, programmerData);
+        console.log(`FormValidationList - Création d'un nouveau programmateur avec ID: ${programmerId}`);
+        await updateProgrammer(programmerId, programmerDataToUpdate);
       }
       
       // Mettre à jour le concert si nécessaire
       if (selectedSubmission.concertId) {
         try {
+          console.log(`FormValidationList - Récupération du concert: ${selectedSubmission.concertId}`);
           const concert = await getConcertById(selectedSubmission.concertId);
           if (concert) {
             // Mettre à jour le concert avec le token commun
+            console.log(`FormValidationList - Mise à jour du concert: ${selectedSubmission.concertId}`);
             await updateConcert(selectedSubmission.concertId, {
               ...concert,
               commonToken: selectedSubmission.commonToken,
               programmerId: programmerId
             });
+          } else {
+            console.log(`FormValidationList - Concert non trouvé: ${selectedSubmission.concertId}`);
           }
         } catch (concertErr) {
-          console.error('Erreur lors de la mise à jour du concert:', concertErr);
+          console.error('FormValidationList - Erreur lors de la mise à jour du concert:', concertErr);
         }
       }
       
       // Mettre à jour le statut de la soumission
+      console.log(`FormValidationList - Mise à jour du statut de la soumission: ${selectedSubmission.id}`);
       await updateFormSubmission(selectedSubmission.id, {
         ...selectedSubmission,
         status: 'processed',
@@ -137,6 +161,7 @@ const FormValidationList = () => {
       const updatedSubmissions = formSubmissions.filter(
         submission => submission.id !== selectedSubmission.id
       );
+      console.log(`FormValidationList - Mise à jour de la liste des soumissions: ${updatedSubmissions.length} restantes`);
       setFormSubmissions(updatedSubmissions);
       
       // Réinitialiser l'état
@@ -148,8 +173,11 @@ const FormValidationList = () => {
         message: 'Données intégrées avec succès!'
       });
       setLoading(false);
+      
+      // Forcer un rafraîchissement de la liste
+      setRefreshCount(prev => prev + 1);
     } catch (err) {
-      console.error('Erreur lors de l\'intégration des données:', err);
+      console.error('FormValidationList - Erreur lors de l\'intégration des données:', err);
       setUpdateStatus({
         status: 'error',
         message: `Erreur lors de l'intégration des données: ${err.message}`
@@ -160,9 +188,16 @@ const FormValidationList = () => {
 
   // Annuler l'intégration
   const handleCancelIntegration = () => {
+    console.log('FormValidationList - Annulation de l\'intégration');
     setSelectedSubmission(null);
     setProgrammerData(null);
     setShowComparisonTable(false);
+  };
+
+  // Rafraîchir manuellement la liste
+  const handleRefresh = () => {
+    console.log('FormValidationList - Rafraîchissement manuel de la liste');
+    setRefreshCount(prev => prev + 1);
   };
 
   if (loading && !showComparisonTable) {
@@ -206,6 +241,12 @@ const FormValidationList = () => {
           {updateStatus.message}
         </div>
       )}
+      
+      <div className="refresh-button-container">
+        <button className="refresh-button" onClick={handleRefresh}>
+          Rafraîchir la liste
+        </button>
+      </div>
       
       {formSubmissions.length === 0 ? (
         <p>Aucune soumission en attente de validation.</p>
