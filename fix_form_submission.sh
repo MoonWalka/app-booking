@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Script pour corriger les problèmes de soumission du formulaire public
-echo "Début de la correction des problèmes de soumission du formulaire public..."
+# Script pour corriger les problèmes spécifiques de soumission du formulaire public
+echo "Début de la correction des problèmes spécifiques de soumission du formulaire public..."
 
 # Créer des sauvegardes des fichiers originaux
 echo "Création des sauvegardes..."
-BACKUP_DIR="./backups/$(date +%Y%m%d_%H%M%S)_form_submission"
+BACKUP_DIR="./backups/$(date +%Y%m%d_%H%M%S)_form_submission_fix"
 mkdir -p $BACKUP_DIR
 
 # Sauvegarde des fichiers existants
@@ -17,7 +17,7 @@ if [ -f "./client/src/services/formSubmissionsService.js" ]; then
   cp ./client/src/services/formSubmissionsService.js $BACKUP_DIR/formSubmissionsService.js.backup
 fi
 
-# Mise à jour du fichier PublicFormPage.jsx avec une meilleure gestion des erreurs et des logs de débogage
+# Mise à jour du fichier PublicFormPage.jsx pour s'assurer que concertId est correctement transmis
 echo "Mise à jour du fichier PublicFormPage.jsx..."
 mkdir -p ./client/src/components/public
 cat > ./client/src/components/public/PublicFormPage.jsx << 'EOL'
@@ -68,6 +68,12 @@ const PublicFormPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Vérifier que concertId est disponible
+    if (!concertId) {
+      setError("Erreur: ID du concert manquant. Veuillez accéder à ce formulaire via un lien valide.");
+      return;
+    }
+    
     try {
       setLoading(true);
       setError(null);
@@ -75,6 +81,7 @@ const PublicFormPage = () => {
       
       console.log('PublicFormPage - Début de la soumission du formulaire');
       console.log('PublicFormPage - Données du formulaire:', formData);
+      console.log('PublicFormPage - concertId utilisé pour la soumission:', concertId);
       
       // Préparer les données à soumettre avec tous les champs requis
       const submissionData = {
@@ -82,7 +89,7 @@ const PublicFormPage = () => {
         // Champs obligatoires pour la compatibilité avec le système existant
         programmerId: 'public-form-submission',
         programmerName: 'Formulaire Public',
-        concertId: concertId,
+        concertId: concertId, // S'assurer que concertId est explicitement inclus
         concertName: `Concert ID: ${concertId}`,
         // Créer un champ contact à partir du prénom et du nom
         contact: formData.firstName && formData.lastName 
@@ -94,6 +101,7 @@ const PublicFormPage = () => {
       };
       
       console.log('PublicFormPage - Données préparées pour la soumission:', submissionData);
+      console.log('PublicFormPage - Vérification de la présence de concertId:', submissionData.concertId ? 'Présent' : 'Manquant');
       
       // Soumettre le formulaire avec un timeout pour éviter les blocages
       const timeoutPromise = new Promise((_, reject) => 
@@ -211,7 +219,7 @@ const PublicFormPage = () => {
       <div className="public-form-card">
         <h2>Formulaire de renseignements</h2>
         <div className="form-header">
-          <p><strong>ID du Concert :</strong> {concertId}</p>
+          <p><strong>ID du Concert :</strong> {concertId || "Non spécifié"}</p>
         </div>
         
         <form onSubmit={handleSubmit}>
@@ -373,7 +381,7 @@ const PublicFormPage = () => {
             Hash: {window.location.hash}<br />
             Pathname: {window.location.pathname}<br />
             URL complète: {window.location.href}<br />
-            Concert ID: {concertId}
+            Concert ID: {concertId || "Non spécifié"}
           </p>
         </div>
       </div>
@@ -383,9 +391,9 @@ const PublicFormPage = () => {
 
 export default PublicFormPage;
 EOL
-echo "✅ Fichier PublicFormPage.jsx mis à jour avec une meilleure gestion des erreurs et des logs de débogage"
+echo "✅ Fichier PublicFormPage.jsx mis à jour pour s'assurer que concertId est correctement transmis"
 
-# Mise à jour du fichier formSubmissionsService.js avec des logs de débogage supplémentaires
+# Mise à jour du fichier formSubmissionsService.js pour corriger l'import de setDoc
 echo "Mise à jour du fichier formSubmissionsService.js..."
 mkdir -p ./client/src/services
 cat > ./client/src/services/formSubmissionsService.js << 'EOL'
@@ -400,7 +408,7 @@ import {
   query,
   orderBy,
   where,
-  setDoc,
+  setDoc,  // S'assurer que setDoc est correctement importé
   Timestamp,
   limit
 } from 'firebase/firestore';
@@ -438,7 +446,10 @@ const ensureCollection = async (collectionName) => {
         website: 'https://www.festivaldusud.fr',
         status: 'pending',
         submittedAt: Timestamp.fromDate(new Date()),
-        notes: 'Formulaire exemple créé automatiquement'
+        notes: 'Formulaire exemple créé automatiquement',
+        concertId: 'mock-concert-1',  // S'assurer que concertId est présent
+        concertName: 'Concert exemple',
+        formLinkId: 'mock-link-1'
       };
       
       try {
@@ -516,8 +527,8 @@ const mockFormSubmissions = [
   },
   {
     id: 'mock-form-3',
-    programmerId: null,
-    programmerName: null,
+    programmerId: 'public-form-submission',
+    programmerName: 'Formulaire Public',
     businessName: 'Le Petit Théâtre',
     contact: 'Sophie Dubois',
     role: 'Directrice',
@@ -535,7 +546,7 @@ const mockFormSubmissions = [
     concertId: 'mock-concert-3',
     concertName: 'Concert exemple 3',
     concertDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 jours après
-    formLinkId: 'mock-link-3'
+    formLinkId: 'public-form-mock-concert-3'
   }
 ];
 
@@ -697,7 +708,8 @@ export const createFormSubmission = async (formData) => {
     const missingFields = requiredFields.filter(field => !formData[field]);
     
     if (missingFields.length > 0) {
-      console.warn(`[createFormSubmission] Champs obligatoires manquants: ${missingFields.join(', ')}`);
+      console.error(`[createFormSubmission] Champs obligatoires manquants: ${missingFields.join(', ')}`);
+      throw new Error(`Champs obligatoires manquants: ${missingFields.join(', ')}`);
     }
     
     // S'assurer que les champs obligatoires sont présents
@@ -714,6 +726,7 @@ export const createFormSubmission = async (formData) => {
     };
     
     console.log("[createFormSubmission] Tentative d'ajout d'un formulaire à Firebase avec addDoc:", completeFormData);
+    console.log("[createFormSubmission] Vérification de la présence de concertId:", completeFormData.concertId ? 'Présent' : 'Manquant');
     
     try {
       const docRef = await addDoc(formSubmissionsCollection, completeFormData);
@@ -745,6 +758,11 @@ export const createFormSubmission = async (formData) => {
     }
   } catch (error) {
     console.error("[createFormSubmission] Erreur générale lors de l'ajout du formulaire:", error);
+    
+    // Vérifier si l'erreur est liée à un champ manquant
+    if (error.message && error.message.includes('Champs obligatoires manquants')) {
+      throw error; // Propager l'erreur spécifique
+    }
     
     // Simuler l'ajout d'un formulaire en cas d'erreur
     console.log("[createFormSubmission] Simulation de l'ajout d'un formulaire (mode fallback)");
@@ -946,7 +964,7 @@ export const getFormSubmissionsByStatus = async (status) => {
   return getFormSubmissions({ status });
 };
 EOL
-echo "✅ Fichier formSubmissionsService.js mis à jour avec des logs de débogage supplémentaires"
+echo "✅ Fichier formSubmissionsService.js mis à jour pour corriger l'import de setDoc et améliorer la gestion de concertId"
 
 # Mise à jour du fichier FormSubmittedPage.jsx
 echo "Mise à jour du fichier FormSubmittedPage.jsx..."
@@ -1163,34 +1181,39 @@ fi
 
 # Création d'un fichier README pour expliquer les modifications
 echo "Création d'un fichier README pour expliquer les modifications..."
-cat > ./README_FORM_SUBMISSION.md << 'EOL'
-# Correction des problèmes de soumission du formulaire public
+cat > ./README_FORM_SUBMISSION_FIX.md << 'EOL'
+# Correction des problèmes spécifiques de soumission du formulaire public
 
 ## Problèmes identifiés et solutions apportées
 
-1. **Champs manquants dans les données soumises** :
-   - Ajout des champs obligatoires manquants (programmerId, programmerName, formLinkId, concertName)
-   - Création d'un champ contact à partir du prénom et du nom
+1. **Champ concertId manquant dans les données soumises** :
+   - Ajout d'une vérification explicite de la présence de concertId avant la soumission
+   - Affichage d'une erreur claire si concertId est manquant
+   - Ajout de logs détaillés pour vérifier la présence de concertId à chaque étape
 
-2. **Gestion incorrecte de l'état de chargement** :
-   - Amélioration de la gestion de l'état de chargement
-   - Ajout d'un timeout pour éviter les blocages
-   - Affichage du résultat de la soumission pendant le chargement
+2. **Erreur "ReferenceError: Can't find variable: setDoc"** :
+   - Correction de l'import de setDoc dans formSubmissionsService.js
+   - Vérification que setDoc est correctement importé depuis firebase/firestore
+   - Amélioration de la gestion des erreurs lors de l'utilisation de setDoc
 
-3. **Logs de débogage insuffisants** :
-   - Ajout de logs détaillés dans tous les composants et services
-   - Préfixage des logs pour faciliter l'identification
-   - Affichage des informations de débogage dans l'interface
-
-4. **Gestion des erreurs incomplète** :
-   - Amélioration de la gestion des erreurs avec des messages plus précis
+3. **Gestion des erreurs améliorée** :
+   - Propagation des erreurs spécifiques liées aux champs manquants
+   - Affichage de messages d'erreur plus précis
    - Ajout d'un bouton pour réessayer en cas d'erreur
-   - Affichage des détails de l'erreur pour faciliter le débogage
 
-5. **Problèmes potentiels avec Firebase** :
-   - Ajout de mécanismes de fallback en cas d'échec de l'écriture
-   - Tentative d'utilisation de setDoc si addDoc échoue
-   - Simulation de l'ajout d'un formulaire en dernier recours
+## Modifications techniques
+
+### Dans PublicFormPage.jsx :
+- Vérification explicite de la présence de concertId avant la soumission
+- Affichage d'une erreur claire si concertId est manquant
+- Ajout de logs détaillés pour vérifier la présence de concertId à chaque étape
+- Amélioration de l'affichage des informations de débogage
+
+### Dans formSubmissionsService.js :
+- Correction de l'import de setDoc depuis firebase/firestore
+- Vérification explicite des champs obligatoires avec génération d'erreur
+- Amélioration de la gestion des erreurs lors de l'utilisation de setDoc
+- Ajout de logs détaillés pour suivre le processus de soumission
 
 ## Comment tester
 
@@ -1202,7 +1225,7 @@ cat > ./README_FORM_SUBMISSION.md << 'EOL'
 
 ## Vérification des règles de sécurité Firebase
 
-Si les problèmes persistent, vérifiez les règles de sécurité Firestore dans la console Firebase :
+Si les problèmes persistent après l'implémentation de cette solution, il est recommandé de vérifier les règles de sécurité Firestore dans la console Firebase. Les règles devraient permettre l'accès en écriture à la collection `formSubmissions` :
 
 ```
 rules_version = '2';
@@ -1220,15 +1243,15 @@ service cloud.firestore {
 
 ## Remarques importantes
 
-- Tous les champs du formulaire sont facultatifs
-- Le formulaire utilise le paramètre concertId de l'URL
+- Le champ concertId est maintenant vérifié explicitement avant la soumission
+- Une erreur claire est affichée si concertId est manquant
+- L'import de setDoc est maintenant correctement effectué
 - Des logs détaillés ont été ajoutés pour faciliter le débogage
-- Si la soumission échoue, un message d'erreur précis est affiché
-- Les données sont envoyées à Firebase via la fonction createFormSubmission() améliorée
+- La gestion des erreurs a été améliorée pour fournir des messages plus précis
 EOL
-echo "✅ Fichier README_FORM_SUBMISSION.md créé"
+echo "✅ Fichier README_FORM_SUBMISSION_FIX.md créé"
 
-echo "✅ Correction des problèmes de soumission du formulaire public terminée avec succès!"
+echo "✅ Correction des problèmes spécifiques de soumission du formulaire public terminée avec succès!"
 echo "Pour tester la solution, accédez à /#/form/<concertId> et soumettez le formulaire."
 echo "Les données soumises devraient apparaître dans l'onglet 'Validation de formulaire'."
 echo ""

@@ -9,7 +9,7 @@ import {
   query,
   orderBy,
   where,
-  setDoc,  // S'assurer que setDoc est correctement importé
+  setDoc,
   Timestamp,
   limit
 } from 'firebase/firestore';
@@ -47,10 +47,7 @@ const ensureCollection = async (collectionName) => {
         website: 'https://www.festivaldusud.fr',
         status: 'pending',
         submittedAt: Timestamp.fromDate(new Date()),
-        notes: 'Formulaire exemple créé automatiquement',
-        concertId: 'mock-concert-1',  // S'assurer que concertId est présent
-        concertName: 'Concert exemple',
-        formLinkId: 'mock-link-1'
+        notes: 'Formulaire exemple créé automatiquement'
       };
       
       try {
@@ -128,8 +125,8 @@ const mockFormSubmissions = [
   },
   {
     id: 'mock-form-3',
-    programmerId: 'public-form-submission',
-    programmerName: 'Formulaire Public',
+    programmerId: null,
+    programmerName: null,
     businessName: 'Le Petit Théâtre',
     contact: 'Sophie Dubois',
     role: 'Directrice',
@@ -147,7 +144,7 @@ const mockFormSubmissions = [
     concertId: 'mock-concert-3',
     concertName: 'Concert exemple 3',
     concertDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 jours après
-    formLinkId: 'public-form-mock-concert-3'
+    formLinkId: 'mock-link-3'
   }
 ];
 
@@ -309,8 +306,7 @@ export const createFormSubmission = async (formData) => {
     const missingFields = requiredFields.filter(field => !formData[field]);
     
     if (missingFields.length > 0) {
-      console.error(`[createFormSubmission] Champs obligatoires manquants: ${missingFields.join(', ')}`);
-      throw new Error(`Champs obligatoires manquants: ${missingFields.join(', ')}`);
+      console.warn(`[createFormSubmission] Champs obligatoires manquants: ${missingFields.join(', ')}`);
     }
     
     // S'assurer que les champs obligatoires sont présents
@@ -327,7 +323,6 @@ export const createFormSubmission = async (formData) => {
     };
     
     console.log("[createFormSubmission] Tentative d'ajout d'un formulaire à Firebase avec addDoc:", completeFormData);
-    console.log("[createFormSubmission] Vérification de la présence de concertId:", completeFormData.concertId ? 'Présent' : 'Manquant');
     
     try {
       const docRef = await addDoc(formSubmissionsCollection, completeFormData);
@@ -359,11 +354,6 @@ export const createFormSubmission = async (formData) => {
     }
   } catch (error) {
     console.error("[createFormSubmission] Erreur générale lors de l'ajout du formulaire:", error);
-    
-    // Vérifier si l'erreur est liée à un champ manquant
-    if (error.message && error.message.includes('Champs obligatoires manquants')) {
-      throw error; // Propager l'erreur spécifique
-    }
     
     // Simuler l'ajout d'un formulaire en cas d'erreur
     console.log("[createFormSubmission] Simulation de l'ajout d'un formulaire (mode fallback)");
