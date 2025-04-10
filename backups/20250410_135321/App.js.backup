@@ -30,26 +30,37 @@ const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading, bypassEnabled, isPublicRoute } = useAuth();
   const location = useLocation();
   
+  // Obtenir le chemin complet (adapté pour HashRouter)
+  const currentHash = location.hash || '';
+  const currentPath = location.pathname;
+  const fullPath = currentHash ? currentHash : currentPath;
+  
+  console.log('ProtectedRoute - Route actuelle (hash):', currentHash);
+  console.log('ProtectedRoute - Route actuelle (pathname):', currentPath);
+  console.log('ProtectedRoute - Route complète:', fullPath);
+  
   // Si la route actuelle est une route publique, ne pas appliquer la protection
-  if (isPublicRoute(location.pathname)) {
-    console.log('Route publique détectée dans ProtectedRoute:', location.pathname);
+  if (isPublicRoute(fullPath)) {
+    console.log('ProtectedRoute - Route publique détectée, accès autorisé:', fullPath);
     return children;
   }
 
   if (loading) {
+    console.log('ProtectedRoute - Chargement en cours...');
     return <div>Chargement...</div>;
   }
   
   if (bypassEnabled) {
-    console.log('Mode bypass d\'authentification activé - Accès autorisé');
+    console.log('ProtectedRoute - Mode bypass d\'authentification activé - Accès autorisé');
     return children;
   }
 
   if (!isAuthenticated) {
-    console.log('Utilisateur non authentifié, redirection vers /login');
+    console.log('ProtectedRoute - Utilisateur non authentifié, redirection vers /login');
     return <Navigate to="/login" />;
   }
   
+  console.log('ProtectedRoute - Utilisateur authentifié, accès autorisé');
   return children;
 };
 
@@ -57,7 +68,15 @@ function App() {
   const { bypassEnabled, isAuthenticated, isCurrentRoutePublic } = useAuth();
   const location = useLocation();
   
-  console.log('App render - Route actuelle:', location.pathname, 'Est publique:', isCurrentRoutePublic);
+  // Obtenir le chemin complet (adapté pour HashRouter)
+  const currentHash = location.hash || '';
+  const currentPath = location.pathname;
+  const fullPath = currentHash ? currentHash : currentPath;
+  
+  console.log('App - Route actuelle (hash):', currentHash);
+  console.log('App - Route actuelle (pathname):', currentPath);
+  console.log('App - Route complète:', fullPath);
+  console.log('App - Est une route publique:', isCurrentRoutePublic);
 
   return (
     <div className="App">
