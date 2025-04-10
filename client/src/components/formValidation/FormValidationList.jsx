@@ -258,68 +258,68 @@ const FormValidationList = () => {
                 <h4>Informations soumises</h4>
                 
                 <div className="form-data-grid">
-
                   <div className="form-data-item">
                     <span className="form-data-label">Raison sociale:</span>
+                    <span className="form-data-value">{selectedForm.businessName || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">Contact:</span>
+                    <span className="form-data-value">{selectedForm.contact || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">Qualité:</span>
+                    <span className="form-data-value">{selectedForm.role || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">Adresse:</span>
+                    <span className="form-data-value">{selectedForm.address || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">Lieu/Festival:</span>
+                    <span className="form-data-value">{selectedForm.venue || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">N° intracommunautaire:</span>
+                    <span className="form-data-value">{selectedForm.vatNumber || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">SIRET:</span>
+                    <span className="form-data-value">{selectedForm.siret || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">Email:</span>
+                    <span className="form-data-value">{selectedForm.email || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">Téléphone:</span>
+                    <span className="form-data-value">{selectedForm.phone || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
+                    <span className="form-data-label">Site web:</span>
                     <span className="form-data-value">
-                    <span className="form-data-label">Site web:</span>
                       {selectedForm.website ? (
-                    <span className="form-data-label">Site web:</span>
                         <a href={selectedForm.website} target="_blank" rel="noopener noreferrer">
-                    <span className="form-data-label">Site web:</span>
                           {selectedForm.website}
-                    <span className="form-data-label">Site web:</span>
                         </a>
-                    <span className="form-data-label">Site web:</span>
                       ) : 'Non spécifié'}
-                    <span className="form-data-label">Site web:</span>
                     </span>
-                    <span className="form-data-label">Site web:</span>
                   </div>
+                  
+                  {selectedForm.commonToken && (
+                    <div className="form-data-item">
+                      <span className="form-data-label">Token commun:</span>
+                      <span className="form-data-value">{selectedForm.commonToken}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -328,11 +328,11 @@ const FormValidationList = () => {
                   <h4>Actions</h4>
                   <div className="form-action-buttons">
                     <button 
-                      className="integrate-data-btn"
-                      onClick={() => handleIntegrateData(selectedForm, selectedForm.programmerId)}
+                      className="compare-data-btn"
+                      onClick={() => handleShowComparisonTable(selectedForm)}
                       disabled={processingAction}
                     >
-                      {processingAction ? 'Traitement...' : 'Intégrer les données'}
+                      {processingAction ? 'Chargement...' : 'Comparer et intégrer les données'}
                     </button>
                     <button 
                       className="reject-form-btn"
@@ -357,7 +357,6 @@ const FormValidationList = () => {
           </div>
         </div>
       )}
-    </div>
       
       {/* Tableau de comparaison */}
       {showComparisonTable && selectedForm && programmerData && (
@@ -381,6 +380,7 @@ const FormValidationList = () => {
           />
         </div>
       )}
+    </div>
   );
 };
 
