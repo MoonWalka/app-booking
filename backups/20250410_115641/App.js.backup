@@ -66,8 +66,7 @@ function App() {
     <div className="App">
       <Routes>
         {/* Routes publiques accessibles sans authentification */}
-        {/* Modification de la route pour utiliser l'ID du concert au lieu d'un token */}
-        <Route path="/form/:concertId" element={<PublicRoute><PublicFormPage /></PublicRoute>} />
+        <Route path="/form/:token" element={<PublicRoute><PublicFormPage /></PublicRoute>} />
         <Route path="/form-submitted" element={<PublicRoute><FormSubmittedPage /></PublicRoute>} />
 
         <Route path="/login" element={ bypassEnabled ? <Navigate to="/" /> : <Login /> } />

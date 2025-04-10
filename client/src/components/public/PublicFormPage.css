@@ -103,3 +103,11 @@
     width: 100%;
   }
 }
+
+/* Style pour le champ en lecture seule */
+.readonly-field {
+  background-color: #f0f0f0;
+  color: #666;
+  cursor: not-allowed;
+  border: 1px solid #ddd;
+}
