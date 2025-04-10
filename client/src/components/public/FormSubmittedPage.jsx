@@ -34,7 +34,7 @@ const FormSubmittedPage = () => {
         border: "1px solid #c5e1f9" 
       }}>
         <p style={{ margin: "0", color: "#2c76c7" }}>
-          Vous pouvez maintenant <Link to="/" style={{ color: "#2c76c7", fontWeight: "bold" }}>retourner à l'accueil</Link> ou fermer cette page.
+          Vous pouvez maintenant fermer cette page.
         </p>
         <p style={{ margin: "10px 0 0 0", color: "#2c76c7", fontSize: "14px", textAlign: "left" }}>
           Informations de débogage:<br />
