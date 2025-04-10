@@ -30,6 +30,12 @@ const FormValidationList = () => {
     };
 
     fetchFormSubmissions();
+    
+    // Mettre en place un intervalle pour rafraîchir les soumissions toutes les 30 secondes
+    const refreshInterval = setInterval(fetchFormSubmissions, 30000);
+    
+    // Nettoyer l'intervalle lors du démontage du composant
+    return () => clearInterval(refreshInterval);
   }, []);
 
   // Gérer la sélection d'une soumission

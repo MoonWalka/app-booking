@@ -29,128 +29,12 @@ const ensureCollection = async (collectionName) => {
     
     console.log(`[ensureCollection] Résultat de la vérification: ${snapshot.empty ? 'collection vide' : snapshot.size + ' documents trouvés'}`);
     
-    // Si la collection n'existe pas ou est vide, créer un document initial
-    if (snapshot.empty) {
-      console.log(`[ensureCollection] Collection ${collectionName} vide, création d'un document initial...`);
-      const initialDoc = {
-        programmerId: 'mock-programmer-1',
-        programmerName: 'Didier Exemple',
-        businessName: 'Association Culturelle du Sud',
-        contact: 'Didier Martin',
-        role: 'Programmateur',
-        address: '45 rue des Arts, 13001 Marseille',
-        venue: 'Festival du Sud',
-        vatNumber: 'FR12345678901',
-        siret: '123 456 789 00012',
-        email: 'didier.martin@festivaldusud.fr',
-        phone: '06 12 34 56 78',
-        website: 'https://www.festivaldusud.fr',
-        status: 'pending',
-        submittedAt: Timestamp.fromDate(new Date()),
-        notes: 'Formulaire exemple créé automatiquement',
-        concertId: 'mock-concert-1',
-        concertName: 'Concert exemple',
-        formLinkId: 'mock-link-1',
-        commonToken: 'mock-concert-1-token'
-      };
-      
-      try {
-        const docRef = await addDoc(collectionRef, initialDoc);
-        console.log(`[ensureCollection] Document initial créé avec ID: ${docRef.id}`);
-      } catch (addError) {
-        console.error(`[ensureCollection] Erreur lors de la création du document initial:`, addError);
-        
-        // Essayer avec setDoc comme alternative
-        try {
-          const mockId = 'mock-initial-' + Date.now();
-          await setDoc(doc(db, collectionName, mockId), initialDoc);
-          console.log(`[ensureCollection] Document initial créé avec ID manuel: ${mockId}`);
-        } catch (setError) {
-          console.error(`[ensureCollection] Erreur lors de la création du document initial avec setDoc:`, setError);
-        }
-      }
-    }
-    
     return true;
   } catch (error) {
     console.error(`[ensureCollection] Erreur lors de la vérification/création de la collection ${collectionName}:`, error);
     return false;
   }
 };
-
-// Données simulées pour le fallback en cas d'erreur d'authentification
-const mockFormSubmissions = [
-  {
-    id: 'mock-form-1',
-    programmerId: 'mock-programmer-1',
-    programmerName: 'Didier Exemple',
-    businessName: 'Association Culturelle du Sud',
-    contact: 'Didier Martin',
-    role: 'Programmateur',
-    address: '45 rue des Arts, 13001 Marseille',
-    venue: 'Festival du Sud',
-    vatNumber: 'FR12345678901',
-    siret: '123 456 789 00012',
-    email: 'didier.martin@festivaldusud.fr',
-    phone: '06 12 34 56 78',
-    website: 'https://www.festivaldusud.fr',
-    status: 'pending',
-    submittedAt: new Date(),
-    notes: 'Formulaire exemple',
-    concertId: 'mock-concert-1',
-    concertName: 'Concert exemple',
-    concertDate: new Date(),
-    formLinkId: 'mock-link-1',
-    commonToken: 'mock-concert-1-token'
-  },
-  {
-    id: 'mock-form-2',
-    programmerId: 'mock-programmer-2',
-    programmerName: 'Jean Martin',
-    businessName: 'SARL La Cigale',
-    contact: 'Jean Martin',
-    role: 'Gérant',
-    address: '120 boulevard de Rochechouart, 75018 Paris',
-    venue: 'La Cigale',
-    vatNumber: 'FR45678901234',
-    siret: '456 789 012 00013',
-    email: 'jean.martin@lacigale.fr',
-    phone: '01 23 45 67 89',
-    website: 'https://www.lacigale.fr',
-    status: 'processed',
-    submittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    processedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    notes: 'Formulaire traité',
-    concertId: 'mock-concert-2',
-    concertName: 'Concert exemple 2',
-    concertDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    formLinkId: 'mock-link-2',
-    commonToken: 'mock-concert-2-token'
-  },
-  {
-    id: 'mock-form-3',
-    programmerId: 'public-form-submission',
-    programmerName: 'Formulaire Public',
-    businessName: 'Le Petit Théâtre',
-    contact: 'Sophie Dubois',
-    role: 'Directrice',
-    address: '15 rue des Lilas, 69003 Lyon',
-    venue: 'Le Petit Théâtre',
-    vatNumber: 'FR98765432109',
-    siret: '987 654 321 00014',
-    email: 'sophie.dubois@petittheatre.fr',
-    phone: '04 56 78 90 12',
-    website: 'https://www.petittheatre.fr',
-    status: 'pending',
-    submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    notes: 'Formulaire sans programmateur associé',
-    concertId: 'mock-concert-3',
-    concertName: 'Concert exemple 3',
-    concertDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
-    formLinkId: 'public-form-mock-concert-3',
-    commonToken: 'mock-concert-3-token'
-  }
-];
 
 // Assurez-vous que la collection formSubmissions existe
 const formSubmissionsCollection = collection(db, FORM_SUBMISSIONS_COLLECTION);
@@ -206,26 +90,8 @@ export const getFormSubmissions = async (filters = {}) => {
     const snapshot = await getDocs(formQuery);
     
     if (snapshot.empty) {
-      console.log("[getFormSubmissions] Aucun formulaire trouvé dans Firebase, utilisation des données simulées");
-      
-      // Essayer d'ajouter les données simulées à Firebase
-      try {
-        console.log("[getFormSubmissions] Tentative d'ajout des données simulées à Firebase...");
-        for (const form of mockFormSubmissions) {
-          const { id, ...formData } = form;
-          await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, id), {
-            ...formData,
-            submittedAt: Timestamp.fromDate(formData.submittedAt),
-            processedAt: formData.processedAt ? Timestamp.fromDate(formData.processedAt) : null,
-            concertDate: formData.concertDate ? Timestamp.fromDate(formData.concertDate) : null
-          });
-        }
-        console.log("[getFormSubmissions] Données simulées ajoutées à Firebase avec succès");
-      } catch (addError) {
-        console.error("[getFormSubmissions] Erreur lors de l'ajout des données simulées:", addError);
-      }
-      
-      return mockFormSubmissions;
+      console.log("[getFormSubmissions] Aucun formulaire trouvé dans Firebase");
+      return [];
     }
     
     const formSubmissions = snapshot.docs.map(doc => ({
@@ -237,27 +103,7 @@ export const getFormSubmissions = async (filters = {}) => {
     return formSubmissions;
   } catch (error) {
     console.error("[getFormSubmissions] Erreur lors de la récupération des formulaires:", error);
-    console.log("[getFormSubmissions] Utilisation des données simulées pour les formulaires");
-    
-    // Essayer d'ajouter les données simulées à Firebase
-    try {
-      console.log("[getFormSubmissions] Tentative d'ajout des données simulées à Firebase...");
-      for (const form of mockFormSubmissions) {
-        const { id, ...formData } = form;
-        await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, id), {
-          ...formData,
-          submittedAt: Timestamp.fromDate(formData.submittedAt),
-          processedAt: formData.processedAt ? Timestamp.fromDate(formData.processedAt) : null,
-          concertDate: formData.concertDate ? Timestamp.fromDate(formData.concertDate) : null
-        });
-      }
-      console.log("[getFormSubmissions] Données simulées ajoutées à Firebase avec succès");
-    } catch (addError) {
-      console.error("[getFormSubmissions] Erreur lors de l'ajout des données simulées:", addError);
-    }
-    
-    // Retourner des données simulées en cas d'erreur d'authentification
-    return mockFormSubmissions;
+    return [];
   }
 };
 
@@ -288,10 +134,7 @@ export const getFormSubmissionById = async (id) => {
     return null;
   } catch (error) {
     console.error(`[getFormSubmissionById] Erreur lors de la récupération du formulaire ${id}:`, error);
-    // Retourner un formulaire simulé en cas d'erreur
-    const mockForm = mockFormSubmissions.find(form => form.id === id) || mockFormSubmissions[0];
-    console.log(`[getFormSubmissionById] Utilisation du formulaire simulé:`, mockForm);
-    return mockForm;
+    return null;
   }
 };
 
@@ -381,21 +224,7 @@ export const createFormSubmission = async (formData) => {
       throw error; // Propager l'erreur spécifique
     }
     
-    // Simuler l'ajout d'un formulaire en cas d'erreur
-    console.log("[createFormSubmission] Simulation de l'ajout d'un formulaire (mode fallback)");
-    const mockId = 'mock-form-' + Date.now();
-    
-    const mockResult = {
-      id: mockId,
-      ...formData,
-      status: formData.status || 'pending',
-      submittedAt: new Date(),
-      concertDate: formData.concertDate || null,
-      _isMock: true // Indicateur que c'est une donnée simulée
-    };
-    
-    console.log("[createFormSubmission] Résultat simulé:", mockResult);
-    return mockResult;
+    throw error;
   }
 };
 
