@@ -13,437 +13,199 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { createContract, deleteContractsByConcert } from './contractsService';
 
-// Assurez-vous que la collection existe
-const ensureCollection = async (collectionName) => {
-  try {
-    // Vérifier si la collection existe en essayant de récupérer des documents
-    const collectionRef = collection(db, collectionName);
-    const snapshot = await getDocs(query(collectionRef, orderBy('date', 'desc')));
-    
-    // Si la collection n'existe pas ou est vide, créer un document initial
-    if (snapshot.empty) {
-      console.log(`Collection ${collectionName} vide, création d'un document initial...`);
-      const initialDoc = {
-        artist: {
-          id: 'mock-artist-1',
-          name: 'Artiste Exemple'
-        },
-        programmer: {
-          id: 'mock-programmer-1',
-          name: 'Programmateur Exemple',
-          structure: 'Salle Exemple'
-        },
-        // Conversion de la chaîne en Timestamp
-        date: Timestamp.fromDate(new Date('2025-12-31')),
-        time: '20:00',
-        venue: 'Salle de concert',
-        city: 'Paris',
-        price: 25,
-        status: 'En attente',
-        notes: 'Concert exemple créé automatiquement',
-        createdAt: new Date()
-      };
-      
-      await addDoc(collectionRef, initialDoc);
-      console.log(`Document initial créé dans la collection ${collectionName}`);
-    }
-    
-    return true;
-  } catch (error) {
-    console.error(`Erreur lors de la vérification/création de la collection ${collectionName}:`, error);
-    return false;
-  }
-};
-
-// Données simulées pour le fallback en cas d'erreur d'authentification
-const mockConcerts = [
-  {
-    id: 'mock-concert-1',
-    artist: {
-      id: 'mock-artist-1',
-      name: 'The Weeknd'
-    },
-    programmer: {
-      id: 'mock-programmer-1',
-      name: 'Marie Dupont',
-      structure: 'Association Vibrations'
-    },
-    date: '2025-06-15',
-    time: '20:00',
-    venue: 'Stade de France',
-    city: 'Paris',
-    price: 85,
-    status: 'Confirmé',
-    notes: 'Concert complet',
-    createdAt: new Date()
-  },
-  {
-    id: 'mock-concert-2',
-    artist: {
-      id: 'mock-artist-2',
-      name: 'Daft Punk'
-    },
-    programmer: {
-      id: 'mock-programmer-2',
-      name: 'Jean Martin',
-      structure: 'La Cigale'
-    },
-    date: '2025-07-20',
-    time: '21:00',
-    venue: 'La Cigale',
-    city: 'Paris',
-    price: 65,
-    status: 'En attente',
-    notes: 'Tournée de retour',
-    createdAt: new Date()
-  }
-];
+// Collection de référence
+const CONCERTS_COLLECTION = 'concerts';
 
 // Assurez-vous que la collection concerts existe
-const concertsCollection = collection(db, 'concerts');
+const concertsCollection = collection(db, CONCERTS_COLLECTION);
 
-export const getConcerts = async () => {
+/**
+ * Récupère tous les concerts
+ * @param {Object} filters - Filtres à appliquer (optionnel)
+ * @returns {Promise<Array>} Liste des concerts
+ */
+export const getConcerts = async (filters = {}) => {
   try {
-    // S'assurer que la collection existe
-    await ensureCollection('concerts');
+    console.log("[getConcerts] Tentative de récupération des concerts depuis Firebase...");
+    console.log("[getConcerts] Filtres appliqués:", filters);
     
-    console.log("Tentative de récupération des concerts depuis Firebase...");
-    const q = query(concertsCollection, orderBy('date', 'desc'));
-    const snapshot = await getDocs(q);
+    // Création d'une requête de base
+    let concertsQuery = concertsCollection;
     
-    if (snapshot.empty) {
-      console.log("Aucun concert trouvé dans Firebase, utilisation des données simulées");
-      
-      // Essayer d'ajouter les données simulées à Firebase
-      try {
-        console.log("Tentative d'ajout des données simulées à Firebase...");
-        for (const concert of mockConcerts) {
-          const { id, ...concertData } = concert;
-          await setDoc(doc(db, 'concerts', id), concertData);
-        }
-        console.log("Données simulées ajoutées à Firebase avec succès");
-      } catch (addError) {
-        console.error("Erreur lors de l'ajout des données simulées:", addError);
+    // Application des filtres si nécessaire
+    if (filters) {
+      // Filtrer par programmateur
+      if (filters.programmerId) {
+        concertsQuery = query(concertsQuery, where('programmerId', '==', filters.programmerId));
       }
       
-      return mockConcerts;
-    }
-    
-    const concerts = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    console.log(`${concerts.length} concerts récupérés depuis Firebase`);
-    return concerts;
-  } catch (error) {
-    console.error("Erreur lors de la récupération des concerts:", error);
-    console.log("Utilisation des données simulées pour les concerts");
-    
-    // Essayer d'ajouter les données simulées à Firebase
-    try {
-      console.log("Tentative d'ajout des données simulées à Firebase...");
-      for (const concert of mockConcerts) {
-        const { id, ...concertData } = concert;
-        await setDoc(doc(db, 'concerts', id), concertData);
+      // Filtrer par artiste
+      if (filters.artistId) {
+        concertsQuery = query(concertsQuery, where('artistId', '==', filters.artistId));
       }
-      console.log("Données simulées ajoutées à Firebase avec succès");
-    } catch (addError) {
-      console.error("Erreur lors de l'ajout des données simulées:", addError);
+      
+      // Filtrer par lieu
+      if (filters.venue) {
+        concertsQuery = query(concertsQuery, where('venue', '==', filters.venue));
+      }
+      
+      // Filtrer par token commun
+      if (filters.commonToken) {
+        concertsQuery = query(concertsQuery, where('commonToken', '==', filters.commonToken));
+      }
     }
     
-    // Retourner des données simulées en cas d'erreur d'authentification
-    return mockConcerts;
-  }
-};
-
-export const getConcertsByArtist = async (artistId) => {
-  try {
-    // S'assurer que la collection existe
-    await ensureCollection('concerts');
+    // Ajout d'un tri par date (du plus récent au plus ancien)
+    concertsQuery = query(concertsQuery, orderBy('date', 'desc'));
     
-    console.log(`Tentative de récupération des concerts pour l'artiste ${artistId}...`);
-    const q = query(
-      concertsCollection, 
-      where('artist.id', '==', artistId),
-      orderBy('date', 'desc')
-    );
-    const snapshot = await getDocs(q);
-    
-    if (snapshot.empty) {
-      console.log(`Aucun concert trouvé pour l'artiste ${artistId}`);
-      return [];
-    }
+    // Exécution de la requête
+    const snapshot = await getDocs(concertsQuery);
     
     const concerts = snapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
+      // Convertir les timestamps en objets Date pour faciliter l'utilisation
+      date: doc.data().date ? new Date(doc.data().date.seconds * 1000) : null
     }));
     
-    console.log(`${concerts.length} concerts récupérés pour l'artiste ${artistId}`);
+    console.log(`[getConcerts] ${concerts.length} concerts récupérés depuis Firebase`);
     return concerts;
   } catch (error) {
-    console.error(`Erreur lors de la récupération des concerts pour l'artiste ${artistId}:`, error);
-    // Retourner des concerts simulés pour cet artiste
-    const mockArtistConcerts = mockConcerts.filter(concert => concert.artist.id === artistId);
-    console.log(`Utilisation de ${mockArtistConcerts.length} concerts simulés pour l'artiste ${artistId}`);
-    return mockArtistConcerts;
+    console.error("[getConcerts] Erreur lors de la récupération des concerts:", error);
+    throw error;
   }
 };
 
-export const getConcertsByProgrammer = async (programmerId) => {
-  try {
-    // S'assurer que la collection existe
-    await ensureCollection('concerts');
-    
-    console.log(`Tentative de récupération des concerts pour le programmateur ${programmerId}...`);
-    const q = query(
-      concertsCollection, 
-      where('programmer.id', '==', programmerId),
-      orderBy('date', 'desc')
-    );
-    const snapshot = await getDocs(q);
-    
-    if (snapshot.empty) {
-      console.log(`Aucun concert trouvé pour le programmateur ${programmerId}`);
-      return [];
-    }
-    
-    const concerts = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    console.log(`${concerts.length} concerts récupérés pour le programmateur ${programmerId}`);
-    return concerts;
-  } catch (error) {
-    console.error(`Erreur lors de la récupération des concerts pour le programmateur ${programmerId}:`, error);
-    // Retourner des concerts simulés pour ce programmateur
-    const mockProgrammerConcerts = mockConcerts.filter(concert => concert.programmer.id === programmerId);
-    console.log(`Utilisation de ${mockProgrammerConcerts.length} concerts simulés pour le programmateur ${programmerId}`);
-    return mockProgrammerConcerts;
-  }
-};
-
+/**
+ * Récupère un concert par son ID
+ * @param {string} id - ID du concert
+ * @returns {Promise<Object>} Données du concert
+ */
 export const getConcertById = async (id) => {
   try {
-    // S'assurer que la collection existe
-    await ensureCollection('concerts');
+    console.log(`[getConcertById] Tentative de récupération du concert ${id} depuis Firebase...`);
     
-    console.log(`Tentative de récupération du concert ${id} depuis Firebase...`);
-    const docRef = doc(db, 'concerts', id);
+    const docRef = doc(db, CONCERTS_COLLECTION, id);
     const snapshot = await getDoc(docRef);
     
     if (snapshot.exists()) {
       const concertData = {
         id: snapshot.id,
-        ...snapshot.data()
+        ...snapshot.data(),
+        // Convertir les timestamps en objets Date pour faciliter l'utilisation
+        date: snapshot.data().date ? new Date(snapshot.data().date.seconds * 1000) : null
       };
-      console.log(`Concert ${id} récupéré depuis Firebase:`, concertData);
+      console.log(`[getConcertById] Concert ${id} récupéré depuis Firebase`);
       return concertData;
     }
     
-    console.log(`Concert ${id} non trouvé dans Firebase`);
+    console.log(`[getConcertById] Concert ${id} non trouvé dans Firebase`);
     return null;
   } catch (error) {
-    console.error(`Erreur lors de la récupération du concert ${id}:`, error);
-    // Retourner un concert simulé en cas d'erreur
-    const mockConcert = mockConcerts.find(concert => concert.id === id) || mockConcerts[0];
-    console.log(`Utilisation du concert simulé:`, mockConcert);
-    return mockConcert;
+    console.error(`[getConcertById] Erreur lors de la récupération du concert ${id}:`, error);
+    throw error;
   }
 };
 
+/**
+ * Ajoute un nouveau concert
+ * @param {Object} concertData - Données du concert
+ * @returns {Promise<Object>} Concert créé avec ID
+ */
 export const addConcert = async (concertData) => {
   try {
-    // S'assurer que la collection existe
-    await ensureCollection('concerts');
+    console.log("[addConcert] Tentative d'ajout d'un concert à Firebase:", concertData);
     
-    console.log("Tentative d'ajout d'un concert à Firebase:", concertData);
-    // Conversion du champ "date" en Timestamp si nécessaire
-    const convertedConcertData = {
+    // Convertir la date en Timestamp si elle existe
+    const dataToAdd = {
       ...concertData,
-      date: typeof concertData.date === 'string'
-              ? Timestamp.fromDate(new Date(concertData.date))
-              : concertData.date,
-      createdAt: new Date()
+      date: concertData.date ? Timestamp.fromDate(new Date(concertData.date)) : null
     };
     
-    const docRef = await addDoc(concertsCollection, convertedConcertData);
-    console.log(`Concert ajouté avec succès, ID: ${docRef.id}`);
-    
-    // Créer automatiquement un contrat associé au concert avec conversion de la date
-    try {
-      const contractData = {
-        concertId: docRef.id,
-        date: typeof concertData.date === 'string'
-                ? Timestamp.fromDate(new Date(concertData.date))
-                : concertData.date,
-        optionDate: concertData.optionDate || null,
-        artist: concertData.artist,
-        project: concertData.project || null,
-        venue: concertData.venue,
-        city: concertData.city,
-        programmer: concertData.programmer,
-        amount: concertData.price || 0,
-        formStatus: 'pending',
-        contractSentStatus: 'pending',
-        contractSignedStatus: 'pending',
-        invoiceStatus: 'pending',
-        status: 'en_cours',
-        createdAt: new Date()
-      };
-      
-      const newContract = await createContract(contractData);
-      console.log(`Contrat créé automatiquement pour le concert ${docRef.id}:`, newContract);
-    } catch (contractError) {
-      console.error("Erreur lors de la création automatique du contrat:", contractError);
-    }
+    const docRef = await addDoc(concertsCollection, dataToAdd);
+    console.log(`[addConcert] Concert ajouté avec succès, ID: ${docRef.id}`);
     
     return {
       id: docRef.id,
-      ...convertedConcertData
+      ...concertData
     };
   } catch (error) {
-    console.error("Erreur lors de l'ajout du concert:", error);
-    console.log("Simulation de l'ajout d'un concert");
-    
-    // En cas d'erreur, essayer d'ajouter le concert avec un ID généré manuellement
-    try {
-      const mockId = 'mock-concert-' + Date.now();
-      const convertedConcertData = {
-        ...concertData,
-        date: typeof concertData.date === 'string'
-                ? Timestamp.fromDate(new Date(concertData.date))
-                : concertData.date,
-        createdAt: new Date()
-      };
-      await setDoc(doc(db, 'concerts', mockId), convertedConcertData);
-      console.log(`Concert ajouté avec un ID manuel: ${mockId}`);
-      
-      // Créer automatiquement un contrat associé au concert simulé
-      try {
-        const contractData = {
-          concertId: mockId,
-          date: typeof concertData.date === 'string'
-                  ? Timestamp.fromDate(new Date(concertData.date))
-                  : concertData.date,
-          optionDate: concertData.optionDate || null,
-          artist: concertData.artist,
-          project: concertData.project || null,
-          venue: concertData.venue,
-          city: concertData.city,
-          programmer: concertData.programmer,
-          amount: concertData.price || 0,
-          formStatus: 'pending',
-          contractSentStatus: 'pending',
-          contractSignedStatus: 'pending',
-          invoiceStatus: 'pending',
-          status: 'en_cours',
-          createdAt: new Date()
-        };
-        
-        const newContract = await createContract(contractData);
-        console.log(`Contrat créé automatiquement pour le concert simulé ${mockId}:`, newContract);
-      } catch (contractError) {
-        console.error("Erreur lors de la création automatique du contrat simulé:", contractError);
-      }
-      
-      return {
-        id: mockId,
-        ...convertedConcertData
-      };
-    } catch (addError) {
-      console.error("Erreur lors de l'ajout manuel du concert:", addError);
-      
-      // Simulation minimale de l'ajout en cas d'échec
-      const mockId = 'mock-concert-' + Date.now();
-      return {
-        id: mockId,
-        ...concertData,
-        createdAt: new Date()
-      };
-    }
+    console.error("[addConcert] Erreur lors de l'ajout du concert:", error);
+    throw error;
   }
 };
 
+/**
+ * Met à jour un concert existant
+ * @param {string} id - ID du concert
+ * @param {Object} concertData - Nouvelles données du concert
+ * @returns {Promise<Object>} Concert mis à jour
+ */
 export const updateConcert = async (id, concertData) => {
   try {
-    // S'assurer que la collection existe
-    await ensureCollection('concerts');
+    console.log(`[updateConcert] Tentative de mise à jour du concert ${id}:`, concertData);
     
-    console.log(`Tentative de mise à jour du concert ${id}:`, concertData);
-    const docRef = doc(db, 'concerts', id);
-    await updateDoc(docRef, {
-      ...concertData,
-      updatedAt: new Date()
-    });
+    // Convertir la date en Timestamp si elle existe
+    const dataToUpdate = {
+      ...concertData
+    };
     
-    console.log(`Concert ${id} mis à jour avec succès`);
+    if (concertData.date) {
+      dataToUpdate.date = concertData.date instanceof Date ? 
+        Timestamp.fromDate(concertData.date) : 
+        Timestamp.fromDate(new Date(concertData.date));
+    }
+    
+    // Vérifier si le concert existe déjà
+    const docRef = doc(db, CONCERTS_COLLECTION, id);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      // Mettre à jour le concert existant
+      await updateDoc(docRef, dataToUpdate);
+      console.log(`[updateConcert] Concert ${id} mis à jour avec succès`);
+    } else {
+      // Créer un nouveau concert avec l'ID spécifié
+      await setDoc(docRef, dataToUpdate);
+      console.log(`[updateConcert] Nouveau concert créé avec ID spécifié: ${id}`);
+    }
+    
     return {
       id,
       ...concertData
     };
   } catch (error) {
-    console.error(`Erreur lors de la mise à jour du concert ${id}:`, error);
-    console.log("Simulation de la mise à jour d'un concert");
-    
-    // Essayer de créer/remplacer le document
-    try {
-      await setDoc(doc(db, 'concerts', id), {
-        ...concertData,
-        updatedAt: new Date()
-      });
-      
-      console.log(`Concert ${id} créé/remplacé avec succès`);
-      return {
-        id,
-        ...concertData,
-        updatedAt: new Date()
-      };
-    } catch (setError) {
-      console.error(`Erreur lors de la création/remplacement du concert ${id}:`, setError);
-      
-      // Simulation de la mise à jour en cas d'erreur
-      return {
-        id,
-        ...concertData,
-        updatedAt: new Date()
-      };
-    }
+    console.error(`[updateConcert] Erreur lors de la mise à jour du concert ${id}:`, error);
+    throw error;
   }
 };
 
+/**
+ * Supprime un concert
+ * @param {string} id - ID du concert
+ * @returns {Promise<boolean>} Succès de la suppression
+ */
 export const deleteConcert = async (id) => {
   try {
-    console.log(`Tentative de suppression du concert ${id}`);
-    const docRef = doc(db, 'concerts', id);
+    console.log(`[deleteConcert] Tentative de suppression du concert ${id}`);
+    
+    const docRef = doc(db, CONCERTS_COLLECTION, id);
     await deleteDoc(docRef);
     
-    // Supprimer également tous les contrats liés à ce concert
-    try {
-      const deletedContractIds = await deleteContractsByConcert(id);
-      console.log(`Concert ${id} et ${deletedContractIds.length} contrats associés supprimés avec succès`);
-    } catch (contractError) {
-      console.error(`Erreur lors de la suppression des contrats liés au concert ${id}:`, contractError);
-    }
-    
-    return id;
+    console.log(`[deleteConcert] Concert ${id} supprimé avec succès`);
+    return true;
   } catch (error) {
-    console.error(`Erreur lors de la suppression du concert ${id}:`, error);
-    console.log("Simulation de la suppression d'un concert");
-    
-    // Tenter de supprimer les contrats associés même en cas d'erreur
-    try {
-      const deletedContractIds = await deleteContractsByConcert(id);
-      console.log(`${deletedContractIds.length} contrats associés au concert ${id} supprimés avec succès`);
-    } catch (contractError) {
-      console.error(`Erreur lors de la suppression des contrats liés au concert ${id}:`, contractError);
-    }
-    
-    // Simuler la suppression d'un concert en cas d'erreur
-    return id;
+    console.error(`[deleteConcert] Erreur lors de la suppression du concert ${id}:`, error);
+    throw error;
   }
+};
+
+/**
+ * Récupère les concerts par token commun
+ * @param {string} commonToken - Token commun
+ * @returns {Promise<Array>} Liste des concerts
+ */
+export const getConcertsByToken = async (commonToken) => {
+  return getConcerts({ commonToken });
 };

@@ -142,7 +142,6 @@ const PublicFormPage = (props) => {
         // Ajouter le token commun pour lier les entités
         commonToken: commonToken
       };
-        
       
       console.log('PublicFormPage - Données préparées pour la soumission:', submissionData);
       console.log('PublicFormPage - Vérification de la présence de concertId:', submissionData.concertId ? 'Présent' : 'Manquant');

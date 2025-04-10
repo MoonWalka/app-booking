@@ -9,7 +9,7 @@ import {
   query,
   orderBy,
   where,
-  setDoc,  // S'assurer que setDoc est correctement importé
+  setDoc,
   Timestamp,
   limit
 } from 'firebase/firestore';
@@ -48,9 +48,10 @@ const ensureCollection = async (collectionName) => {
         status: 'pending',
         submittedAt: Timestamp.fromDate(new Date()),
         notes: 'Formulaire exemple créé automatiquement',
-        concertId: 'mock-concert-1',  // S'assurer que concertId est présent
+        concertId: 'mock-concert-1',
         concertName: 'Concert exemple',
-        formLinkId: 'mock-link-1'
+        formLinkId: 'mock-link-1',
+        commonToken: 'mock-concert-1-token'
       };
       
       try {
@@ -96,11 +97,11 @@ const mockFormSubmissions = [
     status: 'pending',
     submittedAt: new Date(),
     notes: 'Formulaire exemple',
-    // Nouveaux champs pour lier au concert
     concertId: 'mock-concert-1',
     concertName: 'Concert exemple',
     concertDate: new Date(),
-    formLinkId: 'mock-link-1'
+    formLinkId: 'mock-link-1',
+    commonToken: 'mock-concert-1-token'
   },
   {
     id: 'mock-form-2',
@@ -117,14 +118,14 @@ const mockFormSubmissions = [
     phone: '01 23 45 67 89',
     website: 'https://www.lacigale.fr',
     status: 'processed',
-    submittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 jours avant
-    processedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 jours avant
+    submittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    processedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
     notes: 'Formulaire traité',
-    // Nouveaux champs pour lier au concert
     concertId: 'mock-concert-2',
     concertName: 'Concert exemple 2',
-    concertDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours après
-    formLinkId: 'mock-link-2'
+    concertDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    formLinkId: 'mock-link-2',
+    commonToken: 'mock-concert-2-token'
   },
   {
     id: 'mock-form-3',
@@ -141,13 +142,13 @@ const mockFormSubmissions = [
     phone: '04 56 78 90 12',
     website: 'https://www.petittheatre.fr',
     status: 'pending',
-    submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 jours avant
+    submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
     notes: 'Formulaire sans programmateur associé',
-    // Nouveaux champs pour lier au concert
     concertId: 'mock-concert-3',
     concertName: 'Concert exemple 3',
-    concertDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 jours après
-    formLinkId: 'public-form-mock-concert-3'
+    concertDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
+    formLinkId: 'public-form-mock-concert-3',
+    commonToken: 'mock-concert-3-token'
   }
 ];
 
@@ -190,6 +191,11 @@ export const getFormSubmissions = async (filters = {}) => {
       // Filtrer par lien de formulaire
       if (filters.formLinkId) {
         formQuery = query(formQuery, where('formLinkId', '==', filters.formLinkId));
+      }
+      
+      // Filtrer par token commun
+      if (filters.commonToken) {
+        formQuery = query(formQuery, where('commonToken', '==', filters.commonToken));
       }
     }
     
@@ -335,7 +341,6 @@ export const createFormSubmission = async (formData) => {
           formData.concertDate) : 
         null
     };
-      
     
     console.log("[createFormSubmission] Tentative d'ajout d'un formulaire à Firebase avec addDoc:", completeFormData);
     console.log("[createFormSubmission] Vérification de la présence de concertId:", completeFormData.concertId ? 'Présent' : 'Manquant');
@@ -409,169 +414,103 @@ export const updateFormSubmission = async (id, formData) => {
     const docRef = doc(db, FORM_SUBMISSIONS_COLLECTION, id);
     
     // Si le statut change à 'processed' ou 'rejected', ajouter la date de traitement
-    const updateData = { ...formData };
-    if ((formData.status === 'processed' || formData.status === 'rejected') && !formData.processedAt) {
-      updateData.processedAt = Timestamp.fromDate(new Date());
+    const updatedData = {
+      ...formData
+    };
+    
+    if (formData.status === 'processed' || formData.status === 'rejected') {
+      updatedData.processedAt = Timestamp.fromDate(new Date());
     }
     
     // Convertir la date du concert en Timestamp si elle existe
-    if (updateData.concertDate) {
-      updateData.concertDate = updateData.concertDate instanceof Date ? 
-        Timestamp.fromDate(updateData.concertDate) : 
-        updateData.concertDate;
+    if (formData.concertDate) {
+      updatedData.concertDate = formData.concertDate instanceof Date ? 
+        Timestamp.fromDate(formData.concertDate) : 
+        formData.concertDate;
     }
     
-    await updateDoc(docRef, updateData);
-    
+    await updateDoc(docRef, updatedData);
     console.log(`[updateFormSubmission] Formulaire ${id} mis à jour avec succès`);
+    
     return {
       id,
-      ...updateData
+      ...updatedData
     };
   } catch (error) {
     console.error(`[updateFormSubmission] Erreur lors de la mise à jour du formulaire ${id}:`, error);
-    console.log("[updateFormSubmission] Tentative alternative avec setDoc...");
-    
-    // Essayer de créer/remplacer le document
-    try {
-      // Si le statut change à 'processed' ou 'rejected', ajouter la date de traitement
-      const updateData = { ...formData };
-      if ((formData.status === 'processed' || formData.status === 'rejected') && !formData.processedAt) {
-        updateData.processedAt = Timestamp.fromDate(new Date());
-      }
-      
-      // Convertir la date du concert en Timestamp si elle existe
-      if (updateData.concertDate) {
-        updateData.concertDate = updateData.concertDate instanceof Date ? 
-          Timestamp.fromDate(updateData.concertDate) : 
-          updateData.concertDate;
-      }
-      
-      await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, id), updateData, { merge: true });
-      
-      console.log(`[updateFormSubmission] Formulaire ${id} créé/remplacé avec succès`);
-      return {
-        id,
-        ...updateData
-      };
-    } catch (setError) {
-      console.error(`[updateFormSubmission] Erreur lors de la création/remplacement du formulaire ${id}:`, setError);
-      
-      // Simuler la mise à jour d'un formulaire en cas d'erreur
-      return {
-        id,
-        ...formData,
-        processedAt: (formData.status === 'processed' || formData.status === 'rejected') ? new Date() : null,
-        _isMock: true // Indicateur que c'est une donnée simulée
-      };
-    }
+    throw error;
   }
 };
 
 /**
  * Supprime un formulaire soumis
  * @param {string} id - ID du formulaire
- * @returns {Promise<string>} ID du formulaire supprimé
+ * @returns {Promise<boolean>} Succès de la suppression
  */
 export const deleteFormSubmission = async (id) => {
   try {
+    // S'assurer que la collection existe
+    await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
+    
     console.log(`[deleteFormSubmission] Tentative de suppression du formulaire ${id}`);
     const docRef = doc(db, FORM_SUBMISSIONS_COLLECTION, id);
     await deleteDoc(docRef);
-    
     console.log(`[deleteFormSubmission] Formulaire ${id} supprimé avec succès`);
-    return id;
+    
+    return true;
   } catch (error) {
     console.error(`[deleteFormSubmission] Erreur lors de la suppression du formulaire ${id}:`, error);
-    console.log("[deleteFormSubmission] Simulation de la suppression d'un formulaire");
-    // Simuler la suppression d'un formulaire en cas d'erreur
-    return id;
+    throw error;
   }
 };
 
 /**
- * Récupère les formulaires soumis pour un programmateur spécifique
+ * Récupère les formulaires soumis par un programmateur
  * @param {string} programmerId - ID du programmateur
  * @returns {Promise<Array>} Liste des formulaires soumis
  */
 export const getFormSubmissionsByProgrammer = async (programmerId) => {
-  try {
-    // S'assurer que la collection existe
-    await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
-    
-    console.log(`[getFormSubmissionsByProgrammer] Tentative de récupération des formulaires pour le programmateur ${programmerId}...`);
-    const formQuery = query(
-      formSubmissionsCollection, 
-      where('programmerId', '==', programmerId),
-      orderBy('submittedAt', 'desc')
-    );
-    
-    const snapshot = await getDocs(formQuery);
-    
-    if (snapshot.empty) {
-      console.log(`[getFormSubmissionsByProgrammer] Aucun formulaire trouvé pour le programmateur ${programmerId}`);
-      return [];
-    }
-    
-    const formSubmissions = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    console.log(`[getFormSubmissionsByProgrammer] ${formSubmissions.length} formulaires récupérés pour le programmateur ${programmerId}`);
-    return formSubmissions;
-  } catch (error) {
-    console.error(`[getFormSubmissionsByProgrammer] Erreur lors de la récupération des formulaires pour le programmateur ${programmerId}:`, error);
-    
-    // Filtrer les données simulées pour ce programmateur
-    const mockData = mockFormSubmissions.filter(form => form.programmerId === programmerId);
-    console.log(`[getFormSubmissionsByProgrammer] Utilisation de ${mockData.length} formulaires simulés pour le programmateur ${programmerId}`);
-    return mockData;
-  }
+  return getFormSubmissions({ programmerId });
 };
 
 /**
- * Récupère les formulaires soumis pour un concert spécifique
+ * Récupère les formulaires soumis par statut
+ * @param {string} status - Statut des formulaires
+ * @returns {Promise<Array>} Liste des formulaires soumis
+ */
+export const getFormSubmissionsByStatus = async (status) => {
+  return getFormSubmissions({ status });
+};
+
+/**
+ * Récupère les formulaires soumis pour un concert
  * @param {string} concertId - ID du concert
  * @returns {Promise<Array>} Liste des formulaires soumis
  */
 export const getFormSubmissionsByConcert = async (concertId) => {
-  try {
-    // S'assurer que la collection existe
-    await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
-    
-    console.log(`[getFormSubmissionsByConcert] Tentative de récupération des formulaires pour le concert ${concertId}...`);
-    const formQuery = query(
-      formSubmissionsCollection, 
-      where('concertId', '==', concertId),
-      orderBy('submittedAt', 'desc')
-    );
-    
-    const snapshot = await getDocs(formQuery);
-    
-    if (snapshot.empty) {
-      console.log(`[getFormSubmissionsByConcert] Aucun formulaire trouvé pour le concert ${concertId}`);
-      return [];
-    }
-    
-    const formSubmissions = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    console.log(`[getFormSubmissionsByConcert] ${formSubmissions.length} formulaires récupérés pour le concert ${concertId}`);
-    return formSubmissions;
-  } catch (error) {
-    console.error(`[getFormSubmissionsByConcert] Erreur lors de la récupération des formulaires pour le concert ${concertId}:`, error);
-    
-    // Filtrer les données simulées pour ce concert
-    const mockData = mockFormSubmissions.filter(form => form.concertId === concertId);
-    console.log(`[getFormSubmissionsByConcert] Utilisation de ${mockData.length} formulaires simulés pour le concert ${concertId}`);
-    return mockData;
-  }
+  return getFormSubmissions({ concertId });
 };
 
-// Exporter d'autres fonctions utiles
-export const getFormSubmissionsByStatus = async (status) => {
-  return getFormSubmissions({ status });
+/**
+ * Récupère les formulaires soumis par token commun
+ * @param {string} commonToken - Token commun
+ * @returns {Promise<Array>} Liste des formulaires soumis
+ */
+export const getFormSubmissionsByToken = async (commonToken) => {
+  return getFormSubmissions({ commonToken });
+};
+
+/**
+ * Récupère un formulaire soumis par son ID de lien
+ * @param {string} formLinkId - ID du lien de formulaire
+ * @returns {Promise<Object>} Formulaire soumis
+ */
+export const getFormSubmissionByFormLinkId = async (formLinkId) => {
+  try {
+    const submissions = await getFormSubmissions({ formLinkId });
+    return submissions.length > 0 ? submissions[0] : null;
+  } catch (error) {
+    console.error(`[getFormSubmissionByFormLinkId] Erreur lors de la récupération du formulaire avec formLinkId ${formLinkId}:`, error);
+    throw error;
+  }
 };
