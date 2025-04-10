@@ -13,35 +13,37 @@ const FormSubmittedPage = () => {
   }, []);
   
   return (
-    <div style={{ 
-      padding: "40px", 
-      textAlign: "center", 
-      maxWidth: "800px", 
-      margin: "0 auto", 
-      backgroundColor: "#f9f9f9", 
-      borderRadius: "8px", 
-      boxShadow: "0 2px 10px rgba(0,0,0,0.1)" 
-    }}>
-      <h2 style={{ color: "#4a90e2", marginBottom: "20px" }}>Formulaire Soumis avec Succès</h2>
-      <p style={{ fontSize: "18px", marginBottom: "15px" }}>
-        Merci d'avoir soumis le formulaire. Vos informations ont été enregistrées.
-      </p>
-      <div style={{ 
-        marginTop: "30px", 
-        padding: "15px", 
-        backgroundColor: "#e8f4fd", 
-        borderRadius: "5px", 
-        border: "1px solid #c5e1f9" 
-      }}>
-        <p style={{ margin: "0", color: "#2c76c7" }}>
-          Vous pouvez maintenant fermer cette page.
+    <div className="public-form-container">
+      <div className="public-form-card">
+        <h2>Formulaire Soumis avec Succès</h2>
+        <p>
+          Merci d'avoir soumis le formulaire. Vos informations ont été enregistrées et seront traitées prochainement.
         </p>
-        <p style={{ margin: "10px 0 0 0", color: "#2c76c7", fontSize: "14px", textAlign: "left" }}>
-          Informations de débogage:<br />
-          Hash: {window.location.hash}<br />
-          Pathname: {window.location.pathname}<br />
-          URL complète: {window.location.href}
-        </p>
+        <div className="form-footer">
+          <button 
+            className="form-button"
+            onClick={() => window.location.href = window.location.origin}
+          >
+            Retour à l'accueil
+          </button>
+        </div>
+        
+        <div style={{ 
+          marginTop: "30px", 
+          padding: "15px", 
+          backgroundColor: "#e8f4fd", 
+          borderRadius: "5px", 
+          border: "1px solid #c5e1f9" 
+        }}>
+          <p style={{ margin: "0", color: "#2c76c7" }}>
+            Informations de débogage:
+          </p>
+          <p style={{ margin: "10px 0 0 0", color: "#2c76c7", fontSize: "14px", textAlign: "left" }}>
+            Hash: {window.location.hash}<br />
+            Pathname: {window.location.pathname}<br />
+            URL complète: {window.location.href}
+          </p>
+        </div>
       </div>
     </div>
   );
