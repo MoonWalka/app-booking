@@ -1,197 +1,130 @@
 .comparison-table-container {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  max-width: 900px;
-  margin: 0 auto;
+  margin: 20px 0;
   padding: 20px;
-  position: relative;
-}
-
-.comparison-table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #eaeaea;
-}
-
-.comparison-table-header h3 {
-  margin: 0;
-  font-size: 1.5rem;
-  color: #333;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  color: #666;
-  cursor: pointer;
-  padding: 5px;
-}
-
-.close-btn:hover {
-  color: #333;
-}
-
-.comparison-error {
-  background-color: #fff3f3;
-  border-left: 4px solid #e74c3c;
-  padding: 12px 15px;
-  margin-bottom: 20px;
-  color: #e74c3c;
-  border-radius: 4px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .comparison-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 20px;
+  margin-top: 15px;
 }
 
-.comparison-table-row {
-  display: grid;
-  grid-template-columns: 1fr 2fr 80px 2fr;
-  border-bottom: 1px solid #eaeaea;
-  padding: 12px 0;
+.comparison-table th,
+.comparison-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: left;
 }
 
-.comparison-table-row.header {
+.comparison-table th {
+  background-color: #f2f2f2;
   font-weight: bold;
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #ddd;
-  padding: 15px 0;
 }
 
-.comparison-field, 
-.comparison-form-value, 
-.comparison-action, 
-.comparison-programmer-value {
-  padding: 8px 12px;
-  display: flex;
-  align-items: center;
+.field-label {
+  font-weight: bold;
+  width: 15%;
 }
 
-.comparison-field {
-  font-weight: 500;
-  color: #555;
-}
-
-.comparison-form-value {
-  background-color: #f8f9fa;
-  border-radius: 4px;
+.existing-value, .form-value {
+  width: 25%;
   word-break: break-word;
 }
 
-.comparison-programmer-value {
-  background-color: #fff;
-  border: 1px solid #eaeaea;
-  border-radius: 4px;
-  word-break: break-word;
+.arrow-cell {
+  width: 5%;
+  text-align: center;
 }
 
-.empty-value {
-  color: #999;
-  font-style: italic;
+.final-value {
+  width: 25%;
 }
 
-.copy-arrow-btn {
-  background-color: #3498db;
-  color: white;
+.arrow-button {
+  background-color: #e0e0e0;
   border: none;
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   transition: background-color 0.2s;
 }
 
-.copy-arrow-btn:hover {
-  background-color: #2980b9;
-}
-
-.copy-arrow-btn:disabled {
-  background-color: #95a5a6;
-  cursor: not-allowed;
-}
-
-.comparison-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 20px;
-}
-
-.cancel-btn, .validate-btn {
-  padding: 10px 20px;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cancel-btn {
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  color: #555;
-}
-
-.cancel-btn:hover {
-  background-color: #eaeaea;
-}
-
-.validate-btn {
-  background-color: #2ecc71;
-  border: none;
+.arrow-button:hover {
+  background-color: #4CAF50;
   color: white;
 }
 
-.validate-btn:hover {
-  background-color: #27ae60;
+.left-arrow {
+  margin-left: auto;
 }
 
-.validate-btn:disabled, .cancel-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+.right-arrow {
+  margin-right: auto;
+}
+
+.final-value-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.comparison-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.save-button, .cancel-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.save-button {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.save-button:hover {
+  background-color: #45a049;
+}
+
+.cancel-button {
+  background-color: #f44336;
+  color: white;
+}
+
+.cancel-button:hover {
+  background-color: #d32f2f;
 }
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .comparison-table-row {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 15px 0;
+  .comparison-table-container {
+    padding: 10px;
   }
   
-  .comparison-table-row.header {
-    display: none;
-  }
-  
-  .comparison-field, 
-  .comparison-form-value, 
-  .comparison-action, 
-  .comparison-programmer-value {
+  .comparison-table th,
+  .comparison-table td {
     padding: 8px;
+    font-size: 14px;
   }
   
-  .comparison-field {
-    font-weight: bold;
-    background-color: #f8f9fa;
-    border-radius: 4px 4px 0 0;
-    margin-top: 10px;
-  }
-  
-  .comparison-action {
-    display: flex;
-    justify-content: center;
-  }
-  
-  .comparison-programmer-value {
-    border-radius: 0 0 4px 4px;
+  .arrow-button {
+    width: 25px;
+    height: 25px;
+    font-size: 14px;
   }
 }

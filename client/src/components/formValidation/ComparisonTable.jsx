@@ -1,149 +1,136 @@
-import React, { useState } from 'react';
-import { updateProgrammer } from '../../services/programmersService';
-import { updateFormSubmission } from '../../services/formSubmissionsService';
+import React, { useState, useEffect } from 'react';
 import './ComparisonTable.css';
 
 /**
- * Composant d'interface de comparaison entre les données du formulaire et la fiche programmateur
- * Permet de visualiser côte à côte les données et de copier les valeurs avec des flèches
+ * Composant de tableau comparatif pour comparer et intégrer les données du formulaire
+ * avec les données existantes du programmateur
  */
-const ComparisonTable = ({ formData, programmer, onClose, onSuccess }) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+const ComparisonTable = ({ formData, programmerData, onSave, onCancel }) => {
+  // État pour stocker les valeurs sélectionnées
+  const [selectedValues, setSelectedValues] = useState({});
   
-  // État pour stocker les données modifiées du programmateur
-  const [updatedProgrammerData, setUpdatedProgrammerData] = useState({...programmer});
+  // Initialiser les valeurs sélectionnées avec les valeurs du programmateur
+  useEffect(() => {
+    if (programmerData) {
+      const initialValues = {};
+      // Pour chaque champ du programmateur, utiliser sa valeur comme valeur initiale
+      Object.keys(programmerData).forEach(key => {
+        if (key !== 'id' && key !== 'submittedAt' && key !== 'status' && 
+            key !== 'processedAt' && key !== 'commonToken' && key !== 'formLinkId') {
+          initialValues[key] = programmerData[key] || '';
+        }
+      });
+      setSelectedValues(initialValues);
+    }
+  }, [programmerData]);
   
-  // Liste des champs à comparer
-  const fieldsToCompare = [
+  // Gérer le clic sur une flèche pour copier une valeur
+  const handleCopyValue = (field, value) => {
+    setSelectedValues(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+  
+  // Gérer la modification manuelle d'une valeur
+  const handleChange = (field, value) => {
+    setSelectedValues(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+  
+  // Gérer la sauvegarde des valeurs sélectionnées
+  const handleSave = () => {
+    // Conserver le token commun et l'ID du formulaire
+    const updatedData = {
+      ...selectedValues,
+      commonToken: formData.commonToken,
+      formLinkId: formData.formLinkId
+    };
+    onSave(updatedData);
+  };
+  
+  // Définir les champs à comparer et leur libellé
+  const fieldDefinitions = [
     { key: 'businessName', label: 'Raison sociale' },
-    { key: 'firstName', label: 'Prénom', programmerKey: 'firstName' },
-    { key: 'lastName', label: 'Nom', programmerKey: 'lastName' },
+    { key: 'firstName', label: 'Prénom' },
+    { key: 'lastName', label: 'Nom' },
     { key: 'role', label: 'Qualité' },
-    { key: 'address', label: 'Adresse de la raison sociale' },
+    { key: 'address', label: 'Adresse' },
     { key: 'venue', label: 'Lieu ou festival' },
-    { key: 'venueAddress', label: 'Adresse du lieu ou festival', programmerKey: 'venueAddress' },
+    { key: 'venueAddress', label: 'Adresse du lieu' },
     { key: 'vatNumber', label: 'Numéro intracommunautaire' },
     { key: 'siret', label: 'Siret' },
-    { key: 'email', label: 'Mail' },
+    { key: 'email', label: 'Email' },
     { key: 'phone', label: 'Téléphone' },
     { key: 'website', label: 'Site web' }
   ];
   
-  // Fonction pour copier une valeur du formulaire vers la fiche programmateur
-  const copyValueToProgrammer = (field) => {
-    const sourceKey = field.key;
-    const targetKey = field.programmerKey || field.key;
-    
-    if (formData[sourceKey]) {
-      setUpdatedProgrammerData(prev => ({
-        ...prev,
-        [targetKey]: formData[sourceKey]
-      }));
-    }
-  };
-  
-  // Fonction pour valider les modifications
-  const handleValidate = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Mettre à jour la fiche programmateur avec les données modifiées
-      await updateProgrammer(programmer.id, {
-        ...updatedProgrammerData,
-        // Ajouter le token commun pour lier les entités
-        commonToken: formData.commonToken
-      });
-      
-      // Marquer le formulaire comme traité
-      await updateFormSubmission(formData.id, {
-        status: 'processed',
-        processedAt: new Date()
-      });
-      
-      setLoading(false);
-      
-      // Appeler le callback de succès
-      if (onSuccess) {
-        onSuccess();
-      }
-      
-    } catch (err) {
-      console.error("Erreur lors de la validation des modifications:", err);
-      setError(err.message);
-      setLoading(false);
-    }
-  };
-  
   return (
     <div className="comparison-table-container">
-      <div className="comparison-table-header">
-        <h3>Comparaison des données</h3>
-        <button className="close-btn" onClick={onClose}>
-          <i className="fas fa-times"></i>
-        </button>
-      </div>
+      <h3>Comparaison et intégration des données</h3>
+      <p>Comparez les données du formulaire avec les données existantes et choisissez les valeurs à conserver.</p>
       
-      {error && (
-        <div className="comparison-error">
-          <i className="fas fa-exclamation-circle"></i> {error}
-        </div>
-      )}
-      
-      <div className="comparison-table">
-        <div className="comparison-table-row header">
-          <div className="comparison-field">Champ</div>
-          <div className="comparison-form-value">Valeur du formulaire</div>
-          <div className="comparison-action"></div>
-          <div className="comparison-programmer-value">Fiche programmateur</div>
-        </div>
-        
-        {fieldsToCompare.map((field) => {
-          const formValue = formData[field.key];
-          const programmerKey = field.programmerKey || field.key;
-          const programmerValue = updatedProgrammerData[programmerKey];
-          
-          return (
-            <div className="comparison-table-row" key={field.key}>
-              <div className="comparison-field">{field.label}</div>
-              <div className="comparison-form-value">
-                {formValue || <span className="empty-value">Non renseigné</span>}
-              </div>
-              <div className="comparison-action">
-                {formValue && (
+      <table className="comparison-table">
+        <thead>
+          <tr>
+            <th>Champ</th>
+            <th>Valeur existante</th>
+            <th></th>
+            <th>Valeur du formulaire</th>
+            <th></th>
+            <th>Valeur finale</th>
+          </tr>
+        </thead>
+        <tbody>
+          {fieldDefinitions.map(field => (
+            <tr key={field.key}>
+              <td className="field-label">{field.label}</td>
+              <td className="existing-value">
+                {programmerData && programmerData[field.key] ? programmerData[field.key] : '-'}
+              </td>
+              <td className="arrow-cell">
+                {formData && formData[field.key] && (
                   <button 
-                    className="copy-arrow-btn"
-                    onClick={() => copyValueToProgrammer(field)}
-                    disabled={loading}
+                    className="arrow-button left-arrow"
+                    onClick={() => handleCopyValue(field.key, programmerData && programmerData[field.key] ? programmerData[field.key] : '')}
+                    title="Utiliser la valeur existante"
                   >
-                    <i className="fas fa-arrow-right"></i>
+                    ←
                   </button>
                 )}
-              </div>
-              <div className="comparison-programmer-value">
-                {programmerValue || <span className="empty-value">Non renseigné</span>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              </td>
+              <td className="form-value">
+                {formData && formData[field.key] ? formData[field.key] : '-'}
+              </td>
+              <td className="arrow-cell">
+                {formData && formData[field.key] && (
+                  <button 
+                    className="arrow-button right-arrow"
+                    onClick={() => handleCopyValue(field.key, formData[field.key])}
+                    title="Utiliser la valeur du formulaire"
+                  >
+                    →
+                  </button>
+                )}
+              </td>
+              <td className="final-value">
+                <input 
+                  type="text" 
+                  value={selectedValues[field.key] || ''} 
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  className="final-value-input"
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       
       <div className="comparison-actions">
-        <button 
-          className="cancel-btn"
-          onClick={onClose}
-          disabled={loading}
-        >
-          Annuler
-        </button>
-        <button 
-          className="validate-btn"
-          onClick={handleValidate}
-          disabled={loading}
-        >
-          {loading ? 'Validation en cours...' : 'Valider les modifications'}
-        </button>
+        <button className="cancel-button" onClick={onCancel}>Annuler</button>
+        <button className="save-button" onClick={handleSave}>Valider et intégrer</button>
       </div>
     </div>
   );

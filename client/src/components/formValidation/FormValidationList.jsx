@@ -1,30 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { getFormSubmissions, updateFormSubmission } from '../../services/formSubmissionsService';
 import { getProgrammerById, updateProgrammer } from '../../services/programmersService';
-import ComparisonTable from "./ComparisonTable";
+import { getConcertById, updateConcert } from '../../services/concertsService';
+import ComparisonTable from './ComparisonTable';
 import './FormValidationList.css';
 
 const FormValidationList = () => {
   const [formSubmissions, setFormSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedForm, setSelectedForm] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showComparisonTable, setShowComparisonTable] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [programmerData, setProgrammerData] = useState(null);
-  const [processingAction, setProcessingAction] = useState(false);
+  const [showComparisonTable, setShowComparisonTable] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState({ status: '', message: '' });
 
+  // Charger les soumissions de formulaire
   useEffect(() => {
     const fetchFormSubmissions = async () => {
       try {
         setLoading(true);
-        const data = await getFormSubmissions();
-        setFormSubmissions(data);
+        const submissions = await getFormSubmissions({ status: 'pending' });
+        setFormSubmissions(submissions);
         setLoading(false);
       } catch (err) {
-        console.error("Erreur lors de la récupération des formulaires:", err);
-        setError(err.message);
+        console.error('Erreur lors du chargement des soumissions:', err);
+        setError('Erreur lors du chargement des soumissions. Veuillez réessayer.');
         setLoading(false);
       }
     };
@@ -32,352 +32,213 @@ const FormValidationList = () => {
     fetchFormSubmissions();
   }, []);
 
-  const handleViewForm = (form) => {
-    setSelectedForm(form);
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setSelectedForm(null);
-    setShowModal(false);
-    setShowComparisonTable(false);
-    setProgrammerData(null);
-  };
-  
-  const handleShowComparisonTable = async (form) => {
+  // Gérer la sélection d'une soumission
+  const handleSelectSubmission = async (submission) => {
+    setSelectedSubmission(submission);
+    setUpdateStatus({ status: '', message: '' });
+    
     try {
-      setProcessingAction(true);
+      // Rechercher le programmateur associé par token commun
+      let programmer = null;
       
-      // Récupérer les données du programmateur
-      if (form.programmerId) {
-        const programmer = await getProgrammerById(form.programmerId);
-        if (programmer) {
-          setProgrammerData(programmer);
-          setShowComparisonTable(true);
-          setShowModal(false);
-        } else {
-          alert("Impossible de récupérer les données du programmateur.");
+      if (submission.commonToken) {
+        // Rechercher par token commun
+        const programmers = await getProgrammerById(submission.commonToken);
+        if (programmers) {
+          programmer = programmers;
         }
-      } else {
-        alert("Ce formulaire n'est pas associé à un programmateur existant.");
       }
       
-      setProcessingAction(false);
+      // Si aucun programmateur n'est trouvé, créer un objet vide
+      if (!programmer) {
+        programmer = {
+          id: null,
+          businessName: '',
+          firstName: '',
+          lastName: '',
+          role: '',
+          address: '',
+          venue: '',
+          venueAddress: '',
+          vatNumber: '',
+          siret: '',
+          email: '',
+          phone: '',
+          website: ''
+        };
+      }
+      
+      setProgrammerData(programmer);
+      setShowComparisonTable(true);
     } catch (err) {
-      console.error("Erreur lors de la récupération des données du programmateur:", err);
-      setError(err.message);
-      setProcessingAction(false);
-      alert(`Erreur: ${err.message}`);
+      console.error('Erreur lors de la récupération des données du programmateur:', err);
+      setError('Erreur lors de la récupération des données du programmateur. Veuillez réessayer.');
     }
   };
 
-  const formatDate = (timestamp) => {
-    if (!timestamp) return 'Date inconnue';
-    
-    const date = timestamp instanceof Date 
-      ? timestamp 
-      : new Date(timestamp.seconds ? timestamp.seconds * 1000 : timestamp);
-    
-    return date.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const handleIntegrateData = async (formData, programmerId) => {
+  // Gérer l'intégration des données
+  const handleIntegrateData = async (updatedData) => {
     try {
-      setProcessingAction(true);
+      setLoading(true);
       
-      // 1. Récupérer les données actuelles du programmateur
-      const programmer = await getProgrammerById(programmerId);
+      // Mettre à jour ou créer le programmateur
+      let programmerId = programmerData.id;
       
-      if (!programmer) {
-        throw new Error('Programmateur non trouvé');
-      }
-      
-      // 2. Préparer les données à mettre à jour
-      const updatedData = {
-        ...programmer,
-        businessName: formData.businessName || programmer.businessName,
-        contact: formData.contact || programmer.contact,
-        role: formData.role || programmer.role,
-        address: formData.address || programmer.address,
-        venue: formData.venue || programmer.venue,
-        vatNumber: formData.vatNumber || programmer.vatNumber,
-        siret: formData.siret || programmer.siret,
-        email: formData.email || programmer.email,
-        phone: formData.phone || programmer.phone,
-        website: formData.website || programmer.website
+      // Préparer les données du programmateur
+      const programmerData = {
+        ...updatedData,
+        commonToken: selectedSubmission.commonToken,
+        // Ajouter d'autres champs nécessaires
+        contact: updatedData.firstName && updatedData.lastName 
+          ? `${updatedData.firstName} ${updatedData.lastName}` 
+          : updatedData.firstName || updatedData.lastName || 'Contact non spécifié'
       };
       
-      // 3. Mettre à jour le programmateur
-      await updateProgrammer(programmerId, updatedData);
+      if (programmerId) {
+        // Mettre à jour le programmateur existant
+        await updateProgrammer(programmerId, programmerData);
+      } else {
+        // Créer un nouveau programmateur avec le token commun comme ID
+        programmerId = selectedSubmission.commonToken;
+        await updateProgrammer(programmerId, programmerData);
+      }
       
-      // 4. Marquer le formulaire comme traité
-      await updateFormSubmission(formData.id, {
+      // Mettre à jour le concert si nécessaire
+      if (selectedSubmission.concertId) {
+        try {
+          const concert = await getConcertById(selectedSubmission.concertId);
+          if (concert) {
+            // Mettre à jour le concert avec le token commun
+            await updateConcert(selectedSubmission.concertId, {
+              ...concert,
+              commonToken: selectedSubmission.commonToken,
+              programmerId: programmerId
+            });
+          }
+        } catch (concertErr) {
+          console.error('Erreur lors de la mise à jour du concert:', concertErr);
+        }
+      }
+      
+      // Mettre à jour le statut de la soumission
+      await updateFormSubmission(selectedSubmission.id, {
+        ...selectedSubmission,
         status: 'processed',
         processedAt: new Date()
       });
       
-      // 5. Mettre à jour l'état local
-      setFormSubmissions(prevForms => 
-        prevForms.map(form => 
-          form.id === formData.id 
-            ? { ...form, status: 'processed', processedAt: new Date() } 
-            : form
-        )
+      // Mettre à jour la liste des soumissions
+      const updatedSubmissions = formSubmissions.filter(
+        submission => submission.id !== selectedSubmission.id
       );
+      setFormSubmissions(updatedSubmissions);
       
-      // 6. Fermer le modal
-      closeModal();
-      setProcessingAction(false);
-      
-      // Afficher un message de succès
-      alert('Les données ont été intégrées avec succès à la fiche du programmateur.');
-      
-    } catch (err) {
-      console.error("Erreur lors de l'intégration des données:", err);
-      setError(err.message);
-      setProcessingAction(false);
-      alert(`Erreur lors de l'intégration des données: ${err.message}`);
-    }
-  };
-
-  const handleRejectForm = async (formId) => {
-    try {
-      setProcessingAction(true);
-      
-      // Marquer le formulaire comme rejeté
-      await updateFormSubmission(formId, {
-        status: 'rejected',
-        processedAt: new Date()
+      // Réinitialiser l'état
+      setSelectedSubmission(null);
+      setProgrammerData(null);
+      setShowComparisonTable(false);
+      setUpdateStatus({
+        status: 'success',
+        message: 'Données intégrées avec succès!'
       });
-      
-      // Mettre à jour l'état local
-      setFormSubmissions(prevForms => 
-        prevForms.map(form => 
-          form.id === formId 
-            ? { ...form, status: 'rejected', processedAt: new Date() } 
-            : form
-        )
-      );
-      
-      // Fermer le modal
-      closeModal();
-      setProcessingAction(false);
-      
-      // Afficher un message de succès
-      alert('Le formulaire a été rejeté.');
-      
+      setLoading(false);
     } catch (err) {
-      console.error("Erreur lors du rejet du formulaire:", err);
-      setError(err.message);
-      setProcessingAction(false);
-      alert(`Erreur lors du rejet du formulaire: ${err.message}`);
+      console.error('Erreur lors de l\'intégration des données:', err);
+      setUpdateStatus({
+        status: 'error',
+        message: `Erreur lors de l'intégration des données: ${err.message}`
+      });
+      setLoading(false);
     }
   };
 
-  if (loading) return <div className="loading">Chargement des formulaires...</div>;
-  if (error) return <div className="error-message">Erreur: {error}</div>;
+  // Annuler l'intégration
+  const handleCancelIntegration = () => {
+    setSelectedSubmission(null);
+    setProgrammerData(null);
+    setShowComparisonTable(false);
+  };
+
+  if (loading && !showComparisonTable) {
+    return <div className="loading">Chargement des soumissions...</div>;
+  }
+
+  if (error) {
+    return <div className="error">{error}</div>;
+  }
+
+  if (showComparisonTable && selectedSubmission && programmerData) {
+    return (
+      <div className="form-validation-container">
+        <h2>Intégration des données</h2>
+        <div className="submission-details">
+          <h3>Détails de la soumission</h3>
+          <p><strong>ID:</strong> {selectedSubmission.id}</p>
+          <p><strong>Date de soumission:</strong> {selectedSubmission.submittedAt instanceof Date 
+            ? selectedSubmission.submittedAt.toLocaleString() 
+            : new Date(selectedSubmission.submittedAt.seconds * 1000).toLocaleString()}</p>
+          <p><strong>Token commun:</strong> {selectedSubmission.commonToken}</p>
+          <p><strong>Concert ID:</strong> {selectedSubmission.concertId}</p>
+        </div>
+        
+        <ComparisonTable 
+          formData={selectedSubmission} 
+          programmerData={programmerData}
+          onSave={handleIntegrateData}
+          onCancel={handleCancelIntegration}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="form-validation-container">
-      <div className="form-validation-header">
-        <h2>Validation des Formulaires</h2>
-        <div className="header-actions">
-          <button 
-            className="refresh-button"
-            onClick={() => window.location.reload()}
-          >
-            <i className="fas fa-sync-alt"></i> Rafraîchir
-          </button>
+      <h2>Validation des formulaires</h2>
+      
+      {updateStatus.message && (
+        <div className={`status-message ${updateStatus.status}`}>
+          {updateStatus.message}
         </div>
-      </div>
+      )}
       
       {formSubmissions.length === 0 ? (
-        <p className="no-results">Aucun formulaire en attente de validation.</p>
+        <p>Aucune soumission en attente de validation.</p>
       ) : (
-        <div className="form-submissions-table-container">
-          <table className="form-submissions-table">
+        <div className="submissions-list">
+          <h3>Soumissions en attente ({formSubmissions.length})</h3>
+          <table className="submissions-table">
             <thead>
               <tr>
-                <th>Date de soumission</th>
-                <th>Programmateur</th>
+                <th>Date</th>
                 <th>Raison sociale</th>
                 <th>Contact</th>
-                <th>Statut</th>
+                <th>Token</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {formSubmissions.map((form) => (
-                <tr key={form.id} className={form.status === 'pending' ? 'pending-row' : ''}>
-                  <td>{formatDate(form.submittedAt)}</td>
-                  <td>{form.programmerId ? form.programmerName : 'Non associé'}</td>
-                  <td>{form.businessName || 'Non spécifié'}</td>
-                  <td>{form.contact || 'Non spécifié'}</td>
+              {formSubmissions.map(submission => (
+                <tr key={submission.id}>
                   <td>
-                    <span className={`status-badge status-${form.status}`}>
-                      {form.status === 'pending' && 'En attente'}
-                      {form.status === 'processed' && 'Traité'}
-                      {form.status === 'rejected' && 'Rejeté'}
-                    </span>
+                    {submission.submittedAt instanceof Date 
+                      ? submission.submittedAt.toLocaleString() 
+                      : new Date(submission.submittedAt.seconds * 1000).toLocaleString()}
                   </td>
+                  <td>{submission.businessName || 'Non spécifié'}</td>
+                  <td>{submission.contact || 'Non spécifié'}</td>
+                  <td>{submission.commonToken ? submission.commonToken.substring(0, 10) + '...' : 'Non spécifié'}</td>
                   <td>
                     <button 
-                      className="view-form-btn"
-                      onClick={() => handleViewForm(form)}
-                      disabled={form.status !== 'pending'}
+                      className="action-button"
+                      onClick={() => handleSelectSubmission(submission)}
                     >
-                      <i className="fas fa-eye"></i> Voir
+                      Comparer et intégrer
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-      
-      {/* Modal pour afficher les détails du formulaire */}
-      {showModal && selectedForm && (
-        <div className="form-modal-overlay">
-          <div className="form-modal">
-            <div className="form-modal-header">
-              <h3>Détails du formulaire</h3>
-              <button className="close-modal-btn" onClick={closeModal}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            
-            <div className="form-modal-content">
-              <div className="form-data-section">
-                <h4>Informations soumises</h4>
-                
-                <div className="form-data-grid">
-                  <div className="form-data-item">
-                    <span className="form-data-label">Raison sociale:</span>
-                    <span className="form-data-value">{selectedForm.businessName || 'Non spécifié'}</span>
-                  </div>
-                  
-                  <div className="form-data-item">
-                    <span className="form-data-label">Contact:</span>
-                    <span className="form-data-value">{selectedForm.contact || 'Non spécifié'}</span>
-                  </div>
-                  
-                  <div className="form-data-item">
-                    <span className="form-data-label">Qualité:</span>
-                    <span className="form-data-value">{selectedForm.role || 'Non spécifié'}</span>
-                  </div>
-                  
-                  <div className="form-data-item">
-                    <span className="form-data-label">Adresse:</span>
-                    <span className="form-data-value">{selectedForm.address || 'Non spécifié'}</span>
-                  </div>
-                  
-                  <div className="form-data-item">
-                    <span className="form-data-label">Lieu/Festival:</span>
-                    <span className="form-data-value">{selectedForm.venue || 'Non spécifié'}</span>
-                  </div>
-                  
-                  <div className="form-data-item">
-                    <span className="form-data-label">N° intracommunautaire:</span>
-                    <span className="form-data-value">{selectedForm.vatNumber || 'Non spécifié'}</span>
-                  </div>
-                  
-                  <div className="form-data-item">
-                    <span className="form-data-label">SIRET:</span>
-                    <span className="form-data-value">{selectedForm.siret || 'Non spécifié'}</span>
-                  </div>
-                  
-                  <div className="form-data-item">
-                    <span className="form-data-label">Email:</span>
-                    <span className="form-data-value">{selectedForm.email || 'Non spécifié'}</span>
-                  </div>
-                  
-                  <div className="form-data-item">
-                    <span className="form-data-label">Téléphone:</span>
-                    <span className="form-data-value">{selectedForm.phone || 'Non spécifié'}</span>
-                  </div>
-                  
-                  <div className="form-data-item">
-                    <span className="form-data-label">Site web:</span>
-                    <span className="form-data-value">
-                      {selectedForm.website ? (
-                        <a href={selectedForm.website} target="_blank" rel="noopener noreferrer">
-                          {selectedForm.website}
-                        </a>
-                      ) : 'Non spécifié'}
-                    </span>
-                  </div>
-                  
-                  {selectedForm.commonToken && (
-                    <div className="form-data-item">
-                      <span className="form-data-label">Token commun:</span>
-                      <span className="form-data-value">{selectedForm.commonToken}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {selectedForm.programmerId && (
-                <div className="form-actions-section">
-                  <h4>Actions</h4>
-                  <div className="form-action-buttons">
-                    <button 
-                      className="compare-data-btn"
-                      onClick={() => handleShowComparisonTable(selectedForm)}
-                      disabled={processingAction}
-                    >
-                      {processingAction ? 'Chargement...' : 'Comparer et intégrer les données'}
-                    </button>
-                    <button 
-                      className="reject-form-btn"
-                      onClick={() => handleRejectForm(selectedForm.id)}
-                      disabled={processingAction}
-                    >
-                      {processingAction ? 'Traitement...' : 'Rejeter le formulaire'}
-                    </button>
-                  </div>
-                </div>
-              )}
-              
-              {!selectedForm.programmerId && (
-                <div className="form-warning-section">
-                  <p className="warning-text">
-                    <i className="fas fa-exclamation-triangle"></i>
-                    Ce formulaire n'est pas associé à un programmateur existant.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Tableau de comparaison */}
-      {showComparisonTable && selectedForm && programmerData && (
-        <div className="form-modal-overlay">
-          <ComparisonTable 
-            formData={selectedForm}
-            programmer={programmerData}
-            onClose={closeModal}
-            onSuccess={() => {
-              // Rafraîchir la liste des formulaires après une intégration réussie
-              setFormSubmissions(prevForms => 
-                prevForms.map(form => 
-                  form.id === selectedForm.id 
-                    ? { ...form, status: "processed", processedAt: new Date() } 
-                    : form
-                )
-              );
-              closeModal();
-              alert("Les données ont été intégrées avec succès à la fiche du programmateur.");
-            }}
-          />
         </div>
       )}
     </div>
