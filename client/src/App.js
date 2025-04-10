@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import './App.css';
 
-// Composants (tous accessibles publiquement maintenant)
+// Composants protégés
 import Layout from './components/common/Layout';
 import Login from './components/auth/Login';
 import NotFound from './components/common/NotFound';
@@ -20,25 +20,46 @@ import TestFirebaseIntegration from './components/tests/TestFirebaseIntegration'
 import ArtistEdit from './components/artists/ArtistEdit';
 import ContractsTable from './components/contracts/ContractsTable';
 import FormValidationList from './components/formValidation/FormValidationList';
+
+// Composants publics (affichés sans authentification)
+// Note: Ces routes sont maintenues ici pour compatibilité, mais elles sont gérées directement dans index.js
 import PublicFormPage from './components/public/PublicFormPage';
 import FormSubmittedPage from './components/public/FormSubmittedPage';
 
-// Composant PublicRoute remplace ProtectedRoute - ne fait rien, juste rend ses enfants
-const PublicRoute = ({ children }) => {
+// Composant ProtectedRoute pour sécuriser les routes privées
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading, bypassEnabled } = useAuth();
   const location = useLocation();
   
   // Logs de débogage
   useEffect(() => {
-    console.log('PublicRoute - Route actuelle (hash):', location.hash);
-    console.log('PublicRoute - Route actuelle (pathname):', location.pathname);
-    console.log('PublicRoute - Accès public autorisé');
-  }, [location.hash, location.pathname]);
+    console.log('ProtectedRoute - Route actuelle (hash):', location.hash);
+    console.log('ProtectedRoute - Route actuelle (pathname):', location.pathname);
+    console.log('ProtectedRoute - Utilisateur authentifié:', isAuthenticated);
+    console.log('ProtectedRoute - Bypass activé:', bypassEnabled);
+  }, [location.hash, location.pathname, isAuthenticated, bypassEnabled]);
 
+  if (loading) {
+    console.log('ProtectedRoute - Chargement en cours...');
+    return <div>Chargement...</div>;
+  }
+  
+  if (bypassEnabled) {
+    console.log('ProtectedRoute - Mode bypass d\'authentification activé - Accès autorisé');
+    return children;
+  }
+
+  if (!isAuthenticated) {
+    console.log('ProtectedRoute - Utilisateur non authentifié, redirection vers /login');
+    return <Navigate to="/login" />;
+  }
+  
+  console.log('ProtectedRoute - Utilisateur authentifié, accès autorisé');
   return children;
 };
 
 function App() {
-  const { currentUser } = useAuth();
+  const { bypassEnabled, isAuthenticated } = useAuth();
   const location = useLocation();
   
   // Logs de débogage
@@ -47,19 +68,23 @@ function App() {
     console.log('App - Route actuelle (hash):', location.hash);
     console.log('App - Route actuelle (pathname):', location.pathname);
     console.log('App - URL complète:', window.location.href);
-    console.log('App - Utilisateur public:', currentUser);
-  }, [location.hash, location.pathname, currentUser]);
+    console.log('App - Utilisateur authentifié:', isAuthenticated);
+    console.log('App - Bypass activé:', bypassEnabled);
+  }, [location.hash, location.pathname, isAuthenticated, bypassEnabled]);
 
   return (
     <div className="App">
       <Routes>
-        {/* Toutes les routes sont publiques maintenant */}
+        {/* Routes publiques - maintenues pour compatibilité mais gérées dans index.js */}
         <Route path="/form/:concertId" element={<PublicFormPage />} />
         <Route path="/form-submitted" element={<FormSubmittedPage />} />
-        <Route path="/login" element={<Login />} />
+
+        <Route path="/login" element={
+          bypassEnabled ? <Navigate to="/" /> : <Login />
+        } />
         
-        {/* Routes précédemment protégées, maintenant publiques */}
-        <Route path="/" element={<PublicRoute><Layout /></PublicRoute>}>
+        {/* Routes protégées accessibles uniquement aux utilisateurs authentifiés */}
+        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="contrats" element={<ContractsTable />} />
           <Route path="factures" element={<div>Module Factures à venir</div>} />
@@ -78,20 +103,22 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
 
-      <div style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: '#d4edda',
-        color: '#155724',
-        padding: '10px',
-        textAlign: 'center',
-        borderTop: '1px solid #c3e6cb',
-        zIndex: 1000
-      }}>
-        Mode public activé - Toutes les pages sont accessibles sans authentification
-      </div>
+      {bypassEnabled && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#fff3cd',
+          color: '#856404',
+          padding: '10px',
+          textAlign: 'center',
+          borderTop: '1px solid #ffeeba',
+          zIndex: 1000
+        }}>
+          Mode test activé - Authentification désactivée
+        </div>
+      )}
     </div>
   );
 }

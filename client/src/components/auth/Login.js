@@ -1,80 +1,67 @@
-import React, { useEffect } from 'react';
+// client/src/components/auth/Login.js
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const Login = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const { login } = useAuth();
   const navigate = useNavigate();
-  
-  // Logs de débogage
-  useEffect(() => {
-    console.log("Login - CHARGÉ");
-    console.log("Login - Hash brut:", window.location.hash);
-    console.log("Login - Hash nettoyé:", window.location.hash.replace(/^#/, ''));
-    console.log("Login - Pathname:", window.location.pathname);
-    console.log("Login - URL complète:", window.location.href);
-    console.log("Login - Mode public activé, redirection vers Dashboard");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
     
-    // Rediriger automatiquement vers le Dashboard après 2 secondes
-    const timer = setTimeout(() => {
-      navigate('/');
-    }, 2000);
+    if (!email || !password) {
+      setError('Veuillez remplir tous les champs');
+      return;
+    }
     
-    return () => clearTimeout(timer);
-  }, [navigate]);
-  
+    try {
+      const success = await login(email, password);
+      if (success) {
+        navigate('/');
+      } else {
+        setError('Identifiants incorrects');
+      }
+    } catch (err) {
+      setError('Une erreur est survenue lors de la connexion');
+      console.error(err);
+    }
+  };
+
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      minHeight: '100vh', 
-      padding: '20px',
-      backgroundColor: '#f8f9fa'
-    }}>
-      <div style={{ 
-        backgroundColor: 'white', 
-        borderRadius: '8px', 
-        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)', 
-        padding: '30px',
-        width: '100%',
-        maxWidth: '400px',
-        textAlign: 'center'
-      }}>
-        <h2 style={{ color: '#4a90e2', marginBottom: '20px' }}>Page de Connexion</h2>
-        
-        <div style={{ 
-          backgroundColor: '#d4edda', 
-          color: '#155724', 
-          padding: '15px', 
-          borderRadius: '5px', 
-          marginBottom: '20px',
-          border: '1px solid #c3e6cb'
-        }}>
-          <p style={{ margin: '0' }}>
-            <strong>Mode public activé</strong>
-          </p>
-          <p style={{ margin: '10px 0 0 0' }}>
-            L'authentification est désactivée. Vous allez être redirigé vers le Dashboard automatiquement.
-          </p>
-        </div>
-        
-        <div style={{ 
-          marginTop: '30px', 
-          padding: '15px', 
-          backgroundColor: '#e8f4fd', 
-          borderRadius: '5px', 
-          border: '1px solid #c5e1f9',
-          textAlign: 'left'
-        }}>
-          <p style={{ margin: '0', color: '#2c76c7' }}>
-            Informations de débogage:
-          </p>
-          <p style={{ margin: '10px 0 0 0', color: '#2c76c7', fontSize: '14px' }}>
-            Hash: {window.location.hash}<br />
-            Pathname: {window.location.pathname}<br />
-            URL complète: {window.location.href}
-          </p>
-        </div>
+    <div className="login-container">
+      <div className="login-form-wrapper">
+        <h2>Connexion</h2>
+        {error && <div className="error-message">{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="password">Mot de passe</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit" className="login-button">
+            Se connecter
+          </button>
+        </form>
       </div>
     </div>
   );
