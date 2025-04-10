@@ -45,12 +45,6 @@ const PublicFormPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Vérifier que concertId est disponible
-    if (!concertId) {
-      setError("Erreur: ID du concert manquant. Veuillez accéder à ce formulaire via un lien valide.");
-      return;
-    }
-    
     try {
       setLoading(true);
       setError(null);
@@ -58,7 +52,6 @@ const PublicFormPage = () => {
       
       console.log('PublicFormPage - Début de la soumission du formulaire');
       console.log('PublicFormPage - Données du formulaire:', formData);
-      console.log('PublicFormPage - concertId utilisé pour la soumission:', concertId);
       
       // Préparer les données à soumettre avec tous les champs requis
       const submissionData = {
@@ -66,7 +59,7 @@ const PublicFormPage = () => {
         // Champs obligatoires pour la compatibilité avec le système existant
         programmerId: 'public-form-submission',
         programmerName: 'Formulaire Public',
-        concertId: concertId, // S'assurer que concertId est explicitement inclus
+        concertId: concertId,
         concertName: `Concert ID: ${concertId}`,
         // Créer un champ contact à partir du prénom et du nom
         contact: formData.firstName && formData.lastName 
@@ -78,7 +71,6 @@ const PublicFormPage = () => {
       };
       
       console.log('PublicFormPage - Données préparées pour la soumission:', submissionData);
-      console.log('PublicFormPage - Vérification de la présence de concertId:', submissionData.concertId ? 'Présent' : 'Manquant');
       
       // Soumettre le formulaire avec un timeout pour éviter les blocages
       const timeoutPromise = new Promise((_, reject) => 
@@ -196,7 +188,7 @@ const PublicFormPage = () => {
       <div className="public-form-card">
         <h2>Formulaire de renseignements</h2>
         <div className="form-header">
-          <p><strong>ID du Concert :</strong> {concertId || "Non spécifié"}</p>
+          <p><strong>ID du Concert :</strong> {concertId}</p>
         </div>
         
         <form onSubmit={handleSubmit}>
@@ -358,7 +350,7 @@ const PublicFormPage = () => {
             Hash: {window.location.hash}<br />
             Pathname: {window.location.pathname}<br />
             URL complète: {window.location.href}<br />
-            Concert ID: {concertId || "Non spécifié"}
+            Concert ID: {concertId}
           </p>
         </div>
       </div>
