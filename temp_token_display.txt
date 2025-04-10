@@ -1,0 +1,7 @@
+                  
+                  {selectedForm.commonToken && (
+                    <div className="form-data-item">
+                      <span className="form-data-label">Token commun:</span>
+                      <span className="form-data-value">{selectedForm.commonToken}</span>
+                    </div>
+                  )}
