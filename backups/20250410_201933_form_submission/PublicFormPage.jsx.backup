@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { getFormLinkByToken } from '../../services/formLinkService';
 import { createFormSubmission } from '../../services/formSubmissionsService';
 import './PublicFormPage.css';
 
@@ -8,7 +9,6 @@ const PublicFormPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [submissionResult, setSubmissionResult] = useState(null);
   const [formData, setFormData] = useState({
     businessName: '',      // Raison sociale
     firstName: '',         // Prénom
@@ -24,7 +24,7 @@ const PublicFormPage = () => {
     website: ''            // Site web
   });
   
-  // Logs de débogage détaillés
+  // Logs de débogage
   useEffect(() => {
     console.log('PublicFormPage - CHARGÉE AVEC:');
     console.log('PublicFormPage - concertId:', concertId);
@@ -47,59 +47,37 @@ const PublicFormPage = () => {
     
     try {
       setLoading(true);
-      setError(null);
-      setSubmissionResult(null);
+      console.log('Soumission du formulaire avec les données:', formData);
       
-      console.log('PublicFormPage - Début de la soumission du formulaire');
-      console.log('PublicFormPage - Données du formulaire:', formData);
-      
-      // Préparer les données à soumettre avec tous les champs requis
+      // Préparer les données à soumettre
       const submissionData = {
         ...formData,
-        // Champs obligatoires pour la compatibilité avec le système existant
-        programmerId: 'public-form-submission',
-        programmerName: 'Formulaire Public',
         concertId: concertId,
-        concertName: `Concert ID: ${concertId}`,
-        // Créer un champ contact à partir du prénom et du nom
+        // Ajouter des champs supplémentaires pour la compatibilité avec le service existant
         contact: formData.firstName && formData.lastName 
           ? `${formData.firstName} ${formData.lastName}` 
-          : formData.firstName || formData.lastName || 'Contact non spécifié',
+          : formData.firstName || formData.lastName || '',
         status: 'pending',
-        // Ajouter un formLinkId fictif si nécessaire
-        formLinkId: `public-form-${concertId}`
+        // Ajouter des informations de concert fictives si nécessaire
+        concertName: `Concert ID: ${concertId}`
       };
       
-      console.log('PublicFormPage - Données préparées pour la soumission:', submissionData);
+      // Soumettre le formulaire
+      const result = await createFormSubmission(submissionData);
+      console.log('Résultat de la soumission du formulaire:', result);
       
-      // Soumettre le formulaire avec un timeout pour éviter les blocages
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout de la soumission du formulaire')), 15000)
-      );
-      
-      const submissionPromise = createFormSubmission(submissionData);
-      
-      // Utiliser Promise.race pour éviter les blocages
-      const result = await Promise.race([submissionPromise, timeoutPromise]);
-      
-      console.log('PublicFormPage - Résultat de la soumission:', result);
-      setSubmissionResult(result);
-      
-      // Attendre un peu pour que l'utilisateur puisse voir le résultat
-      setTimeout(() => {
+      if (result) {
+        // Rediriger vers la page de confirmation
+        console.log('Redirection vers la page de confirmation');
+        navigate('/form-submitted');
+      } else {
+        console.error('Échec de la soumission du formulaire');
+        setError('Une erreur est survenue lors de la soumission du formulaire.');
         setLoading(false);
-        if (result && result.id) {
-          // Rediriger vers la page de confirmation
-          console.log('PublicFormPage - Redirection vers la page de confirmation');
-          navigate('/form-submitted');
-        } else {
-          console.error('PublicFormPage - Échec de la soumission du formulaire');
-          setError('Une erreur est survenue lors de la soumission du formulaire.');
-        }
-      }, 1000);
+      }
     } catch (err) {
-      console.error('PublicFormPage - Erreur lors de la soumission du formulaire:', err);
-      setError(`Une erreur est survenue lors de la soumission du formulaire: ${err.message}`);
+      console.error('Erreur lors de la soumission du formulaire:', err);
+      setError('Une erreur est survenue lors de la soumission du formulaire.');
       setLoading(false);
     }
   };
@@ -110,29 +88,6 @@ const PublicFormPage = () => {
         <div className="public-form-card">
           <h2>Chargement...</h2>
           <p>Veuillez patienter pendant le traitement de votre demande.</p>
-          {submissionResult && (
-            <div style={{ 
-              marginTop: "20px", 
-              padding: "15px", 
-              backgroundColor: "#e8f4fd", 
-              borderRadius: "5px", 
-              border: "1px solid #c5e1f9" 
-            }}>
-              <p style={{ margin: "0", color: "#2c76c7" }}>
-                Soumission réussie! Redirection en cours...
-              </p>
-              <pre style={{ 
-                margin: "10px 0 0 0", 
-                color: "#2c76c7", 
-                fontSize: "12px", 
-                textAlign: "left",
-                overflow: "auto",
-                maxHeight: "200px"
-              }}>
-                {JSON.stringify(submissionResult, null, 2)}
-              </pre>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -146,38 +101,10 @@ const PublicFormPage = () => {
           <p>{error}</p>
           <button 
             className="form-button"
-            onClick={() => {
-              setError(null);
-              setLoading(false);
-            }}
-          >
-            Réessayer
-          </button>
-          <button 
-            className="form-button secondary"
             onClick={() => window.location.href = window.location.origin}
-            style={{ marginTop: "10px" }}
           >
             Retour à l'accueil
           </button>
-          
-          <div style={{ 
-            marginTop: "30px", 
-            padding: "15px", 
-            backgroundColor: "#f9e8e8", 
-            borderRadius: "5px", 
-            border: "1px solid #f9c5c5" 
-          }}>
-            <p style={{ margin: "0", color: "#c72c2c" }}>
-              Informations de débogage:
-            </p>
-            <p style={{ margin: "10px 0 0 0", color: "#c72c2c", fontSize: "14px", textAlign: "left" }}>
-              Hash: {window.location.hash}<br />
-              Pathname: {window.location.pathname}<br />
-              URL complète: {window.location.href}<br />
-              Concert ID: {concertId}
-            </p>
-          </div>
         </div>
       </div>
     );
