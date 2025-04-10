@@ -3,33 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { createFormSubmission } from '../../services/formSubmissionsService';
 import './PublicFormPage.css';
 
-// Fonction utilitaire pour extraire le concertId de l'URL avec HashRouter
-const extractConcertIdFromHash = () => {
-  const hash = window.location.hash;
-  console.log('extractConcertIdFromHash - hash brut:', hash);
-  
-  // Format attendu: /#/form/CONCERT_ID
-  const match = hash.match(/\/#\/form\/([^\/\?]+)/);
-  if (match && match[1]) {
-    console.log('extractConcertIdFromHash - concertId extrait:', match[1]);
-    return match[1];
-  }
-  
-  // Essayer un autre format possible: #/form/CONCERT_ID
-  const altMatch = hash.match(/#\/form\/([^\/\?]+)/);
-  if (altMatch && altMatch[1]) {
-    console.log('extractConcertIdFromHash - concertId extrait (format alt):', altMatch[1]);
-    return altMatch[1];
-  }
-  
-  console.log('extractConcertIdFromHash - aucun concertId trouvé dans le hash');
-  return null;
-};
-
-const PublicFormPage = (props) => {
-  // Extraction robuste du concertId
-  const params = useParams();
-  const [concertId, setConcertId] = useState(null);
+const PublicFormPage = () => {
+  const { concertId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -49,49 +24,15 @@ const PublicFormPage = (props) => {
     website: ''            // Site web
   });
   
-  // Déterminer le concertId de manière robuste
-  useEffect(() => {
-    // Priorité 1: Props passées directement
-    if (props.concertId) {
-      console.log('PublicFormPage - concertId depuis props:', props.concertId);
-      setConcertId(props.concertId);
-      return;
-    }
-    
-    // Priorité 2: Paramètres de route via useParams()
-    if (params.concertId) {
-      console.log('PublicFormPage - concertId depuis useParams:', params.concertId);
-      setConcertId(params.concertId);
-      return;
-    }
-    
-    // Priorité 3: Extraction directe depuis l'URL
-    const extractedId = extractConcertIdFromHash();
-    if (extractedId) {
-      console.log('PublicFormPage - concertId extrait de l\'URL:', extractedId);
-      setConcertId(extractedId);
-      return;
-    }
-    
-    console.log('PublicFormPage - AUCUN concertId trouvé!');
-    setError("Erreur: ID du concert manquant. Veuillez accéder à ce formulaire via un lien valide.");
-  }, [props.concertId, params.concertId]);
-  
   // Logs de débogage détaillés
   useEffect(() => {
     console.log('PublicFormPage - CHARGÉE AVEC:');
-    console.log('PublicFormPage - concertId final:', concertId);
-    console.log('PublicFormPage - concertId depuis props:', props.concertId);
-    console.log('PublicFormPage - concertId depuis useParams:', params.concertId);
+    console.log('PublicFormPage - concertId:', concertId);
     console.log('PublicFormPage - Hash brut:', window.location.hash);
     console.log('PublicFormPage - Hash nettoyé:', window.location.hash.replace(/^#/, ''));
     console.log('PublicFormPage - Pathname:', window.location.pathname);
     console.log('PublicFormPage - URL complète:', window.location.href);
-    
-    // Vérifier si nous sommes dans un contexte HashRouter
-    const isHashRouter = window.location.hash.includes('/form/');
-    console.log('PublicFormPage - Utilisation de HashRouter détectée:', isHashRouter);
-  }, [concertId, props.concertId, params.concertId]);
+  }, [concertId]);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -242,9 +183,7 @@ const PublicFormPage = (props) => {
               Hash: {window.location.hash}<br />
               Pathname: {window.location.pathname}<br />
               URL complète: {window.location.href}<br />
-              Concert ID: {concertId || "Non spécifié"}<br />
-              Concert ID (props): {props.concertId || "Non spécifié"}<br />
-              Concert ID (params): {params.concertId || "Non spécifié"}
+              Concert ID: {concertId}
             </p>
           </div>
         </div>
@@ -398,7 +337,7 @@ const PublicFormPage = (props) => {
             <button 
               type="submit" 
               className="form-button"
-              disabled={loading || !concertId}
+              disabled={loading}
             >
               {loading ? 'Envoi en cours...' : 'Soumettre le formulaire'}
             </button>
@@ -419,9 +358,7 @@ const PublicFormPage = (props) => {
             Hash: {window.location.hash}<br />
             Pathname: {window.location.pathname}<br />
             URL complète: {window.location.href}<br />
-            Concert ID: {concertId || "Non spécifié"}<br />
-            Concert ID (props): {props.concertId || "Non spécifié"}<br />
-            Concert ID (params): {params.concertId || "Non spécifié"}
+            Concert ID: {concertId || "Non spécifié"}
           </p>
         </div>
       </div>
