@@ -93,7 +93,7 @@ const ConcertDetail = () => {
         
         // Générer l'URL du formulaire directement avec l'ID du concert
         const baseUrl = window.location.origin;
-        setFormUrl(`${baseUrl}/form/${id}`);
+        setFormUrl(`${baseUrl}/#/form/${id}`);
         
         setLoading(false);
       } catch (err) {
