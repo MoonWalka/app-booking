@@ -1,10 +1,26 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import './PublicFormPage.css';
 
 const PublicFormPage = () => {
   const { concertId } = useParams();
-  console.log("PublicFormPage chargée avec concertId:", concertId);
+  const location = useLocation();
+  const { isAuthenticated, currentUser, isCurrentRoutePublic } = useAuth();
+  
+  // Logs de débogage détaillés pour vérifier le chemin et les paramètres
+  useEffect(() => {
+    console.log("PublicFormPage - CHARGÉE AVEC:");
+    console.log("PublicFormPage - concertId:", concertId);
+    console.log("PublicFormPage - Location:", location);
+    console.log("PublicFormPage - Hash brut:", window.location.hash);
+    console.log("PublicFormPage - Hash nettoyé:", window.location.hash.replace(/^#/, ''));
+    console.log("PublicFormPage - Pathname:", window.location.pathname);
+    console.log("PublicFormPage - URL complète:", window.location.href);
+    console.log("PublicFormPage - Est une route publique:", isCurrentRoutePublic);
+    console.log("PublicFormPage - Utilisateur authentifié:", isAuthenticated);
+    console.log("PublicFormPage - Utilisateur actuel:", currentUser);
+  }, [concertId, location, isAuthenticated, currentUser, isCurrentRoutePublic]);
   
   return (
     <div style={{ 
@@ -31,7 +47,14 @@ const PublicFormPage = () => {
         border: "1px solid #c5e1f9" 
       }}>
         <p style={{ margin: "0", color: "#2c76c7" }}>
-          Pour implémenter le formulaire complet, remplacez ce composant par la version complète de PublicFormPage.
+          Informations de débogage:
+        </p>
+        <p style={{ margin: "10px 0 0 0", color: "#2c76c7", fontSize: "14px", textAlign: "left" }}>
+          Hash: {window.location.hash}<br />
+          Pathname: {window.location.pathname}<br />
+          URL complète: {window.location.href}<br />
+          Est authentifié: {isAuthenticated ? "Oui" : "Non"}<br />
+          Utilisateur: {currentUser ? currentUser.name : "Aucun"}
         </p>
       </div>
     </div>

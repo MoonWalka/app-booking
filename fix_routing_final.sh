@@ -1,15 +1,26 @@
 #!/bin/bash
 
-# Script pour résoudre définitivement le problème de routage des formulaires publics
-echo "Début de la correction du problème de routage des formulaires publics..."
+# Script pour résoudre définitivement le problème de routage des formulaires publics avec HashRouter
+# en désactivant spécifiquement le bypass d'authentification pour les routes publiques
+echo "Début de la correction finale du problème de routage des formulaires publics pour HashRouter..."
 
 # Créer des sauvegardes des fichiers originaux
 echo "Création des sauvegardes..."
 mkdir -p ./backups/$(date +%Y%m%d_%H%M%S)
 cp ./client/src/App.js ./backups/$(date +%Y%m%d_%H%M%S)/App.js.backup
 cp ./client/src/context/AuthContext.js ./backups/$(date +%Y%m%d_%H%M%S)/AuthContext.js.backup
+cp ./client/src/index.js ./backups/$(date +%Y%m%d_%H%M%S)/index.js.backup
 
-# Modification du fichier AuthContext.js pour permettre un véritable accès public aux routes spécifiées
+# Vérification du fichier index.js pour confirmer l'utilisation de HashRouter
+echo "Vérification du fichier index.js..."
+cat ./client/src/index.js | grep -q "HashRouter"
+if [ $? -eq 0 ]; then
+  echo "✅ Confirmation: HashRouter est utilisé dans index.js"
+else
+  echo "⚠️ Attention: HashRouter n'a pas été détecté dans index.js. Vérifiez manuellement."
+fi
+
+# Modification du fichier AuthContext.js pour désactiver le bypass d'authentification pour les routes publiques
 echo "Modification du fichier AuthContext.js..."
 cat > ./client/src/context/AuthContext.js << 'EOL'
 import React, { createContext, useState, useContext, useEffect } from 'react';
@@ -30,34 +41,70 @@ const TEST_USER = {
   role: 'admin'
 };
 
-// Fonction pour vérifier si une route est publique
-const isPublicRoute = (pathname) => {
-  return pathname.startsWith('/form/') || pathname === '/form-submitted';
+// Fonction pour vérifier si une route est publique - adaptée pour HashRouter
+const isPublicRoute = (path) => {
+  // Nettoyer le chemin pour HashRouter (enlever le # au début si présent)
+  const cleanPath = path.replace(/^#/, '');
+  
+  // Si le chemin commence par un slash, l'utiliser tel quel, sinon ajouter un slash
+  const normalizedPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+  
+  console.log('AuthContext - isPublicRoute - chemin original:', path);
+  console.log('AuthContext - isPublicRoute - chemin nettoyé:', cleanPath);
+  console.log('AuthContext - isPublicRoute - chemin normalisé:', normalizedPath);
+  
+  const isPublic = normalizedPath.startsWith('/form/') || normalizedPath === '/form-submitted';
+  console.log('AuthContext - isPublicRoute - est une route publique:', isPublic);
+  
+  return isPublic;
 };
 
 export const AuthProvider = ({ children }) => {
   const location = useLocation();
-  const [currentUser, setCurrentUser] = useState(BYPASS_AUTH ? TEST_USER : null);
-  const [isAuthenticated, setIsAuthenticated] = useState(BYPASS_AUTH);
-  const [loading, setLoading] = useState(!BYPASS_AUTH);
+  
+  // Obtenir le chemin actuel à partir du hash (pour HashRouter)
+  const currentHash = location.hash || '';
+  // Nettoyer le hash pour obtenir le chemin réel (enlever le # au début)
+  const cleanHash = currentHash.replace(/^#/, '');
+  // Vérifier si la route actuelle est une route publique
+  const isCurrentRoutePublic = isPublicRoute(currentHash);
+  
+  console.log('AuthContext - Route actuelle (hash brut):', currentHash);
+  console.log('AuthContext - Route actuelle (hash nettoyé):', cleanHash);
+  console.log('AuthContext - Est une route publique:', isCurrentRoutePublic);
+  
+  // Désactiver le bypass d'authentification pour les routes publiques
+  const effectiveBypass = BYPASS_AUTH && !isCurrentRoutePublic;
+  console.log('AuthContext - BYPASS_AUTH global:', BYPASS_AUTH);
+  console.log('AuthContext - Bypass effectif pour cette route:', effectiveBypass);
+  
+  const [currentUser, setCurrentUser] = useState(effectiveBypass ? TEST_USER : null);
+  const [isAuthenticated, setIsAuthenticated] = useState(effectiveBypass);
+  const [loading, setLoading] = useState(!effectiveBypass);
   const [error, setError] = useState(null);
   const auth = getAuth(app);
-  
-  // Vérifier si la route actuelle est une route publique
-  const currentPathname = location.pathname;
-  const isCurrentRoutePublic = isPublicRoute(currentPathname);
-  
-  console.log('Route actuelle:', currentPathname, 'Est une route publique:', isCurrentRoutePublic);
 
   useEffect(() => {
-    if (BYPASS_AUTH) {
-      console.log('Mode bypass d\'authentification activé - Authentification simulée');
+    // Mettre à jour l'état d'authentification lorsque la route change
+    if (isCurrentRoutePublic) {
+      console.log('AuthContext - Route publique détectée, désactivation du bypass d\'authentification');
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+    } else if (BYPASS_AUTH) {
+      console.log('AuthContext - Route protégée avec bypass activé, authentification simulée');
+      setIsAuthenticated(true);
+      setCurrentUser(TEST_USER);
+    }
+    
+    if (BYPASS_AUTH && !isCurrentRoutePublic) {
+      console.log('AuthContext - Mode bypass d\'authentification activé pour route protégée');
       return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         // Utilisateur connecté
+        console.log('AuthContext - Utilisateur connecté:', user.email);
         setCurrentUser({
           id: user.uid,
           email: user.email,
@@ -67,6 +114,7 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
       } else {
         // Utilisateur déconnecté
+        console.log('AuthContext - Utilisateur déconnecté');
         setCurrentUser(null);
         setIsAuthenticated(false);
       }
@@ -74,11 +122,11 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth, isCurrentRoutePublic, BYPASS_AUTH, location]);
 
   const login = async (email, password) => {
     if (BYPASS_AUTH) {
-      console.log('Mode bypass d\'authentification activé - Login simulé');
+      console.log('AuthContext - Mode bypass d\'authentification activé - Login simulé');
       setCurrentUser(TEST_USER);
       setIsAuthenticated(true);
       setError(null);
@@ -91,7 +139,7 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       return true;
     } catch (error) {
-      console.error('Erreur de connexion:', error);
+      console.error('AuthContext - Erreur de connexion:', error);
       setError(error.message);
       return false;
     } finally {
@@ -101,14 +149,14 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     if (BYPASS_AUTH) {
-      console.log('Mode bypass d\'authentification activé - Logout ignoré');
+      console.log('AuthContext - Mode bypass d\'authentification activé - Logout ignoré');
       return;
     }
 
     try {
       await signOut(auth);
     } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
+      console.error('AuthContext - Erreur lors de la déconnexion:', error);
     }
   };
 
@@ -131,12 +179,12 @@ export const AuthProvider = ({ children }) => {
   );
 };
 EOL
-echo "✅ Fichier AuthContext.js modifié"
+echo "✅ Fichier AuthContext.js modifié pour désactiver le bypass d'authentification pour les routes publiques"
 
-# Modification du fichier App.js pour utiliser la nouvelle logique d'authentification
+# Modification du fichier App.js pour améliorer la détection des routes publiques
 echo "Modification du fichier App.js..."
 cat > ./client/src/App.js << 'EOL'
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import './App.css';
@@ -168,34 +216,60 @@ const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading, bypassEnabled, isPublicRoute } = useAuth();
   const location = useLocation();
   
+  // Obtenir le chemin actuel à partir du hash (pour HashRouter)
+  const currentHash = location.hash || '';
+  const currentPath = location.pathname;
+  
+  // Vérifier si la route actuelle est une route publique
+  const isCurrentRoutePublic = isPublicRoute(currentHash);
+  
+  console.log('ProtectedRoute - Route actuelle (hash):', currentHash);
+  console.log('ProtectedRoute - Route actuelle (pathname):', currentPath);
+  console.log('ProtectedRoute - Est une route publique:', isCurrentRoutePublic);
+  
   // Si la route actuelle est une route publique, ne pas appliquer la protection
-  if (isPublicRoute(location.pathname)) {
-    console.log('Route publique détectée dans ProtectedRoute:', location.pathname);
+  if (isCurrentRoutePublic) {
+    console.log('ProtectedRoute - Route publique détectée, accès autorisé sans authentification');
     return children;
   }
 
   if (loading) {
+    console.log('ProtectedRoute - Chargement en cours...');
     return <div>Chargement...</div>;
   }
   
   if (bypassEnabled) {
-    console.log('Mode bypass d\'authentification activé - Accès autorisé');
+    console.log('ProtectedRoute - Mode bypass d\'authentification activé - Accès autorisé');
     return children;
   }
 
   if (!isAuthenticated) {
-    console.log('Utilisateur non authentifié, redirection vers /login');
+    console.log('ProtectedRoute - Utilisateur non authentifié, redirection vers /login');
     return <Navigate to="/login" />;
   }
   
+  console.log('ProtectedRoute - Utilisateur authentifié, accès autorisé');
   return children;
 };
 
 function App() {
-  const { bypassEnabled, isAuthenticated, isCurrentRoutePublic } = useAuth();
+  const { bypassEnabled, isAuthenticated, isCurrentRoutePublic, isPublicRoute } = useAuth();
   const location = useLocation();
   
-  console.log('App render - Route actuelle:', location.pathname, 'Est publique:', isCurrentRoutePublic);
+  // Obtenir le chemin actuel à partir du hash (pour HashRouter)
+  const currentHash = location.hash || '';
+  const currentPath = location.pathname;
+  
+  // Logs de débogage pour le routage
+  useEffect(() => {
+    console.log('App - Rendu avec:');
+    console.log('App - Route actuelle (hash):', currentHash);
+    console.log('App - Route actuelle (pathname):', currentPath);
+    console.log('App - URL complète:', window.location.href);
+    console.log('App - Est une route publique:', isCurrentRoutePublic);
+    console.log('App - Utilisateur authentifié:', isAuthenticated);
+    console.log('App - Bypass activé:', bypassEnabled);
+  }, [currentHash, currentPath, isCurrentRoutePublic, isAuthenticated, bypassEnabled]);
 
   return (
     <div className="App">
@@ -204,7 +278,9 @@ function App() {
         <Route path="/form/:concertId" element={<PublicFormPage />} />
         <Route path="/form-submitted" element={<FormSubmittedPage />} />
 
-        <Route path="/login" element={ bypassEnabled && !isCurrentRoutePublic ? <Navigate to="/" /> : <Login /> } />
+        <Route path="/login" element={
+          bypassEnabled && !isCurrentRoutePublic ? <Navigate to="/" /> : <Login />
+        } />
         
         {/* Routes protégées accessibles uniquement aux utilisateurs authentifiés */}
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
@@ -248,18 +324,34 @@ function App() {
 
 export default App;
 EOL
-echo "✅ Fichier App.js modifié"
+echo "✅ Fichier App.js modifié pour améliorer la détection des routes publiques"
 
-# Modification du fichier PublicFormPage.jsx pour afficher un message de débogage
+# Modification du fichier PublicFormPage.jsx pour améliorer les logs de débogage
 echo "Modification du fichier PublicFormPage.jsx pour le débogage..."
 cat > ./client/src/components/public/PublicFormPage.jsx << 'EOL'
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import './PublicFormPage.css';
 
 const PublicFormPage = () => {
   const { concertId } = useParams();
-  console.log("PublicFormPage chargée avec concertId:", concertId);
+  const location = useLocation();
+  const { isAuthenticated, currentUser, isCurrentRoutePublic } = useAuth();
+  
+  // Logs de débogage détaillés pour vérifier le chemin et les paramètres
+  useEffect(() => {
+    console.log("PublicFormPage - CHARGÉE AVEC:");
+    console.log("PublicFormPage - concertId:", concertId);
+    console.log("PublicFormPage - Location:", location);
+    console.log("PublicFormPage - Hash brut:", window.location.hash);
+    console.log("PublicFormPage - Hash nettoyé:", window.location.hash.replace(/^#/, ''));
+    console.log("PublicFormPage - Pathname:", window.location.pathname);
+    console.log("PublicFormPage - URL complète:", window.location.href);
+    console.log("PublicFormPage - Est une route publique:", isCurrentRoutePublic);
+    console.log("PublicFormPage - Utilisateur authentifié:", isAuthenticated);
+    console.log("PublicFormPage - Utilisateur actuel:", currentUser);
+  }, [concertId, location, isAuthenticated, currentUser, isCurrentRoutePublic]);
   
   return (
     <div style={{ 
@@ -286,7 +378,14 @@ const PublicFormPage = () => {
         border: "1px solid #c5e1f9" 
       }}>
         <p style={{ margin: "0", color: "#2c76c7" }}>
-          Pour implémenter le formulaire complet, remplacez ce composant par la version complète de PublicFormPage.
+          Informations de débogage:
+        </p>
+        <p style={{ margin: "10px 0 0 0", color: "#2c76c7", fontSize: "14px", textAlign: "left" }}>
+          Hash: {window.location.hash}<br />
+          Pathname: {window.location.pathname}<br />
+          URL complète: {window.location.href}<br />
+          Est authentifié: {isAuthenticated ? "Oui" : "Non"}<br />
+          Utilisateur: {currentUser ? currentUser.name : "Aucun"}
         </p>
       </div>
     </div>
@@ -295,18 +394,38 @@ const PublicFormPage = () => {
 
 export default PublicFormPage;
 EOL
-echo "✅ Fichier PublicFormPage.jsx modifié pour le débogage"
+echo "✅ Fichier PublicFormPage.jsx modifié pour améliorer les logs de débogage"
 
-# Vérification du fichier FormSubmittedPage.jsx
-echo "Vérification du fichier FormSubmittedPage.jsx..."
+# Modification du fichier FormSubmittedPage.jsx pour améliorer les logs de débogage
+echo "Modification du fichier FormSubmittedPage.jsx..."
 if [ ! -f "./client/src/components/public/FormSubmittedPage.jsx" ]; then
   echo "Création du fichier FormSubmittedPage.jsx..."
   mkdir -p ./client/src/components/public
-  cat > ./client/src/components/public/FormSubmittedPage.jsx << 'EOL'
-import React from 'react';
+fi
+
+cat > ./client/src/components/public/FormSubmittedPage.jsx << 'EOL'
+import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import './PublicFormPage.css';
 
 const FormSubmittedPage = () => {
+  const location = useLocation();
+  const { isAuthenticated, currentUser, isCurrentRoutePublic } = useAuth();
+  
+  // Logs de débogage détaillés pour vérifier le chemin
+  useEffect(() => {
+    console.log("FormSubmittedPage - CHARGÉE AVEC:");
+    console.log("FormSubmittedPage - Location:", location);
+    console.log("FormSubmittedPage - Hash brut:", window.location.hash);
+    console.log("FormSubmittedPage - Hash nettoyé:", window.location.hash.replace(/^#/, ''));
+    console.log("FormSubmittedPage - Pathname:", window.location.pathname);
+    console.log("FormSubmittedPage - URL complète:", window.location.href);
+    console.log("FormSubmittedPage - Est une route publique:", isCurrentRoutePublic);
+    console.log("FormSubmittedPage - Utilisateur authentifié:", isAuthenticated);
+    console.log("FormSubmittedPage - Utilisateur actuel:", currentUser);
+  }, [location, isAuthenticated, currentUser, isCurrentRoutePublic]);
+  
   return (
     <div style={{ 
       padding: "40px", 
@@ -331,6 +450,14 @@ const FormSubmittedPage = () => {
         <p style={{ margin: "0", color: "#2c76c7" }}>
           Vous pouvez maintenant fermer cette page.
         </p>
+        <p style={{ margin: "10px 0 0 0", color: "#2c76c7", fontSize: "14px", textAlign: "left" }}>
+          Informations de débogage:<br />
+          Hash: {window.location.hash}<br />
+          Pathname: {window.location.pathname}<br />
+          URL complète: {window.location.href}<br />
+          Est authentifié: {isAuthenticated ? "Oui" : "Non"}<br />
+          Utilisateur: {currentUser ? currentUser.name : "Aucun"}
+        </p>
       </div>
     </div>
   );
@@ -338,8 +465,7 @@ const FormSubmittedPage = () => {
 
 export default FormSubmittedPage;
 EOL
-  echo "✅ Fichier FormSubmittedPage.jsx créé"
-fi
+echo "✅ Fichier FormSubmittedPage.jsx modifié pour améliorer les logs de débogage"
 
 # Vérification du fichier CSS
 echo "Vérification du fichier PublicFormPage.css..."
@@ -459,5 +585,6 @@ EOL
   echo "✅ Fichier PublicFormPage.css créé"
 fi
 
-echo "✅ Correction du problème de routage terminée avec succès!"
-echo "Pour tester la solution, redémarrez votre application React et accédez à /form/<concertId> en navigation privée."
+echo "✅ Correction finale du problème de routage pour HashRouter terminée avec succès!"
+echo "Pour tester la solution, redémarrez votre application React et accédez à /#/form/<concertId> en navigation privée."
+echo "Vérifiez la console du navigateur pour voir les logs de débogage détaillés."
