@@ -22,22 +22,30 @@ import ContractsTable from './components/contracts/ContractsTable';
 import FormValidationList from './components/formValidation/FormValidationList';
 
 // Composants publics (affichés sans authentification)
-// Note: Ces routes sont maintenues ici pour compatibilité, mais elles sont gérées directement dans index.js
 import PublicFormPage from './components/public/PublicFormPage';
 import FormSubmittedPage from './components/public/FormSubmittedPage';
 
 // Composant ProtectedRoute pour sécuriser les routes privées
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading, bypassEnabled } = useAuth();
+  const { isAuthenticated, loading, bypassEnabled, isPublicRoute } = useAuth();
   const location = useLocation();
   
-  // Logs de débogage
-  useEffect(() => {
-    console.log('ProtectedRoute - Route actuelle (hash):', location.hash);
-    console.log('ProtectedRoute - Route actuelle (pathname):', location.pathname);
-    console.log('ProtectedRoute - Utilisateur authentifié:', isAuthenticated);
-    console.log('ProtectedRoute - Bypass activé:', bypassEnabled);
-  }, [location.hash, location.pathname, isAuthenticated, bypassEnabled]);
+  // Obtenir le chemin actuel à partir du hash (pour HashRouter)
+  const currentHash = location.hash || '';
+  const currentPath = location.pathname;
+  
+  // Vérifier si la route actuelle est une route publique
+  const isCurrentRoutePublic = isPublicRoute(currentHash);
+  
+  console.log('ProtectedRoute - Route actuelle (hash):', currentHash);
+  console.log('ProtectedRoute - Route actuelle (pathname):', currentPath);
+  console.log('ProtectedRoute - Est une route publique:', isCurrentRoutePublic);
+  
+  // Si la route actuelle est une route publique, ne pas appliquer la protection
+  if (isCurrentRoutePublic) {
+    console.log('ProtectedRoute - Route publique détectée, accès autorisé sans authentification');
+    return children;
+  }
 
   if (loading) {
     console.log('ProtectedRoute - Chargement en cours...');
@@ -59,28 +67,33 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
-  const { bypassEnabled, isAuthenticated } = useAuth();
+  const { bypassEnabled, isAuthenticated, isCurrentRoutePublic, isPublicRoute } = useAuth();
   const location = useLocation();
   
-  // Logs de débogage
+  // Obtenir le chemin actuel à partir du hash (pour HashRouter)
+  const currentHash = location.hash || '';
+  const currentPath = location.pathname;
+  
+  // Logs de débogage pour le routage
   useEffect(() => {
     console.log('App - Rendu avec:');
-    console.log('App - Route actuelle (hash):', location.hash);
-    console.log('App - Route actuelle (pathname):', location.pathname);
+    console.log('App - Route actuelle (hash):', currentHash);
+    console.log('App - Route actuelle (pathname):', currentPath);
     console.log('App - URL complète:', window.location.href);
+    console.log('App - Est une route publique:', isCurrentRoutePublic);
     console.log('App - Utilisateur authentifié:', isAuthenticated);
     console.log('App - Bypass activé:', bypassEnabled);
-  }, [location.hash, location.pathname, isAuthenticated, bypassEnabled]);
+  }, [currentHash, currentPath, isCurrentRoutePublic, isAuthenticated, bypassEnabled]);
 
   return (
     <div className="App">
       <Routes>
-        {/* Routes publiques - maintenues pour compatibilité mais gérées dans index.js */}
+        {/* Routes publiques accessibles sans authentification */}
         <Route path="/form/:concertId" element={<PublicFormPage />} />
         <Route path="/form-submitted" element={<FormSubmittedPage />} />
 
         <Route path="/login" element={
-          bypassEnabled ? <Navigate to="/" /> : <Login />
+          bypassEnabled && !isCurrentRoutePublic ? <Navigate to="/" /> : <Login />
         } />
         
         {/* Routes protégées accessibles uniquement aux utilisateurs authentifiés */}
