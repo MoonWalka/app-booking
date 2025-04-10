@@ -77,7 +77,6 @@ const ComparisonTable = ({ formData, programmerData, onSave, onCancel }) => {
           <tr>
             <th>Champ</th>
             <th>Valeur existante</th>
-            <th></th>
             <th>Valeur du formulaire</th>
             <th></th>
             <th>Valeur finale</th>
@@ -89,17 +88,6 @@ const ComparisonTable = ({ formData, programmerData, onSave, onCancel }) => {
               <td className="field-label">{field.label}</td>
               <td className="existing-value">
                 {programmerData && programmerData[field.key] ? programmerData[field.key] : '-'}
-              </td>
-              <td className="arrow-cell">
-                {formData && formData[field.key] && (
-                  <button 
-                    className="arrow-button left-arrow"
-                    onClick={() => handleCopyValue(field.key, programmerData && programmerData[field.key] ? programmerData[field.key] : '')}
-                    title="Utiliser la valeur existante"
-                  >
-                    ←
-                  </button>
-                )}
               </td>
               <td className="form-value">
                 {formData && formData[field.key] ? formData[field.key] : '-'}

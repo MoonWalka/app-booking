@@ -34,7 +34,7 @@ const PublicFormPage = (props) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [submissionResult, setSubmissionResult] = useState(null);
+  const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const [formData, setFormData] = useState({
     businessName: '',      // Raison sociale
     firstName: '',         // Prénom
@@ -78,28 +78,30 @@ const PublicFormPage = (props) => {
     setError("Erreur: ID du concert manquant. Veuillez accéder à ce formulaire via un lien valide.");
   }, [props.concertId, params.concertId]);
   
-  // Logs de débogage détaillés
-  useEffect(() => {
-    console.log('PublicFormPage - CHARGÉE AVEC:');
-    console.log('PublicFormPage - concertId final:', concertId);
-    console.log('PublicFormPage - concertId depuis props:', props.concertId);
-    console.log('PublicFormPage - concertId depuis useParams:', params.concertId);
-    console.log('PublicFormPage - Hash brut:', window.location.hash);
-    console.log('PublicFormPage - Hash nettoyé:', window.location.hash.replace(/^#/, ''));
-    console.log('PublicFormPage - Pathname:', window.location.pathname);
-    console.log('PublicFormPage - URL complète:', window.location.href);
-    
-    // Vérifier si nous sommes dans un contexte HashRouter
-    const isHashRouter = window.location.hash.includes('/form/');
-    console.log('PublicFormPage - Utilisation de HashRouter détectée:', isHashRouter);
-  }, [concertId, props.concertId, params.concertId]);
-  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+  
+  // Réinitialiser le formulaire
+  const resetForm = () => {
+    setFormData({
+      businessName: '',
+      firstName: '',
+      lastName: '',
+      role: '',
+      address: '',
+      venue: '',
+      venueAddress: '',
+      vatNumber: '',
+      siret: '',
+      email: '',
+      phone: '',
+      website: ''
+    });
   };
   
   const handleSubmit = async (e) => {
@@ -114,7 +116,6 @@ const PublicFormPage = (props) => {
     try {
       setLoading(true);
       setError(null);
-      setSubmissionResult(null);
       
       console.log('PublicFormPage - Début de la soumission du formulaire');
       console.log('PublicFormPage - Données du formulaire:', formData);
@@ -157,20 +158,17 @@ const PublicFormPage = (props) => {
       const result = await Promise.race([submissionPromise, timeoutPromise]);
       
       console.log('PublicFormPage - Résultat de la soumission:', result);
-      setSubmissionResult(result);
       
-      // Attendre un peu pour que l'utilisateur puisse voir le résultat
-      setTimeout(() => {
-        setLoading(false);
-        if (result && result.id) {
-          // Rediriger vers la page de confirmation
-          console.log('PublicFormPage - Redirection vers la page de confirmation');
-          navigate('/form-submitted');
-        } else {
-          console.error('PublicFormPage - Échec de la soumission du formulaire');
-          setError('Une erreur est survenue lors de la soumission du formulaire.');
-        }
-      }, 1000);
+      // Afficher le message de succès et réinitialiser le formulaire
+      if (result && result.id) {
+        setSubmissionSuccess(true);
+        resetForm();
+      } else {
+        console.error('PublicFormPage - Échec de la soumission du formulaire');
+        setError('Une erreur est survenue lors de la soumission du formulaire.');
+      }
+      
+      setLoading(false);
     } catch (err) {
       console.error('PublicFormPage - Erreur lors de la soumission du formulaire:', err);
       setError(`Une erreur est survenue lors de la soumission du formulaire: ${err.message}`);
@@ -184,29 +182,32 @@ const PublicFormPage = (props) => {
         <div className="public-form-card">
           <h2>Chargement...</h2>
           <p>Veuillez patienter pendant le traitement de votre demande.</p>
-          {submissionResult && (
-            <div style={{ 
-              marginTop: "20px", 
-              padding: "15px", 
-              backgroundColor: "#e8f4fd", 
-              borderRadius: "5px", 
-              border: "1px solid #c5e1f9" 
-            }}>
-              <p style={{ margin: "0", color: "#2c76c7" }}>
-                Soumission réussie! Redirection en cours...
-              </p>
-              <pre style={{ 
-                margin: "10px 0 0 0", 
-                color: "#2c76c7", 
-                fontSize: "12px", 
-                textAlign: "left",
-                overflow: "auto",
-                maxHeight: "200px"
-              }}>
-                {JSON.stringify(submissionResult, null, 2)}
-              </pre>
-            </div>
-          )}
+        </div>
+      </div>
+    );
+  }
+  
+  if (submissionSuccess) {
+    return (
+      <div className="public-form-container">
+        <div className="public-form-card success">
+          <h2>Merci pour votre soumission</h2>
+          <p>Votre formulaire a bien été transmis. Vous pouvez fermer cette fenêtre.</p>
+          <button 
+            className="form-button"
+            onClick={() => {
+              setSubmissionSuccess(false);
+            }}
+          >
+            Soumettre un nouveau formulaire
+          </button>
+          <button 
+            className="form-button secondary"
+            onClick={() => window.location.href = window.location.origin}
+            style={{ marginTop: "10px" }}
+          >
+            Retour à l'accueil
+          </button>
         </div>
       </div>
     );
@@ -234,26 +235,6 @@ const PublicFormPage = (props) => {
           >
             Retour à l'accueil
           </button>
-          
-          <div style={{ 
-            marginTop: "30px", 
-            padding: "15px", 
-            backgroundColor: "#f9e8e8", 
-            borderRadius: "5px", 
-            border: "1px solid #f9c5c5" 
-          }}>
-            <p style={{ margin: "0", color: "#c72c2c" }}>
-              Informations de débogage:
-            </p>
-            <p style={{ margin: "10px 0 0 0", color: "#c72c2c", fontSize: "14px", textAlign: "left" }}>
-              Hash: {window.location.hash}<br />
-              Pathname: {window.location.pathname}<br />
-              URL complète: {window.location.href}<br />
-              Concert ID: {concertId || "Non spécifié"}<br />
-              Concert ID (props): {props.concertId || "Non spécifié"}<br />
-              Concert ID (params): {params.concertId || "Non spécifié"}
-            </p>
-          </div>
         </div>
       </div>
     );
@@ -411,26 +392,6 @@ const PublicFormPage = (props) => {
             </button>
           </div>
         </form>
-        
-        <div style={{ 
-          marginTop: "30px", 
-          padding: "15px", 
-          backgroundColor: "#e8f4fd", 
-          borderRadius: "5px", 
-          border: "1px solid #c5e1f9" 
-        }}>
-          <p style={{ margin: "0", color: "#2c76c7" }}>
-            Informations de débogage:
-          </p>
-          <p style={{ margin: "10px 0 0 0", color: "#2c76c7", fontSize: "14px", textAlign: "left" }}>
-            Hash: {window.location.hash}<br />
-            Pathname: {window.location.pathname}<br />
-            URL complète: {window.location.href}<br />
-            Concert ID: {concertId || "Non spécifié"}<br />
-            Concert ID (props): {props.concertId || "Non spécifié"}<br />
-            Concert ID (params): {params.concertId || "Non spécifié"}
-          </p>
-        </div>
       </div>
     </div>
   );
