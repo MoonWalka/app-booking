@@ -209,3 +209,12 @@ export const deleteConcert = async (id) => {
 export const getConcertsByToken = async (commonToken) => {
   return getConcerts({ commonToken });
 };
+
+/**
+ * Récupère les concerts par artiste
+ * @param {string} artistId - ID de l'artiste
+ * @returns {Promise<Array>} Liste des concerts
+ */
+export const getConcertsByArtist = async (artistId) => {
+  return getConcerts({ artistId });
+};

@@ -9,7 +9,8 @@ import {
   query,
   orderBy,
   where,
-  setDoc
+  setDoc,
+  limit
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
