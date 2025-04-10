@@ -21,17 +21,13 @@ const FORM_SUBMISSIONS_COLLECTION = 'formSubmissions';
 // Assurez-vous que la collection existe
 const ensureCollection = async (collectionName) => {
   try {
-    console.log(`[ensureCollection] Vérification de la collection ${collectionName}...`);
-    
     // Vérifier si la collection existe en essayant de récupérer des documents
     const collectionRef = collection(db, collectionName);
     const snapshot = await getDocs(query(collectionRef, orderBy('submittedAt', 'desc')));
     
-    console.log(`[ensureCollection] Résultat de la vérification: ${snapshot.empty ? 'collection vide' : snapshot.size + ' documents trouvés'}`);
-    
     // Si la collection n'existe pas ou est vide, créer un document initial
     if (snapshot.empty) {
-      console.log(`[ensureCollection] Collection ${collectionName} vide, création d'un document initial...`);
+      console.log(`Collection ${collectionName} vide, création d'un document initial...`);
       const initialDoc = {
         programmerId: 'mock-programmer-1',
         programmerName: 'Didier Exemple',
@@ -50,26 +46,13 @@ const ensureCollection = async (collectionName) => {
         notes: 'Formulaire exemple créé automatiquement'
       };
       
-      try {
-        const docRef = await addDoc(collectionRef, initialDoc);
-        console.log(`[ensureCollection] Document initial créé avec ID: ${docRef.id}`);
-      } catch (addError) {
-        console.error(`[ensureCollection] Erreur lors de la création du document initial:`, addError);
-        
-        // Essayer avec setDoc comme alternative
-        try {
-          const mockId = 'mock-initial-' + Date.now();
-          await setDoc(doc(db, collectionName, mockId), initialDoc);
-          console.log(`[ensureCollection] Document initial créé avec ID manuel: ${mockId}`);
-        } catch (setError) {
-          console.error(`[ensureCollection] Erreur lors de la création du document initial avec setDoc:`, setError);
-        }
-      }
+      await addDoc(collectionRef, initialDoc);
+      console.log(`Document initial créé dans la collection ${collectionName}`);
     }
     
     return true;
   } catch (error) {
-    console.error(`[ensureCollection] Erreur lors de la vérification/création de la collection ${collectionName}:`, error);
+    console.error(`Erreur lors de la vérification/création de la collection ${collectionName}:`, error);
     return false;
   }
 };
@@ -161,8 +144,7 @@ export const getFormSubmissions = async (filters = {}) => {
     // S'assurer que la collection existe
     await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
     
-    console.log("[getFormSubmissions] Tentative de récupération des formulaires depuis Firebase...");
-    console.log("[getFormSubmissions] Filtres appliqués:", filters);
+    console.log("Tentative de récupération des formulaires depuis Firebase...");
     
     // Création d'une requête de base
     let formQuery = formSubmissionsCollection;
@@ -197,11 +179,11 @@ export const getFormSubmissions = async (filters = {}) => {
     const snapshot = await getDocs(formQuery);
     
     if (snapshot.empty) {
-      console.log("[getFormSubmissions] Aucun formulaire trouvé dans Firebase, utilisation des données simulées");
+      console.log("Aucun formulaire trouvé dans Firebase, utilisation des données simulées");
       
       // Essayer d'ajouter les données simulées à Firebase
       try {
-        console.log("[getFormSubmissions] Tentative d'ajout des données simulées à Firebase...");
+        console.log("Tentative d'ajout des données simulées à Firebase...");
         for (const form of mockFormSubmissions) {
           const { id, ...formData } = form;
           await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, id), {
@@ -211,9 +193,9 @@ export const getFormSubmissions = async (filters = {}) => {
             concertDate: formData.concertDate ? Timestamp.fromDate(formData.concertDate) : null
           });
         }
-        console.log("[getFormSubmissions] Données simulées ajoutées à Firebase avec succès");
+        console.log("Données simulées ajoutées à Firebase avec succès");
       } catch (addError) {
-        console.error("[getFormSubmissions] Erreur lors de l'ajout des données simulées:", addError);
+        console.error("Erreur lors de l'ajout des données simulées:", addError);
       }
       
       return mockFormSubmissions;
@@ -224,15 +206,15 @@ export const getFormSubmissions = async (filters = {}) => {
       ...doc.data()
     }));
     
-    console.log(`[getFormSubmissions] ${formSubmissions.length} formulaires récupérés depuis Firebase`);
+    console.log(`${formSubmissions.length} formulaires récupérés depuis Firebase`);
     return formSubmissions;
   } catch (error) {
-    console.error("[getFormSubmissions] Erreur lors de la récupération des formulaires:", error);
-    console.log("[getFormSubmissions] Utilisation des données simulées pour les formulaires");
+    console.error("Erreur lors de la récupération des formulaires:", error);
+    console.log("Utilisation des données simulées pour les formulaires");
     
     // Essayer d'ajouter les données simulées à Firebase
     try {
-      console.log("[getFormSubmissions] Tentative d'ajout des données simulées à Firebase...");
+      console.log("Tentative d'ajout des données simulées à Firebase...");
       for (const form of mockFormSubmissions) {
         const { id, ...formData } = form;
         await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, id), {
@@ -242,9 +224,9 @@ export const getFormSubmissions = async (filters = {}) => {
           concertDate: formData.concertDate ? Timestamp.fromDate(formData.concertDate) : null
         });
       }
-      console.log("[getFormSubmissions] Données simulées ajoutées à Firebase avec succès");
+      console.log("Données simulées ajoutées à Firebase avec succès");
     } catch (addError) {
-      console.error("[getFormSubmissions] Erreur lors de l'ajout des données simulées:", addError);
+      console.error("Erreur lors de l'ajout des données simulées:", addError);
     }
     
     // Retourner des données simulées en cas d'erreur d'authentification
@@ -262,7 +244,7 @@ export const getFormSubmissionById = async (id) => {
     // S'assurer que la collection existe
     await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
     
-    console.log(`[getFormSubmissionById] Tentative de récupération du formulaire ${id} depuis Firebase...`);
+    console.log(`Tentative de récupération du formulaire ${id} depuis Firebase...`);
     const docRef = doc(db, FORM_SUBMISSIONS_COLLECTION, id);
     const snapshot = await getDoc(docRef);
     
@@ -271,17 +253,17 @@ export const getFormSubmissionById = async (id) => {
         id: snapshot.id,
         ...snapshot.data()
       };
-      console.log(`[getFormSubmissionById] Formulaire ${id} récupéré depuis Firebase:`, formData);
+      console.log(`Formulaire ${id} récupéré depuis Firebase:`, formData);
       return formData;
     }
     
-    console.log(`[getFormSubmissionById] Formulaire ${id} non trouvé dans Firebase`);
+    console.log(`Formulaire ${id} non trouvé dans Firebase`);
     return null;
   } catch (error) {
-    console.error(`[getFormSubmissionById] Erreur lors de la récupération du formulaire ${id}:`, error);
+    console.error(`Erreur lors de la récupération du formulaire ${id}:`, error);
     // Retourner un formulaire simulé en cas d'erreur
     const mockForm = mockFormSubmissions.find(form => form.id === id) || mockFormSubmissions[0];
-    console.log(`[getFormSubmissionById] Utilisation du formulaire simulé:`, mockForm);
+    console.log(`Utilisation du formulaire simulé:`, mockForm);
     return mockForm;
   }
 };
@@ -292,22 +274,9 @@ export const getFormSubmissionById = async (id) => {
  * @returns {Promise<Object>} Formulaire créé avec ID
  */
 export const createFormSubmission = async (formData) => {
-  console.log("[createFormSubmission] Début de la création d'un nouveau formulaire");
-  console.log("[createFormSubmission] Données reçues:", formData);
-  
   try {
     // S'assurer que la collection existe
-    console.log("[createFormSubmission] Vérification de l'existence de la collection...");
-    const collectionExists = await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
-    console.log(`[createFormSubmission] Résultat de la vérification: ${collectionExists ? 'collection existe' : 'échec de la vérification'}`);
-    
-    // Vérifier les champs obligatoires
-    const requiredFields = ['concertId'];
-    const missingFields = requiredFields.filter(field => !formData[field]);
-    
-    if (missingFields.length > 0) {
-      console.warn(`[createFormSubmission] Champs obligatoires manquants: ${missingFields.join(', ')}`);
-    }
+    await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
     
     // S'assurer que les champs obligatoires sont présents
     const completeFormData = {
@@ -322,54 +291,53 @@ export const createFormSubmission = async (formData) => {
         null
     };
     
-    console.log("[createFormSubmission] Tentative d'ajout d'un formulaire à Firebase avec addDoc:", completeFormData);
+    console.log("Tentative d'ajout d'un formulaire à Firebase:", completeFormData);
+    const docRef = await addDoc(formSubmissionsCollection, completeFormData);
     
+    console.log(`Formulaire ajouté avec succès, ID: ${docRef.id}`);
+    return {
+      id: docRef.id,
+      ...completeFormData
+    };
+  } catch (error) {
+    console.error("Erreur lors de l'ajout du formulaire:", error);
+    console.log("Simulation de l'ajout d'un formulaire");
+    
+    // Essayer d'ajouter le formulaire avec un ID généré manuellement
     try {
-      const docRef = await addDoc(formSubmissionsCollection, completeFormData);
-      console.log(`[createFormSubmission] Formulaire ajouté avec succès via addDoc, ID: ${docRef.id}`);
+      const mockId = 'mock-form-' + Date.now();
+      const completeFormData = {
+        ...formData,
+        status: formData.status || 'pending',
+        submittedAt: Timestamp.fromDate(new Date()),
+        // Convertir la date du concert en Timestamp si elle existe
+        concertDate: formData.concertDate ? 
+          (formData.concertDate instanceof Date ? 
+            Timestamp.fromDate(formData.concertDate) : 
+            formData.concertDate) : 
+          null
+      };
       
+      await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, mockId), completeFormData);
+      
+      console.log(`Formulaire ajouté avec un ID manuel: ${mockId}`);
       return {
-        id: docRef.id,
+        id: mockId,
         ...completeFormData
       };
-    } catch (addDocError) {
-      console.error("[createFormSubmission] Erreur lors de l'ajout du formulaire avec addDoc:", addDocError);
+    } catch (addError) {
+      console.error("Erreur lors de l'ajout manuel du formulaire:", addError);
       
-      // Essayer d'ajouter le formulaire avec un ID généré manuellement
-      console.log("[createFormSubmission] Tentative alternative avec setDoc...");
-      const mockId = 'form-' + Date.now();
-      
-      try {
-        await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, mockId), completeFormData);
-        console.log(`[createFormSubmission] Formulaire ajouté avec succès via setDoc, ID: ${mockId}`);
-        
-        return {
-          id: mockId,
-          ...completeFormData
-        };
-      } catch (setDocError) {
-        console.error("[createFormSubmission] Erreur lors de l'ajout du formulaire avec setDoc:", setDocError);
-        throw setDocError; // Propager l'erreur pour la gestion dans le composant
-      }
+      // Simuler l'ajout d'un formulaire en cas d'erreur
+      const mockId = 'mock-form-' + Date.now();
+      return {
+        id: mockId,
+        ...formData,
+        status: formData.status || 'pending',
+        submittedAt: new Date(),
+        concertDate: formData.concertDate || null
+      };
     }
-  } catch (error) {
-    console.error("[createFormSubmission] Erreur générale lors de l'ajout du formulaire:", error);
-    
-    // Simuler l'ajout d'un formulaire en cas d'erreur
-    console.log("[createFormSubmission] Simulation de l'ajout d'un formulaire (mode fallback)");
-    const mockId = 'mock-form-' + Date.now();
-    
-    const mockResult = {
-      id: mockId,
-      ...formData,
-      status: formData.status || 'pending',
-      submittedAt: new Date(),
-      concertDate: formData.concertDate || null,
-      _isMock: true // Indicateur que c'est une donnée simulée
-    };
-    
-    console.log("[createFormSubmission] Résultat simulé:", mockResult);
-    return mockResult;
   }
 };
 
@@ -384,7 +352,7 @@ export const updateFormSubmission = async (id, formData) => {
     // S'assurer que la collection existe
     await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
     
-    console.log(`[updateFormSubmission] Tentative de mise à jour du formulaire ${id}:`, formData);
+    console.log(`Tentative de mise à jour du formulaire ${id}:`, formData);
     const docRef = doc(db, FORM_SUBMISSIONS_COLLECTION, id);
     
     // Si le statut change à 'processed' ou 'rejected', ajouter la date de traitement
@@ -402,14 +370,14 @@ export const updateFormSubmission = async (id, formData) => {
     
     await updateDoc(docRef, updateData);
     
-    console.log(`[updateFormSubmission] Formulaire ${id} mis à jour avec succès`);
+    console.log(`Formulaire ${id} mis à jour avec succès`);
     return {
       id,
       ...updateData
     };
   } catch (error) {
-    console.error(`[updateFormSubmission] Erreur lors de la mise à jour du formulaire ${id}:`, error);
-    console.log("[updateFormSubmission] Tentative alternative avec setDoc...");
+    console.error(`Erreur lors de la mise à jour du formulaire ${id}:`, error);
+    console.log("Simulation de la mise à jour d'un formulaire");
     
     // Essayer de créer/remplacer le document
     try {
@@ -428,20 +396,19 @@ export const updateFormSubmission = async (id, formData) => {
       
       await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, id), updateData, { merge: true });
       
-      console.log(`[updateFormSubmission] Formulaire ${id} créé/remplacé avec succès`);
+      console.log(`Formulaire ${id} créé/remplacé avec succès`);
       return {
         id,
         ...updateData
       };
     } catch (setError) {
-      console.error(`[updateFormSubmission] Erreur lors de la création/remplacement du formulaire ${id}:`, setError);
+      console.error(`Erreur lors de la création/remplacement du formulaire ${id}:`, setError);
       
       // Simuler la mise à jour d'un formulaire en cas d'erreur
       return {
         id,
         ...formData,
-        processedAt: (formData.status === 'processed' || formData.status === 'rejected') ? new Date() : null,
-        _isMock: true // Indicateur que c'est une donnée simulée
+        processedAt: (formData.status === 'processed' || formData.status === 'rejected') ? new Date() : null
       };
     }
   }
@@ -454,15 +421,15 @@ export const updateFormSubmission = async (id, formData) => {
  */
 export const deleteFormSubmission = async (id) => {
   try {
-    console.log(`[deleteFormSubmission] Tentative de suppression du formulaire ${id}`);
+    console.log(`Tentative de suppression du formulaire ${id}`);
     const docRef = doc(db, FORM_SUBMISSIONS_COLLECTION, id);
     await deleteDoc(docRef);
     
-    console.log(`[deleteFormSubmission] Formulaire ${id} supprimé avec succès`);
+    console.log(`Formulaire ${id} supprimé avec succès`);
     return id;
   } catch (error) {
-    console.error(`[deleteFormSubmission] Erreur lors de la suppression du formulaire ${id}:`, error);
-    console.log("[deleteFormSubmission] Simulation de la suppression d'un formulaire");
+    console.error(`Erreur lors de la suppression du formulaire ${id}:`, error);
+    console.log("Simulation de la suppression d'un formulaire");
     // Simuler la suppression d'un formulaire en cas d'erreur
     return id;
   }
@@ -478,7 +445,7 @@ export const getFormSubmissionsByProgrammer = async (programmerId) => {
     // S'assurer que la collection existe
     await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
     
-    console.log(`[getFormSubmissionsByProgrammer] Tentative de récupération des formulaires pour le programmateur ${programmerId}...`);
+    console.log(`Tentative de récupération des formulaires pour le programmateur ${programmerId}...`);
     const formQuery = query(
       formSubmissionsCollection, 
       where('programmerId', '==', programmerId),
@@ -488,7 +455,7 @@ export const getFormSubmissionsByProgrammer = async (programmerId) => {
     const snapshot = await getDocs(formQuery);
     
     if (snapshot.empty) {
-      console.log(`[getFormSubmissionsByProgrammer] Aucun formulaire trouvé pour le programmateur ${programmerId}`);
+      console.log(`Aucun formulaire trouvé pour le programmateur ${programmerId}`);
       return [];
     }
     
@@ -497,15 +464,54 @@ export const getFormSubmissionsByProgrammer = async (programmerId) => {
       ...doc.data()
     }));
     
-    console.log(`[getFormSubmissionsByProgrammer] ${formSubmissions.length} formulaires récupérés pour le programmateur ${programmerId}`);
+    console.log(`${formSubmissions.length} formulaires récupérés pour le programmateur ${programmerId}`);
     return formSubmissions;
   } catch (error) {
-    console.error(`[getFormSubmissionsByProgrammer] Erreur lors de la récupération des formulaires pour le programmateur ${programmerId}:`, error);
+    console.error(`Erreur lors de la récupération des formulaires pour le programmateur ${programmerId}:`, error);
+    // Retourner des formulaires simulés pour ce programmateur
+    const mockForms = mockFormSubmissions.filter(form => form.programmerId === programmerId);
+    console.log(`Utilisation de ${mockForms.length} formulaires simulés pour le programmateur ${programmerId}`);
+    return mockForms;
+  }
+};
+
+/**
+ * Récupère les formulaires soumis par statut
+ * @param {string} status - Statut des formulaires ('pending', 'processed', 'rejected')
+ * @returns {Promise<Array>} Liste des formulaires soumis
+ */
+export const getFormSubmissionsByStatus = async (status) => {
+  try {
+    // S'assurer que la collection existe
+    await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
     
-    // Filtrer les données simulées pour ce programmateur
-    const mockData = mockFormSubmissions.filter(form => form.programmerId === programmerId);
-    console.log(`[getFormSubmissionsByProgrammer] Utilisation de ${mockData.length} formulaires simulés pour le programmateur ${programmerId}`);
-    return mockData;
+    console.log(`Tentative de récupération des formulaires avec le statut ${status}...`);
+    const formQuery = query(
+      formSubmissionsCollection, 
+      where('status', '==', status),
+      orderBy('submittedAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(formQuery);
+    
+    if (snapshot.empty) {
+      console.log(`Aucun formulaire trouvé avec le statut ${status}`);
+      return [];
+    }
+    
+    const formSubmissions = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    console.log(`${formSubmissions.length} formulaires récupérés avec le statut ${status}`);
+    return formSubmissions;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération des formulaires avec le statut ${status}:`, error);
+    // Retourner des formulaires simulés pour ce statut
+    const mockForms = mockFormSubmissions.filter(form => form.status === status);
+    console.log(`Utilisation de ${mockForms.length} formulaires simulés avec le statut ${status}`);
+    return mockForms;
   }
 };
 
@@ -519,7 +525,7 @@ export const getFormSubmissionsByConcert = async (concertId) => {
     // S'assurer que la collection existe
     await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
     
-    console.log(`[getFormSubmissionsByConcert] Tentative de récupération des formulaires pour le concert ${concertId}...`);
+    console.log(`Tentative de récupération des formulaires pour le concert ${concertId}...`);
     const formQuery = query(
       formSubmissionsCollection, 
       where('concertId', '==', concertId),
@@ -529,7 +535,7 @@ export const getFormSubmissionsByConcert = async (concertId) => {
     const snapshot = await getDocs(formQuery);
     
     if (snapshot.empty) {
-      console.log(`[getFormSubmissionsByConcert] Aucun formulaire trouvé pour le concert ${concertId}`);
+      console.log(`Aucun formulaire trouvé pour le concert ${concertId}`);
       return [];
     }
     
@@ -538,19 +544,53 @@ export const getFormSubmissionsByConcert = async (concertId) => {
       ...doc.data()
     }));
     
-    console.log(`[getFormSubmissionsByConcert] ${formSubmissions.length} formulaires récupérés pour le concert ${concertId}`);
+    console.log(`${formSubmissions.length} formulaires récupérés pour le concert ${concertId}`);
     return formSubmissions;
   } catch (error) {
-    console.error(`[getFormSubmissionsByConcert] Erreur lors de la récupération des formulaires pour le concert ${concertId}:`, error);
-    
-    // Filtrer les données simulées pour ce concert
-    const mockData = mockFormSubmissions.filter(form => form.concertId === concertId);
-    console.log(`[getFormSubmissionsByConcert] Utilisation de ${mockData.length} formulaires simulés pour le concert ${concertId}`);
-    return mockData;
+    console.error(`Erreur lors de la récupération des formulaires pour le concert ${concertId}:`, error);
+    // Retourner des formulaires simulés pour ce concert
+    const mockForms = mockFormSubmissions.filter(form => form.concertId === concertId);
+    console.log(`Utilisation de ${mockForms.length} formulaires simulés pour le concert ${concertId}`);
+    return mockForms;
   }
 };
 
-// Exporter d'autres fonctions utiles
-export const getFormSubmissionsByStatus = async (status) => {
-  return getFormSubmissions({ status });
+/**
+ * Récupère un formulaire soumis par l'ID du lien de formulaire
+ * @param {string} formLinkId - ID du lien de formulaire
+ * @returns {Promise<Object>} Données du formulaire
+ */
+export const getFormSubmissionByFormLinkId = async (formLinkId) => {
+  try {
+    // S'assurer que la collection existe
+    await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
+    
+    console.log(`Tentative de récupération du formulaire pour le lien ${formLinkId}...`);
+    const formQuery = query(
+      formSubmissionsCollection, 
+      where('formLinkId', '==', formLinkId),
+      limit(1)
+    );
+    
+    const snapshot = await getDocs(formQuery);
+    
+    if (snapshot.empty) {
+      console.log(`Aucun formulaire trouvé pour le lien ${formLinkId}`);
+      return null;
+    }
+    
+    const formData = {
+      id: snapshot.docs[0].id,
+      ...snapshot.docs[0].data()
+    };
+    
+    console.log(`Formulaire pour le lien ${formLinkId} récupéré:`, formData);
+    return formData;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération du formulaire pour le lien ${formLinkId}:`, error);
+    // Retourner un formulaire simulé pour ce lien
+    const mockForm = mockFormSubmissions.find(form => form.formLinkId === formLinkId);
+    console.log(`Utilisation du formulaire simulé pour le lien ${formLinkId}:`, mockForm);
+    return mockForm;
+  }
 };
