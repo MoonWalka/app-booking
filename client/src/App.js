@@ -56,7 +56,7 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   const { bypassEnabled, isAuthenticated, isCurrentRoutePublic } = useAuth();
   const location = useLocation();
-  
+  console.log("App - location.pathname =", location.pathname)
   console.log('App render - Route actuelle:', location.pathname, 'Est publique:', isCurrentRoutePublic);
 
   return (
