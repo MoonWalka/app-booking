@@ -335,16 +335,7 @@ export const createFormSubmission = async (formData) => {
           formData.concertDate) : 
         null
     };
-      ...formData,
-      status: formData.status || 'pending',
-      submittedAt: Timestamp.fromDate(new Date()),
-      // Convertir la date du concert en Timestamp si elle existe
-      concertDate: formData.concertDate ? 
-        (formData.concertDate instanceof Date ? 
-          Timestamp.fromDate(formData.concertDate) : 
-          formData.concertDate) : 
-        null
-    };
+      
     
     console.log("[createFormSubmission] Tentative d'ajout d'un formulaire à Firebase avec addDoc:", completeFormData);
     console.log("[createFormSubmission] Vérification de la présence de concertId:", completeFormData.concertId ? 'Présent' : 'Manquant');
