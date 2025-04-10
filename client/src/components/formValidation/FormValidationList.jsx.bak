@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getFormSubmissions, updateFormSubmission } from '../../services/formSubmissionsService';
 import { getProgrammerById, updateProgrammer } from '../../services/programmersService';
-import ComparisonTable from "./ComparisonTable";
 import './FormValidationList.css';
 
 const FormValidationList = () => {
@@ -11,8 +10,6 @@ const FormValidationList = () => {
   const [error, setError] = useState(null);
   const [selectedForm, setSelectedForm] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [showComparisonTable, setShowComparisonTable] = useState(false);
-  const [programmerData, setProgrammerData] = useState(null);
   const [processingAction, setProcessingAction] = useState(false);
 
   useEffect(() => {
@@ -40,35 +37,6 @@ const FormValidationList = () => {
   const closeModal = () => {
     setSelectedForm(null);
     setShowModal(false);
-    setShowComparisonTable(false);
-    setProgrammerData(null);
-  };
-  
-  const handleShowComparisonTable = async (form) => {
-    try {
-      setProcessingAction(true);
-      
-      // Récupérer les données du programmateur
-      if (form.programmerId) {
-        const programmer = await getProgrammerById(form.programmerId);
-        if (programmer) {
-          setProgrammerData(programmer);
-          setShowComparisonTable(true);
-          setShowModal(false);
-        } else {
-          alert("Impossible de récupérer les données du programmateur.");
-        }
-      } else {
-        alert("Ce formulaire n'est pas associé à un programmateur existant.");
-      }
-      
-      setProcessingAction(false);
-    } catch (err) {
-      console.error("Erreur lors de la récupération des données du programmateur:", err);
-      setError(err.message);
-      setProcessingAction(false);
-      alert(`Erreur: ${err.message}`);
-    }
   };
 
   const formatDate = (timestamp) => {
@@ -258,67 +226,60 @@ const FormValidationList = () => {
                 <h4>Informations soumises</h4>
                 
                 <div className="form-data-grid">
-
                   <div className="form-data-item">
                     <span className="form-data-label">Raison sociale:</span>
+                    <span className="form-data-value">{selectedForm.businessName || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">Contact:</span>
+                    <span className="form-data-value">{selectedForm.contact || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">Qualité:</span>
+                    <span className="form-data-value">{selectedForm.role || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">Adresse:</span>
+                    <span className="form-data-value">{selectedForm.address || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">Lieu/Festival:</span>
+                    <span className="form-data-value">{selectedForm.venue || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">N° intracommunautaire:</span>
+                    <span className="form-data-value">{selectedForm.vatNumber || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">SIRET:</span>
+                    <span className="form-data-value">{selectedForm.siret || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">Email:</span>
+                    <span className="form-data-value">{selectedForm.email || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
                     <span className="form-data-label">Téléphone:</span>
+                    <span className="form-data-value">{selectedForm.phone || 'Non spécifié'}</span>
                   </div>
                   
-                  </div>
                   <div className="form-data-item">
+                    <span className="form-data-label">Site web:</span>
                     <span className="form-data-value">
-                    <span className="form-data-label">Site web:</span>
                       {selectedForm.website ? (
-                    <span className="form-data-label">Site web:</span>
                         <a href={selectedForm.website} target="_blank" rel="noopener noreferrer">
-                    <span className="form-data-label">Site web:</span>
                           {selectedForm.website}
-                    <span className="form-data-label">Site web:</span>
                         </a>
-                    <span className="form-data-label">Site web:</span>
                       ) : 'Non spécifié'}
-                    <span className="form-data-label">Site web:</span>
                     </span>
-                    <span className="form-data-label">Site web:</span>
                   </div>
                 </div>
               </div>
@@ -358,29 +319,6 @@ const FormValidationList = () => {
         </div>
       )}
     </div>
-      
-      {/* Tableau de comparaison */}
-      {showComparisonTable && selectedForm && programmerData && (
-        <div className="form-modal-overlay">
-          <ComparisonTable 
-            formData={selectedForm}
-            programmer={programmerData}
-            onClose={closeModal}
-            onSuccess={() => {
-              // Rafraîchir la liste des formulaires après une intégration réussie
-              setFormSubmissions(prevForms => 
-                prevForms.map(form => 
-                  form.id === selectedForm.id 
-                    ? { ...form, status: "processed", processedAt: new Date() } 
-                    : form
-                )
-              );
-              closeModal();
-              alert("Les données ont été intégrées avec succès à la fiche du programmateur.");
-            }}
-          />
-        </div>
-      )}
   );
 };
 

@@ -313,28 +313,8 @@ export const createFormSubmission = async (formData) => {
       throw new Error(`Champs obligatoires manquants: ${missingFields.join(', ')}`);
     }
     
-    // Générer un token commun si non fourni
-    let commonToken = formData.commonToken;
-    if (!commonToken) {
-      // Importer dynamiquement pour éviter les dépendances circulaires
-      const { generateToken } = await import('../utils/tokenGenerator');
-      commonToken = generateToken(formData.concertId);
-      console.log(`[createFormSubmission] Génération d'un nouveau token commun: ${commonToken}`);
-    }
-    
     // S'assurer que les champs obligatoires sont présents
     const completeFormData = {
-      ...formData,
-      commonToken, // Ajouter le token commun
-      status: formData.status || 'pending',
-      submittedAt: Timestamp.fromDate(new Date()),
-      // Convertir la date du concert en Timestamp si elle existe
-      concertDate: formData.concertDate ? 
-        (formData.concertDate instanceof Date ? 
-          Timestamp.fromDate(formData.concertDate) : 
-          formData.concertDate) : 
-        null
-    };
       ...formData,
       status: formData.status || 'pending',
       submittedAt: Timestamp.fromDate(new Date()),

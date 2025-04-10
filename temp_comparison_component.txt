@@ -1,0 +1,23 @@
+      
+      {/* Tableau de comparaison */}
+      {showComparisonTable && selectedForm && programmerData && (
+        <div className="form-modal-overlay">
+          <ComparisonTable 
+            formData={selectedForm}
+            programmer={programmerData}
+            onClose={closeModal}
+            onSuccess={() => {
+              // Rafraîchir la liste des formulaires après une intégration réussie
+              setFormSubmissions(prevForms => 
+                prevForms.map(form => 
+                  form.id === selectedForm.id 
+                    ? { ...form, status: 'processed', processedAt: new Date() } 
+                    : form
+                )
+              );
+              closeModal();
+              alert('Les données ont été intégrées avec succès à la fiche du programmateur.');
+            }}
+          />
+        </div>
+      )}
