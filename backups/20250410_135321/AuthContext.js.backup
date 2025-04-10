@@ -16,9 +16,12 @@ const TEST_USER = {
   role: 'admin'
 };
 
-// Fonction pour vérifier si une route est publique
-const isPublicRoute = (pathname) => {
-  return pathname.startsWith('/form/') || pathname === '/form-submitted';
+// Fonction pour vérifier si une route est publique - adaptée pour HashRouter
+const isPublicRoute = (path) => {
+  // Nettoyer le chemin pour HashRouter (enlever le # au début si présent)
+  const cleanPath = path.replace(/^#/, '');
+  console.log('isPublicRoute - chemin nettoyé:', cleanPath);
+  return cleanPath.startsWith('/form/') || cleanPath === '/form-submitted';
 };
 
 export const AuthProvider = ({ children }) => {
@@ -29,11 +32,16 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const auth = getAuth(app);
   
-  // Vérifier si la route actuelle est une route publique
-  const currentPathname = location.pathname;
-  const isCurrentRoutePublic = isPublicRoute(currentPathname);
+  // Vérifier si la route actuelle est une route publique - adaptée pour HashRouter
+  const currentHash = location.hash || '';
+  const currentPath = location.pathname;
+  const fullPath = currentHash ? currentHash : currentPath;
+  const isCurrentRoutePublic = isPublicRoute(fullPath);
   
-  console.log('Route actuelle:', currentPathname, 'Est une route publique:', isCurrentRoutePublic);
+  console.log('AuthContext - Route actuelle (hash):', currentHash);
+  console.log('AuthContext - Route actuelle (pathname):', currentPath);
+  console.log('AuthContext - Route complète:', fullPath);
+  console.log('AuthContext - Est une route publique:', isCurrentRoutePublic);
 
   useEffect(() => {
     if (BYPASS_AUTH) {

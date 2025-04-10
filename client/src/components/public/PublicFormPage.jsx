@@ -1,19 +1,10 @@
-import React, { useEffect } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import React from 'react';
+import { useParams } from 'react-router-dom';
 import './PublicFormPage.css';
 
 const PublicFormPage = () => {
   const { concertId } = useParams();
-  const location = useLocation();
-  
-  // Logs de débogage pour vérifier le chemin et les paramètres
-  useEffect(() => {
-    console.log("PublicFormPage - Chargée avec concertId:", concertId);
-    console.log("PublicFormPage - Location:", location);
-    console.log("PublicFormPage - Hash:", window.location.hash);
-    console.log("PublicFormPage - Pathname:", window.location.pathname);
-    console.log("PublicFormPage - URL complète:", window.location.href);
-  }, [concertId, location]);
+  console.log("PublicFormPage chargée avec concertId:", concertId);
   
   return (
     <div style={{ 
@@ -40,12 +31,7 @@ const PublicFormPage = () => {
         border: "1px solid #c5e1f9" 
       }}>
         <p style={{ margin: "0", color: "#2c76c7" }}>
-          Informations de débogage:
-        </p>
-        <p style={{ margin: "10px 0 0 0", color: "#2c76c7", fontSize: "14px", textAlign: "left" }}>
-          Hash: {window.location.hash}<br />
-          Pathname: {window.location.pathname}<br />
-          URL complète: {window.location.href}
+          Pour implémenter le formulaire complet, remplacez ce composant par la version complète de PublicFormPage.
         </p>
       </div>
     </div>
