@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import './PublicFormPage.css';
 
 const PublicFormPage = () => {
+  console.log('PublicFormPage - pathname:', window.location.pathname);
   const { concertId } = useParams();
   console.log("PublicFormPage chargée avec concertId:", concertId);
   
