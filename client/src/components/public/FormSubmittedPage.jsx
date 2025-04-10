@@ -1,24 +1,16 @@
 import React, { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { Link } from 'react-router-dom';
 import './PublicFormPage.css';
 
 const FormSubmittedPage = () => {
-  const location = useLocation();
-  const { isAuthenticated, currentUser, isCurrentRoutePublic } = useAuth();
-  
-  // Logs de débogage détaillés pour vérifier le chemin
+  // Logs de débogage détaillés
   useEffect(() => {
-    console.log("FormSubmittedPage - CHARGÉE AVEC:");
-    console.log("FormSubmittedPage - Location:", location);
+    console.log("FormSubmittedPage - CHARGÉE");
     console.log("FormSubmittedPage - Hash brut:", window.location.hash);
     console.log("FormSubmittedPage - Hash nettoyé:", window.location.hash.replace(/^#/, ''));
     console.log("FormSubmittedPage - Pathname:", window.location.pathname);
     console.log("FormSubmittedPage - URL complète:", window.location.href);
-    console.log("FormSubmittedPage - Est une route publique:", isCurrentRoutePublic);
-    console.log("FormSubmittedPage - Utilisateur authentifié:", isAuthenticated);
-    console.log("FormSubmittedPage - Utilisateur actuel:", currentUser);
-  }, [location, isAuthenticated, currentUser, isCurrentRoutePublic]);
+  }, []);
   
   return (
     <div style={{ 
@@ -48,9 +40,7 @@ const FormSubmittedPage = () => {
           Informations de débogage:<br />
           Hash: {window.location.hash}<br />
           Pathname: {window.location.pathname}<br />
-          URL complète: {window.location.href}<br />
-          Est authentifié: {isAuthenticated ? "Oui" : "Non"}<br />
-          Utilisateur: {currentUser ? currentUser.name : "Aucun"}
+          URL complète: {window.location.href}
         </p>
       </div>
     </div>
