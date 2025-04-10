@@ -18,7 +18,6 @@ import './PublicFormPage.css';
 // Fonction utilitaire pour extraire le concertId de l'URL avec HashRouter
 const extractConcertIdFromHash = () => {
   const hash = window.location.hash;
-  console.log('extractConcertIdFromHash - hash brut:', hash);
   
   // Format attendu: /#/form/CONCERT_ID
   const match = hash.match(/\/#\/form\/([^\/\?]+)/);
@@ -113,6 +112,7 @@ const PublicFormPage = (props) => {
       phone: '',
       website: ''
     });
+    console.log('PublicFormPage - Formulaire réinitialisé');
   };
   
   const handleSubmit = async (e) => {
@@ -157,6 +157,7 @@ const PublicFormPage = (props) => {
       
       console.log('PublicFormPage - Données préparées pour la soumission:', submissionData);
       console.log('PublicFormPage - Vérification de la présence de concertId:', submissionData.concertId ? 'Présent' : 'Manquant');
+      console.log('PublicFormPage - Vérification de la présence du token commun:', submissionData.commonToken ? 'Présent' : 'Manquant');
       
       // Soumettre le formulaire avec un timeout pour éviter les blocages
       const timeoutPromise = new Promise((_, reject) => 
@@ -172,6 +173,8 @@ const PublicFormPage = (props) => {
       
       // Afficher le message de succès et réinitialiser le formulaire
       if (result && result.id) {
+        console.log('PublicFormPage - Soumission réussie avec ID:', result.id);
+        console.log('PublicFormPage - Token commun dans le résultat:', result.commonToken);
         setSubmissionSuccess(true);
         resetForm();
       } else {
@@ -444,13 +447,13 @@ const ensureCollection = async (collectionName) => {
     
     // Vérifier si la collection existe en essayant de récupérer des documents
     const collectionRef = collection(db, collectionName);
-    const snapshot = await getDocs(query(collectionRef, orderBy('submittedAt', 'desc')));
+    const snapshot = await getDocs(query(collectionRef, limit(1)));
     
     console.log(`[ensureCollection] Résultat de la vérification: ${snapshot.empty ? 'collection vide' : snapshot.size + ' documents trouvés'}`);
     
     return true;
   } catch (error) {
-    console.error(`[ensureCollection] Erreur lors de la vérification/création de la collection ${collectionName}:`, error);
+    console.error(`[ensureCollection] Erreur lors de la vérification de la collection ${collectionName}:`, error);
     return false;
   }
 };
@@ -478,26 +481,31 @@ export const getFormSubmissions = async (filters = {}) => {
     if (filters) {
       // Filtrer par statut
       if (filters.status) {
+        console.log(`[getFormSubmissions] Filtrage par statut: ${filters.status}`);
         formQuery = query(formQuery, where('status', '==', filters.status));
       }
       
       // Filtrer par programmateur
       if (filters.programmerId) {
+        console.log(`[getFormSubmissions] Filtrage par programmateur: ${filters.programmerId}`);
         formQuery = query(formQuery, where('programmerId', '==', filters.programmerId));
       }
       
       // Filtrer par concert
       if (filters.concertId) {
+        console.log(`[getFormSubmissions] Filtrage par concert: ${filters.concertId}`);
         formQuery = query(formQuery, where('concertId', '==', filters.concertId));
       }
       
       // Filtrer par lien de formulaire
       if (filters.formLinkId) {
+        console.log(`[getFormSubmissions] Filtrage par lien de formulaire: ${filters.formLinkId}`);
         formQuery = query(formQuery, where('formLinkId', '==', filters.formLinkId));
       }
       
       // Filtrer par token commun
       if (filters.commonToken) {
+        console.log(`[getFormSubmissions] Filtrage par token commun: ${filters.commonToken}`);
         formQuery = query(formQuery, where('commonToken', '==', filters.commonToken));
       }
     }
@@ -519,6 +527,10 @@ export const getFormSubmissions = async (filters = {}) => {
     }));
     
     console.log(`[getFormSubmissions] ${formSubmissions.length} formulaires récupérés depuis Firebase`);
+    formSubmissions.forEach(form => {
+      console.log(`[getFormSubmissions] Formulaire ID: ${form.id}, Token: ${form.commonToken}, Status: ${form.status}`);
+    });
+    
     return formSubmissions;
   } catch (error) {
     console.error("[getFormSubmissions] Erreur lors de la récupération des formulaires:", error);
@@ -606,6 +618,7 @@ export const createFormSubmission = async (formData) => {
     
     console.log("[createFormSubmission] Tentative d'ajout d'un formulaire à Firebase avec addDoc:", completeFormData);
     console.log("[createFormSubmission] Vérification de la présence de concertId:", completeFormData.concertId ? 'Présent' : 'Manquant');
+    console.log("[createFormSubmission] Vérification de la présence du token commun:", completeFormData.commonToken ? 'Présent' : 'Manquant');
     
     try {
       const docRef = await addDoc(formSubmissionsCollection, completeFormData);
@@ -793,6 +806,7 @@ const ComparisonTable = ({ formData, programmerData, onSave, onCancel }) => {
         }
       });
       setSelectedValues(initialValues);
+      console.log('ComparisonTable - Valeurs initiales chargées:', initialValues);
     }
   }, [programmerData]);
   
@@ -802,6 +816,7 @@ const ComparisonTable = ({ formData, programmerData, onSave, onCancel }) => {
       ...prev,
       [field]: value
     }));
+    console.log(`ComparisonTable - Valeur copiée pour le champ ${field}:`, value);
   };
   
   // Gérer la modification manuelle d'une valeur
@@ -820,6 +835,7 @@ const ComparisonTable = ({ formData, programmerData, onSave, onCancel }) => {
       commonToken: formData.commonToken,
       formLinkId: formData.formLinkId
     };
+    console.log('ComparisonTable - Données finales à sauvegarder:', updatedData);
     onSave(updatedData);
   };
   
@@ -920,17 +936,20 @@ const FormValidationList = () => {
   const [programmerData, setProgrammerData] = useState(null);
   const [showComparisonTable, setShowComparisonTable] = useState(false);
   const [updateStatus, setUpdateStatus] = useState({ status: '', message: '' });
+  const [refreshCount, setRefreshCount] = useState(0);
 
   // Charger les soumissions de formulaire
   useEffect(() => {
     const fetchFormSubmissions = async () => {
       try {
         setLoading(true);
+        console.log('FormValidationList - Chargement des soumissions en attente...');
         const submissions = await getFormSubmissions({ status: 'pending' });
+        console.log(`FormValidationList - ${submissions.length} soumissions récupérées`);
         setFormSubmissions(submissions);
         setLoading(false);
       } catch (err) {
-        console.error('Erreur lors du chargement des soumissions:', err);
+        console.error('FormValidationList - Erreur lors du chargement des soumissions:', err);
         setError('Erreur lors du chargement des soumissions. Veuillez réessayer.');
         setLoading(false);
       }
@@ -939,14 +958,18 @@ const FormValidationList = () => {
     fetchFormSubmissions();
     
     // Mettre en place un intervalle pour rafraîchir les soumissions toutes les 30 secondes
-    const refreshInterval = setInterval(fetchFormSubmissions, 30000);
+    const refreshInterval = setInterval(() => {
+      console.log('FormValidationList - Rafraîchissement automatique des soumissions');
+      setRefreshCount(prev => prev + 1);
+    }, 30000);
     
     // Nettoyer l'intervalle lors du démontage du composant
     return () => clearInterval(refreshInterval);
-  }, []);
+  }, [refreshCount]);
 
   // Gérer la sélection d'une soumission
   const handleSelectSubmission = async (submission) => {
+    console.log('FormValidationList - Sélection de la soumission:', submission);
     setSelectedSubmission(submission);
     setUpdateStatus({ status: '', message: '' });
     
@@ -955,15 +978,22 @@ const FormValidationList = () => {
       let programmer = null;
       
       if (submission.commonToken) {
+        console.log(`FormValidationList - Recherche du programmateur avec token: ${submission.commonToken}`);
         // Rechercher par token commun
         const programmers = await getProgrammerById(submission.commonToken);
         if (programmers) {
           programmer = programmers;
+          console.log('FormValidationList - Programmateur trouvé:', programmer);
+        } else {
+          console.log('FormValidationList - Aucun programmateur trouvé avec ce token');
         }
+      } else {
+        console.log('FormValidationList - Pas de token commun dans la soumission');
       }
       
       // Si aucun programmateur n'est trouvé, créer un objet vide
       if (!programmer) {
+        console.log('FormValidationList - Création d\'un objet programmateur vide');
         programmer = {
           id: null,
           businessName: '',
@@ -984,7 +1014,7 @@ const FormValidationList = () => {
       setProgrammerData(programmer);
       setShowComparisonTable(true);
     } catch (err) {
-      console.error('Erreur lors de la récupération des données du programmateur:', err);
+      console.error('FormValidationList - Erreur lors de la récupération des données du programmateur:', err);
       setError('Erreur lors de la récupération des données du programmateur. Veuillez réessayer.');
     }
   };
@@ -993,12 +1023,13 @@ const FormValidationList = () => {
   const handleIntegrateData = async (updatedData) => {
     try {
       setLoading(true);
+      console.log('FormValidationList - Début de l\'intégration des données');
       
       // Mettre à jour ou créer le programmateur
       let programmerId = programmerData.id;
       
       // Préparer les données du programmateur
-      const programmerData = {
+      const programmerDataToUpdate = {
         ...updatedData,
         commonToken: selectedSubmission.commonToken,
         // Ajouter d'autres champs nécessaires
@@ -1007,33 +1038,42 @@ const FormValidationList = () => {
           : updatedData.firstName || updatedData.lastName || 'Contact non spécifié'
       };
       
+      console.log('FormValidationList - Données du programmateur à mettre à jour:', programmerDataToUpdate);
+      
       if (programmerId) {
         // Mettre à jour le programmateur existant
-        await updateProgrammer(programmerId, programmerData);
+        console.log(`FormValidationList - Mise à jour du programmateur existant: ${programmerId}`);
+        await updateProgrammer(programmerId, programmerDataToUpdate);
       } else {
         // Créer un nouveau programmateur avec le token commun comme ID
         programmerId = selectedSubmission.commonToken;
-        await updateProgrammer(programmerId, programmerData);
+        console.log(`FormValidationList - Création d'un nouveau programmateur avec ID: ${programmerId}`);
+        await updateProgrammer(programmerId, programmerDataToUpdate);
       }
       
       // Mettre à jour le concert si nécessaire
       if (selectedSubmission.concertId) {
         try {
+          console.log(`FormValidationList - Récupération du concert: ${selectedSubmission.concertId}`);
           const concert = await getConcertById(selectedSubmission.concertId);
           if (concert) {
             // Mettre à jour le concert avec le token commun
+            console.log(`FormValidationList - Mise à jour du concert: ${selectedSubmission.concertId}`);
             await updateConcert(selectedSubmission.concertId, {
               ...concert,
               commonToken: selectedSubmission.commonToken,
               programmerId: programmerId
             });
+          } else {
+            console.log(`FormValidationList - Concert non trouvé: ${selectedSubmission.concertId}`);
           }
         } catch (concertErr) {
-          console.error('Erreur lors de la mise à jour du concert:', concertErr);
+          console.error('FormValidationList - Erreur lors de la mise à jour du concert:', concertErr);
         }
       }
       
       // Mettre à jour le statut de la soumission
+      console.log(`FormValidationList - Mise à jour du statut de la soumission: ${selectedSubmission.id}`);
       await updateFormSubmission(selectedSubmission.id, {
         ...selectedSubmission,
         status: 'processed',
@@ -1044,6 +1084,7 @@ const FormValidationList = () => {
       const updatedSubmissions = formSubmissions.filter(
         submission => submission.id !== selectedSubmission.id
       );
+      console.log(`FormValidationList - Mise à jour de la liste des soumissions: ${updatedSubmissions.length} restantes`);
       setFormSubmissions(updatedSubmissions);
       
       // Réinitialiser l'état
@@ -1055,8 +1096,11 @@ const FormValidationList = () => {
         message: 'Données intégrées avec succès!'
       });
       setLoading(false);
+      
+      // Forcer un rafraîchissement de la liste
+      setRefreshCount(prev => prev + 1);
     } catch (err) {
-      console.error('Erreur lors de l\'intégration des données:', err);
+      console.error('FormValidationList - Erreur lors de l\'intégration des données:', err);
       setUpdateStatus({
         status: 'error',
         message: `Erreur lors de l'intégration des données: ${err.message}`
@@ -1067,9 +1111,16 @@ const FormValidationList = () => {
 
   // Annuler l'intégration
   const handleCancelIntegration = () => {
+    console.log('FormValidationList - Annulation de l\'intégration');
     setSelectedSubmission(null);
     setProgrammerData(null);
     setShowComparisonTable(false);
+  };
+
+  // Rafraîchir manuellement la liste
+  const handleRefresh = () => {
+    console.log('FormValidationList - Rafraîchissement manuel de la liste');
+    setRefreshCount(prev => prev + 1);
   };
 
   if (loading && !showComparisonTable) {
@@ -1113,6 +1164,12 @@ const FormValidationList = () => {
           {updateStatus.message}
         </div>
       )}
+      
+      <div className="refresh-button-container">
+        <button className="refresh-button" onClick={handleRefresh}>
+          Rafraîchir la liste
+        </button>
+      </div>
       
       {formSubmissions.length === 0 ? (
         <p>Aucune soumission en attente de validation.</p>
@@ -1163,6 +1220,237 @@ EOL
 
 echo "✅ Fichier FormValidationList.jsx modifié"
 
+# 5. Ajout d'un style CSS pour le bouton de rafraîchissement
+echo "Ajout du style CSS pour le bouton de rafraîchissement..."
+
+cat > client/src/components/formValidation/FormValidationList.css << 'EOL'
+.form-validation-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.error {
+  color: #d32f2f;
+  background-color: #ffebee;
+  border-radius: 4px;
+  padding: 15px;
+}
+
+.status-message {
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.status-message.success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-message.error {
+  background-color: #ffebee;
+  color: #d32f2f;
+}
+
+.submissions-list {
+  margin-top: 20px;
+}
+
+.submissions-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.submissions-table th, .submissions-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.submissions-table th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+}
+
+.submissions-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.action-button {
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.action-button:hover {
+  background-color: #1565c0;
+}
+
+.submission-details {
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.submission-details h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.submission-details p {
+  margin: 5px 0;
+}
+
+.refresh-button-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.refresh-button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.refresh-button:hover {
+  background-color: #388e3c;
+}
+EOL
+
+echo "✅ Fichier FormValidationList.css modifié"
+
+# 6. Ajout du style CSS pour le tableau comparatif
+echo "Ajout du style CSS pour le tableau comparatif..."
+
+cat > client/src/components/formValidation/ComparisonTable.css << 'EOL'
+.comparison-table-container {
+  margin-top: 20px;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.comparison-table th, .comparison-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.comparison-table th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+}
+
+.comparison-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.field-label {
+  font-weight: bold;
+  width: 15%;
+}
+
+.existing-value, .form-value {
+  width: 25%;
+  color: #555;
+}
+
+.arrow-cell {
+  width: 10%;
+  text-align: center;
+}
+
+.final-value {
+  width: 25%;
+}
+
+.arrow-button {
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.arrow-button:hover {
+  background-color: #1565c0;
+}
+
+.final-value-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.comparison-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.cancel-button, .save-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.cancel-button {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.save-button {
+  background-color: #1976d2;
+  color: white;
+}
+
+.cancel-button:hover {
+  background-color: #e0e0e0;
+}
+
+.save-button:hover {
+  background-color: #1565c0;
+}
+EOL
+
+echo "✅ Fichier ComparisonTable.css modifié"
+
 echo "✅ Améliorations du formulaire public et de la page de validation terminées!"
 echo ""
 echo "Résumé des modifications:"
@@ -1170,15 +1458,19 @@ echo "1. Formulaire public:"
 echo "   - Ajout d'un message de confirmation après soumission"
 echo "   - Réinitialisation des champs du formulaire"
 echo "   - Suppression des informations de débogage"
+echo "   - Ajout de logs pour vérifier la transmission du token"
 echo ""
 echo "2. Page de validation:"
-echo "   - Suppression des exemples par défaut"
-echo "   - Rafraîchissement automatique des soumissions"
+echo "   - Suppression complète des exemples par défaut"
+echo "   - Rafraîchissement automatique des soumissions toutes les 30 secondes"
+echo "   - Ajout d'un bouton de rafraîchissement manuel"
+echo "   - Ajout de logs pour vérifier la récupération des soumissions"
 echo ""
 echo "3. Tableau comparatif:"
 echo "   - Suppression de la flèche gauche"
 echo "   - Affichage par défaut des valeurs existantes dans la colonne 'Valeur finale'"
 echo "   - Conservation de la fonctionnalité de copie de la 'Valeur du formulaire' vers la 'Valeur finale'"
+echo "   - Ajout de logs pour vérifier le fonctionnement du tableau"
 echo ""
 echo "Pour utiliser ces améliorations, exécutez les commandes suivantes:"
 echo "1. Rendre le script exécutable et l'exécuter:"

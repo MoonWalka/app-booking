@@ -21,6 +21,7 @@ const ComparisonTable = ({ formData, programmerData, onSave, onCancel }) => {
         }
       });
       setSelectedValues(initialValues);
+      console.log('ComparisonTable - Valeurs initiales chargées:', initialValues);
     }
   }, [programmerData]);
   
@@ -30,6 +31,7 @@ const ComparisonTable = ({ formData, programmerData, onSave, onCancel }) => {
       ...prev,
       [field]: value
     }));
+    console.log(`ComparisonTable - Valeur copiée pour le champ ${field}:`, value);
   };
   
   // Gérer la modification manuelle d'une valeur
@@ -48,6 +50,7 @@ const ComparisonTable = ({ formData, programmerData, onSave, onCancel }) => {
       commonToken: formData.commonToken,
       formLinkId: formData.formLinkId
     };
+    console.log('ComparisonTable - Données finales à sauvegarder:', updatedData);
     onSave(updatedData);
   };
   
