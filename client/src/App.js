@@ -24,7 +24,6 @@ import FormValidationList from './components/formValidation/FormValidationList';
 // Composants publics (affichés sans authentification)
 import PublicFormPage from './components/public/PublicFormPage';
 import FormSubmittedPage from './components/public/FormSubmittedPage';
-import PublicRoute from './components/public/PublicRoute';
 
 // Composant ProtectedRoute pour sécuriser les routes privées
 const ProtectedRoute = ({ children }) => {
@@ -49,26 +48,12 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   const { bypassEnabled, isAuthenticated } = useAuth();
 
-  // Fonction pour vérifier si l'utilisateur est sur une route publique
-  const isPublicRoute = (pathname) => {
-    return pathname.startsWith('/form/') || pathname === '/form-submitted';
-  };
-
-  // Vérifier si l'URL actuelle est une route publique
-  const currentPath = window.location.hash.substring(1); // Pour HashRouter
-  const isOnPublicRoute = isPublicRoute(currentPath);
-
-  // Si l'utilisateur est authentifié et tente d'accéder à une route publique,
-  // ne pas rediriger vers le dashboard
-  console.log('Current path:', currentPath, 'Is public route:', isOnPublicRoute);
-
   return (
     <div className="App">
       <Routes>
-        {/* Routes publiques accessibles sans authentification */}
-        {/* Modification de la route pour utiliser l'ID du concert au lieu d'un token */}
-        <Route path="/form/:concertId" element={<PublicRoute><PublicFormPage /></PublicRoute>} />
-        <Route path="/form-submitted" element={<PublicRoute><FormSubmittedPage /></PublicRoute>} />
+        {/* Routes publiques accessibles sans authentification - SANS ENVELOPPE PublicRoute */}
+        <Route path="/form/:concertId" element={<PublicFormPage />} />
+        <Route path="/form-submitted" element={<FormSubmittedPage />} />
 
         <Route path="/login" element={ bypassEnabled ? <Navigate to="/" /> : <Login /> } />
         
