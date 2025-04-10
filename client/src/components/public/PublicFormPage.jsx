@@ -103,7 +103,6 @@ const PublicFormPage = (props) => {
   };
   
   const handleSubmit = async (e) => {
-  const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Vérifier que concertId est disponible
@@ -143,20 +142,7 @@ const PublicFormPage = (props) => {
         // Ajouter le token commun pour lier les entités
         commonToken: commonToken
       };
-        ...formData,
-        // Champs obligatoires pour la compatibilité avec le système existant
-        programmerId: 'public-form-submission',
-        programmerName: 'Formulaire Public',
-        concertId: concertId, // S'assurer que concertId est explicitement inclus
-        concertName: `Concert ID: ${concertId}`,
-        // Créer un champ contact à partir du prénom et du nom
-        contact: formData.firstName && formData.lastName 
-          ? `${formData.firstName} ${formData.lastName}` 
-          : formData.firstName || formData.lastName || 'Contact non spécifié',
-        status: 'pending',
-        // Ajouter un formLinkId fictif si nécessaire
-        formLinkId: `public-form-${concertId}`
-      };
+        
       
       console.log('PublicFormPage - Données préparées pour la soumission:', submissionData);
       console.log('PublicFormPage - Vérification de la présence de concertId:', submissionData.concertId ? 'Présent' : 'Manquant');
