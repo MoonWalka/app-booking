@@ -187,4 +187,33 @@ export const getFormSubmissionsStats = async () => {
     console.error('FormSubmissionsService - Erreur lors du calcul des statistiques:', error);
     throw new Error('Erreur lors du calcul des statistiques des soumissions');
   }
+
+
+// Créer une nouvelle soumission de formulaire (alias pour addFormSubmission)
+export const createFormSubmission = async (formData) => {
+  try {
+    console.log('FormSubmissionsService - Création d\'une nouvelle soumission:', formData);
+    
+    // S'assurer que le statut est défini
+    const submissionData = {
+      ...formData,
+      status: formData.status || 'pending',
+      submissionDate: new Date()
+    };
+    
+    const submissionsCollection = collection(db, COLLECTION_NAME);
+    const docRef = await addDoc(submissionsCollection, submissionData);
+    
+    const newSubmission = {
+      id: docRef.id,
+      ...submissionData
+    };
+    
+    console.log('FormSubmissionsService - Nouvelle soumission créée:', newSubmission);
+    return newSubmission;
+  } catch (error) {
+    console.error('FormSubmissionsService - Erreur lors de la création de la soumission:', error);
+    throw new Error('Erreur lors de la création de la soumission de formulaire');
+  }
 };
+
