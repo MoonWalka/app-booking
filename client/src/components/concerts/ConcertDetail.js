@@ -403,7 +403,7 @@ const ConcertDetail = () => {
           <div className="concert-info">
             <div className="info-row">
               <span className="info-label">Artiste:</span>
-              <span className="info-value">{concert.artist?.name || 'Non spécifié'}</span>
+              <span className="info-value">{concert.artist || 'Non spécifié'}</span>
             </div>
             
             <div className="info-row">

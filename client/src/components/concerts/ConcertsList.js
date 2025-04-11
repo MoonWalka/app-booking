@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { getAllConcerts } from '../../services/concertsService';
+import { getConcerts } from '../../services/concertsService';
+import { getArtists } from '../../services/artistsService';
 import './ConcertsList.css';
 
 // Importation dynamique du tableau de bord
@@ -8,22 +9,60 @@ const ConcertsDashboard = React.lazy(() => import('./ConcertsDashboard'));
 
 const ConcertsList = () => {
   const [concerts, setConcerts] = useState([]);
+  const [artists, setArtists] = useState({});
   const [loading, setLoading] = useState(true);
   const [showDashboard, setShowDashboard] = useState(false);
 
   useEffect(() => {
-    const fetchConcerts = async () => {
+    const fetchData = async () => {
       try {
-        const concertsData = await getAllConcerts();
-        setConcerts(concertsData || []);
+        // Récupérer les artistes et créer un mapping par ID
+        const artistsData = await getArtists();
+        const artistsMap = {};
+        artistsData.forEach(artist => {
+          artistsMap[artist.id] = artist;
+        });
+        setArtists(artistsMap);
+        
+        // Récupérer les concerts
+        const concertsData = await getConcerts();
+        
+        // Enrichir les concerts avec les noms d'artistes
+        const enrichedConcerts = concertsData.map(concert => {
+          const artistId = concert.artistId;
+          const artist = artistId && artistsMap[artistId] ? artistsMap[artistId].name : 'Artiste inconnu';
+          
+          // Formater la date correctement
+          let formattedDate = 'Date non spécifiée';
+          if (concert.date) {
+            const date = new Date(concert.date);
+            if (!isNaN(date.getTime())) {
+              formattedDate = date.toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+            }
+          }
+          
+          return {
+            ...concert,
+            artist,
+            formattedDate
+          };
+        });
+        
+        setConcerts(enrichedConcerts || []);
         setLoading(false);
       } catch (error) {
-        console.error("Erreur lors du chargement des concerts:", error);
+        console.error("Erreur lors du chargement des données:", error);
         setLoading(false);
       }
     };
-
-    fetchConcerts();
+    
+    fetchData();
   }, []);
 
   const toggleView = () => {
@@ -75,9 +114,9 @@ const ConcertsList = () => {
                 concerts.map((concert) => (
                   <tr key={concert.id}>
                     <td>{concert.artist || 'Artiste inconnu'}</td>
-                    <td>{concert.date || ''}</td>
-                    <td>{concert.venue || 'th'}</td>
-                    <td>{concert.city || 'th'}</td>
+                    <td>{concert.formattedDate || concert.date || 'Non spécifiée'}</td>
+                    <td>{concert.venue || 'Non spécifié'}</td>
+                    <td>{concert.city || 'Non spécifiée'}</td>
                     <td>{concert.status || 'En attente'}</td>
                     <td>
                       <Link to={`/concerts/${concert.id}`} className="view-btn">

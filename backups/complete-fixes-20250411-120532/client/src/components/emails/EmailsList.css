@@ -1,0 +1,266 @@
+.emails-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.emails-container h1 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.emails-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.search-bar {
+  flex: 1;
+  margin-right: 20px;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.compose-button {
+  padding: 10px 15px;
+  background-color: #4a6cf7;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+
+.compose-button:hover {
+  background-color: #3a5bd9;
+}
+
+.emails-list {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.email-item {
+  display: flex;
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.email-item:last-child {
+  border-bottom: none;
+}
+
+.email-item:hover {
+  background-color: #f5f5f5;
+}
+
+.email-item.unread {
+  background-color: #f0f7ff;
+  font-weight: 600;
+}
+
+.email-item.unread:hover {
+  background-color: #e1f0ff;
+}
+
+.email-sender {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.email-subject {
+  flex: 2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 15px;
+}
+
+.email-date {
+  flex: 1;
+  text-align: right;
+  white-space: nowrap;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.email-detail {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.back-button {
+  padding: 8px 15px;
+  background-color: #f5f5f5;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+  transition: background-color 0.3s;
+}
+
+.back-button:hover {
+  background-color: #e0e0e0;
+}
+
+.email-header {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+}
+
+.email-header h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.email-meta {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.email-meta div {
+  margin-bottom: 5px;
+}
+
+.email-content {
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.email-content p {
+  margin-bottom: 10px;
+}
+
+.email-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.reply-button,
+.forward-button,
+.delete-button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+
+.reply-button {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.reply-button:hover {
+  background-color: #bbdefb;
+}
+
+.forward-button {
+  background-color: #e8f5e9;
+  color: #388e3c;
+}
+
+.forward-button:hover {
+  background-color: #c8e6c9;
+}
+
+.delete-button {
+  background-color: #ffebee;
+  color: #d32f2f;
+}
+
+.delete-button:hover {
+  background-color: #ffcdd2;
+}
+
+.no-emails {
+  text-align: center;
+  padding: 30px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  color: #777;
+}
+
+.loading {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+}
+
+.error-container {
+  padding: 20px;
+  text-align: center;
+}
+
+.error {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.refresh-button {
+  padding: 8px 15px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.refresh-button:hover {
+  background-color: #1e88e5;
+}
+
+@media (max-width: 768px) {
+  .emails-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-bar {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+  
+  .email-item {
+    flex-direction: column;
+  }
+  
+  .email-sender,
+  .email-subject,
+  .email-date {
+    flex: none;
+    width: 100%;
+    padding: 0;
+    margin-bottom: 5px;
+  }
+  
+  .email-date {
+    text-align: left;
+  }
+}

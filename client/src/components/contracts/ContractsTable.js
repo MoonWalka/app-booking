@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import './ContractsTable.css';
 
 // Services
-import { fetchContracts, updateContract, deleteContract } from '../../services/contractsService';
+import { getAllContracts, updateContract, deleteContract } from '../../services/contractsService';
 
 const ContractsTable = () => {
   const [contracts, setContracts] = useState([]);
@@ -16,7 +16,7 @@ const ContractsTable = () => {
       try {
         setLoading(true);
         // Utiliser le service pour récupérer les contrats depuis Firebase
-        const contractsData = await fetchContracts();
+        const contractsData = await getAllContracts();
         setContracts(contractsData);
         setLoading(false);
       } catch (error) {
