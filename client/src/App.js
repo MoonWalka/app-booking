@@ -11,7 +11,7 @@ import ConcertDetail from './components/concerts/ConcertDetail';
 import ArtistsList from './components/artists/ArtistsList';
 import ArtistDetail from './components/artists/ArtistDetail';
 import ProgrammersList from './components/programmers/ProgrammersList';
-import ProgrammerDetails from './components/programmers/ProgrammerDetails';
+import ProgrammerDetail from './components/programmers/ProgrammerDetail';
 import ContractsList from './components/contracts/ContractsList';
 import ContractDetails from './components/contracts/ContractDetails';
 import InvoicesList from './components/invoices/InvoicesList';
@@ -101,7 +101,7 @@ function App() {
                   <Route path="/artists" element={<ArtistsList />} />
                   <Route path="/artists/:id" element={<ArtistDetail />} />
                   <Route path="/programmers" element={<ProgrammersList />} />
-                  <Route path="/programmers/:id" element={<ProgrammerDetails />} />
+                  <Route path="/programmers/:id" element={<ProgrammerDetail />} />
                   <Route path="/contracts" element={<ContractsList />} />
                   <Route path="/contracts/:id" element={<ContractDetails />} />
                   <Route path="/invoices" element={<InvoicesList />} />
