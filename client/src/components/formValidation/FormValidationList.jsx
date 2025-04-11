@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getFormSubmissions, updateFormSubmission } from '../../services/formSubmissionsService';
+import { getFormSubmissions, updateFormSubmission, updateSubmissionsWithoutStatus } from '../../services/formSubmissionsService';
 import { getProgrammerById, updateProgrammer } from '../../services/programmersService';
 import { getConcertById, updateConcert } from '../../services/concertsService';
 import ComparisonTable from './ComparisonTable';
@@ -22,6 +22,12 @@ const FormValidationList = () => {
       try {
         setLoading(true);
         console.log('FormValidationList - Chargement des soumissions en attente...');
+        
+        // Mettre à jour les soumissions sans statut
+        const updatedCount = await updateSubmissionsWithoutStatus();
+        if (updatedCount > 0) {
+          console.log(`FormValidationList - ${updatedCount} soumissions mises à jour avec statut 'pending'`);
+        }
         
         // Récupérer toutes les soumissions pour le débogage
         const allSubmissions = await getFormSubmissions({});

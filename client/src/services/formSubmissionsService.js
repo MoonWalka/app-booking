@@ -52,6 +52,9 @@ export const getFormSubmissions = async (filters = {}) => {
     console.log("[getFormSubmissions] Tentative de récupération des formulaires depuis Firebase...");
     console.log("[getFormSubmissions] Filtres appliqués:", filters);
     
+    // Vérifier et mettre à jour les soumissions sans statut
+    await updateSubmissionsWithoutStatus();
+    
     // Création d'une requête de base
     let formQuery = formSubmissionsCollection;
     
@@ -95,23 +98,7 @@ export const getFormSubmissions = async (filters = {}) => {
     const snapshot = await getDocs(formQuery);
     
     if (snapshot.empty) {
-      console.log("[getFormSubmissions] Aucun formulaire trouvé dans Firebase");
-      
-      // Récupérer tous les formulaires pour vérifier s'il y a des données
-      const allFormsSnapshot = await getDocs(formSubmissionsCollection);
-      if (!allFormsSnapshot.empty) {
-        console.log(`[getFormSubmissions] ATTENTION: ${allFormsSnapshot.size} formulaires existent dans la collection, mais aucun ne correspond aux filtres`);
-        console.log("[getFormSubmissions] Vérification des statuts disponibles...");
-        
-        const statusMap = {};
-        allFormsSnapshot.docs.forEach(doc => {
-          const status = doc.data().status || 'non défini';
-          statusMap[status] = (statusMap[status] || 0) + 1;
-        });
-        
-        console.log("[getFormSubmissions] Distribution des statuts:", statusMap);
-      }
-      
+      console.log("[getFormSubmissions] Aucun formulaire trouvé avec les filtres spécifiés");
       return [];
     }
     
@@ -129,6 +116,64 @@ export const getFormSubmissions = async (filters = {}) => {
   } catch (error) {
     console.error("[getFormSubmissions] Erreur lors de la récupération des formulaires:", error);
     return [];
+  }
+};
+
+/**
+ * Met à jour les soumissions sans statut défini
+ * @returns {Promise<number>} Nombre de soumissions mises à jour
+ */
+export const updateSubmissionsWithoutStatus = async () => {
+  try {
+    console.log("[updateSubmissionsWithoutStatus] Recherche de formulaires sans statut défini...");
+    
+    // Récupérer tous les formulaires
+    const allFormsSnapshot = await getDocs(formSubmissionsCollection);
+    if (allFormsSnapshot.empty) {
+      console.log("[updateSubmissionsWithoutStatus] Aucun formulaire trouvé");
+      return 0;
+    }
+    
+    // Compter les formulaires par statut
+    const statusMap = {};
+    const formsWithoutStatus = [];
+    
+    allFormsSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      const status = data.status || 'non défini';
+      statusMap[status] = (statusMap[status] || 0) + 1;
+      
+      if (!data.status || data.status === 'non défini') {
+        formsWithoutStatus.push({
+          id: doc.id,
+          ...data
+        });
+      }
+    });
+    
+    console.log("[updateSubmissionsWithoutStatus] Distribution des statuts:", statusMap);
+    
+    // Si des formulaires sans statut sont trouvés, les mettre à jour
+    if (formsWithoutStatus.length > 0) {
+      console.log(`[updateSubmissionsWithoutStatus] ${formsWithoutStatus.length} formulaires sans statut trouvés, mise à jour...`);
+      
+      // Mettre à jour les formulaires sans statut
+      for (const form of formsWithoutStatus) {
+        console.log(`[updateSubmissionsWithoutStatus] Mise à jour du statut pour le formulaire ${form.id}`);
+        await updateDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, form.id), {
+          status: 'pending'
+        });
+      }
+      
+      console.log(`[updateSubmissionsWithoutStatus] ${formsWithoutStatus.length} formulaires mis à jour avec statut 'pending'`);
+      return formsWithoutStatus.length;
+    }
+    
+    console.log("[updateSubmissionsWithoutStatus] Aucun formulaire sans statut trouvé");
+    return 0;
+  } catch (error) {
+    console.error("[updateSubmissionsWithoutStatus] Erreur lors de la mise à jour des formulaires sans statut:", error);
+    return 0;
   }
 };
 
@@ -151,6 +196,14 @@ export const getFormSubmissionById = async (id) => {
         id: snapshot.id,
         ...snapshot.data()
       };
+      
+      // Vérifier si le statut est défini, sinon le mettre à jour
+      if (!formData.status) {
+        console.log(`[getFormSubmissionById] Le formulaire ${id} n'a pas de statut défini, mise à jour à 'pending'`);
+        await updateDoc(docRef, { status: 'pending' });
+        formData.status = 'pending';
+      }
+      
       console.log(`[getFormSubmissionById] Formulaire ${id} récupéré depuis Firebase:`, formData);
       return formData;
     }
@@ -224,6 +277,12 @@ export const createFormSubmission = async (formData) => {
       if (createdDoc.exists()) {
         const createdData = createdDoc.data();
         console.log(`[createFormSubmission] Vérification du document créé - Statut: ${createdData.status}`);
+        
+        // Si le statut n'est pas 'pending', le corriger immédiatement
+        if (createdData.status !== 'pending') {
+          console.log(`[createFormSubmission] Correction du statut à 'pending' pour le document ${docRef.id}`);
+          await updateDoc(docRef, { status: 'pending' });
+        }
       }
       
       return {
@@ -246,6 +305,12 @@ export const createFormSubmission = async (formData) => {
         if (createdDoc.exists()) {
           const createdData = createdDoc.data();
           console.log(`[createFormSubmission] Vérification du document créé - Statut: ${createdData.status}`);
+          
+          // Si le statut n'est pas 'pending', le corriger immédiatement
+          if (createdData.status !== 'pending') {
+            console.log(`[createFormSubmission] Correction du statut à 'pending' pour le document ${mockId}`);
+            await updateDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, mockId), { status: 'pending' });
+          }
         }
         
         return {
