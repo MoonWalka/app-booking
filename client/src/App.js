@@ -9,7 +9,7 @@ import Dashboard from './components/dashboard/Dashboard';
 import ConcertsList from './components/concerts/ConcertsList';
 import ConcertDetail from './components/concerts/ConcertDetail';
 import ArtistsList from './components/artists/ArtistsList';
-import ArtistDetails from './components/artists/ArtistDetails';
+import ArtistDetail from './components/artists/ArtistDetail';
 import ProgrammersList from './components/programmers/ProgrammersList';
 import ProgrammerDetails from './components/programmers/ProgrammerDetails';
 import ContractsList from './components/contracts/ContractsList';
@@ -99,7 +99,7 @@ function App() {
                   <Route path="/concerts" element={<ConcertsList />} />
                   <Route path="/concerts/:id" element={<ConcertDetail />} />
                   <Route path="/artists" element={<ArtistsList />} />
-                  <Route path="/artists/:id" element={<ArtistDetails />} />
+                  <Route path="/artists/:id" element={<ArtistDetail />} />
                   <Route path="/programmers" element={<ProgrammersList />} />
                   <Route path="/programmers/:id" element={<ProgrammerDetails />} />
                   <Route path="/contracts" element={<ContractsList />} />
