@@ -1,127 +1,180 @@
 import React, { useState, useEffect } from 'react';
+import { updateFormSubmissionWithValidatedData, updateLinkedEntities } from '../../services/formSubmissionsService';
+import { getProgrammerByEmail, updateProgrammer } from '../../services/programmersService';
 import './ComparisonTable.css';
 
-/**
- * Composant de tableau comparatif pour comparer et intégrer les données du formulaire
- * avec les données existantes du programmateur
- */
-const ComparisonTable = ({ formData, programmerData, onSave, onCancel }) => {
-  // État pour stocker les valeurs sélectionnées
-  const [selectedValues, setSelectedValues] = useState({});
-  
-  // Initialiser les valeurs sélectionnées avec les valeurs du programmateur
+const ComparisonTable = ({ submission, onValidationComplete }) => {
+  const [programmerData, setProgrammerData] = useState(null);
+  const [finalData, setFinalData] = useState({});
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    if (programmerData) {
-      const initialValues = {};
-      // Pour chaque champ du programmateur, utiliser sa valeur comme valeur initiale
-      Object.keys(programmerData).forEach(key => {
-        if (key !== 'id' && key !== 'submittedAt' && key !== 'status' && 
-            key !== 'processedAt' && key !== 'commonToken' && key !== 'formLinkId') {
-          initialValues[key] = programmerData[key] || '';
+    const fetchProgrammerData = async () => {
+      try {
+        setLoading(true);
+        
+        // Rechercher le programmateur par email
+        if (submission.email) {
+          const programmer = await getProgrammerByEmail(submission.email);
+          if (programmer) {
+            setProgrammerData(programmer);
+            
+            // Initialiser les données finales avec les valeurs existantes du programmateur
+            const initialFinalData = {};
+            Object.keys(submission).forEach(key => {
+              if (key !== 'id' && key !== 'status' && key !== 'createdAt' && key !== 'commonToken') {
+                initialFinalData[key] = programmer[key] || '';
+              }
+            });
+            setFinalData(initialFinalData);
+          } else {
+            // Si aucun programmateur n'est trouvé, utiliser les données de la soumission
+            const initialFinalData = {};
+            Object.keys(submission).forEach(key => {
+              if (key !== 'id' && key !== 'status' && key !== 'createdAt' && key !== 'commonToken') {
+                initialFinalData[key] = submission[key] || '';
+              }
+            });
+            setFinalData(initialFinalData);
+          }
+        } else {
+          // Si pas d'email, utiliser les données de la soumission
+          const initialFinalData = {};
+          Object.keys(submission).forEach(key => {
+            if (key !== 'id' && key !== 'status' && key !== 'createdAt' && key !== 'commonToken') {
+              initialFinalData[key] = submission[key] || '';
+            }
+          });
+          setFinalData(initialFinalData);
         }
-      });
-      setSelectedValues(initialValues);
-      console.log('ComparisonTable - Valeurs initiales chargées:', initialValues);
-    }
-  }, [programmerData]);
-  
-  // Gérer le clic sur une flèche pour copier une valeur
-  const handleCopyValue = (field, value) => {
-    setSelectedValues(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    console.log(`ComparisonTable - Valeur copiée pour le champ ${field}:`, value);
-  };
-  
-  // Gérer la modification manuelle d'une valeur
-  const handleChange = (field, value) => {
-    setSelectedValues(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-  
-  // Gérer la sauvegarde des valeurs sélectionnées
-  const handleSave = () => {
-    // Conserver le token commun et l'ID du formulaire
-    const updatedData = {
-      ...selectedValues,
-      commonToken: formData.commonToken,
-      formLinkId: formData.formLinkId,
-      concertId: formData.concertId
+        
+        setLoading(false);
+      } catch (error) {
+        console.error("Erreur lors de la récupération des données du programmateur:", error);
+        setLoading(false);
+      }
     };
-    console.log('ComparisonTable - Données finales à sauvegarder:', updatedData);
-    onSave(updatedData);
+
+    fetchProgrammerData();
+  }, [submission]);
+
+  const handleCopyFromSubmission = (field) => {
+    setFinalData(prevData => ({
+      ...prevData,
+      [field]: submission[field] || ''
+    }));
   };
-  
-  // Définir les champs à comparer et leur libellé
-  const fieldDefinitions = [
-    { key: 'businessName', label: 'Raison sociale' },
+
+  const handleCopyFromProgrammer = (field) => {
+    if (programmerData && programmerData[field]) {
+      setFinalData(prevData => ({
+        ...prevData,
+        [field]: programmerData[field]
+      }));
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setFinalData(prevData => ({
+      ...prevData,
+      [field]: value
+    }));
+  };
+
+  const handleValidateData = async () => {
+    try {
+      // Mettre à jour la soumission avec les données validées
+      await updateFormSubmissionWithValidatedData(submission.id, finalData);
+      
+      // Si un token commun existe, mettre à jour toutes les entités liées
+      if (submission.commonToken) {
+        await updateLinkedEntities(submission.commonToken, finalData);
+      }
+      
+      // Si un programmateur existe, le mettre à jour
+      if (programmerData) {
+        await updateProgrammer(programmerData.id, finalData);
+      }
+      
+      // Notifier le composant parent que la validation est terminée
+      if (onValidationComplete) {
+        onValidationComplete();
+      }
+    } catch (error) {
+      console.error("Erreur lors de la validation des données:", error);
+    }
+  };
+
+  if (loading) {
+    return <div className="loading">Chargement des données...</div>;
+  }
+
+  // Définir les champs à afficher et leur libellé
+  const fields = [
     { key: 'firstName', label: 'Prénom' },
     { key: 'lastName', label: 'Nom' },
-    { key: 'role', label: 'Qualité' },
-    { key: 'address', label: 'Adresse' },
-    { key: 'venue', label: 'Lieu ou festival' },
-    { key: 'venueAddress', label: 'Adresse du lieu' },
-    { key: 'vatNumber', label: 'Numéro intracommunautaire' },
-    { key: 'siret', label: 'Siret' },
+    { key: 'organization', label: 'Structure' },
+    { key: 'position', label: 'Fonction' },
     { key: 'email', label: 'Email' },
     { key: 'phone', label: 'Téléphone' },
-    { key: 'website', label: 'Site web' }
+    { key: 'address', label: 'Adresse' },
+    { key: 'postalCode', label: 'Code postal' },
+    { key: 'city', label: 'Ville' },
+    { key: 'country', label: 'Pays' },
+    { key: 'website', label: 'Site web' },
+    { key: 'vatNumber', label: 'Numéro TVA' },
+    { key: 'siret', label: 'SIRET' },
+    { key: 'notes', label: 'Notes' }
   ];
-  
+
   return (
     <div className="comparison-table-container">
-      <h3>Comparaison et intégration des données</h3>
-      <p>Comparez les données du formulaire avec les données existantes et choisissez les valeurs à conserver.</p>
-      
       <table className="comparison-table">
         <thead>
           <tr>
             <th>Champ</th>
-            <th>Valeur existante</th>
             <th>Valeur du formulaire</th>
+            <th></th>
+            <th>Valeur existante</th>
             <th></th>
             <th>Valeur finale</th>
           </tr>
         </thead>
         <tbody>
-          {fieldDefinitions.map(field => (
+          {fields.map((field) => (
             <tr key={field.key}>
               <td className="field-label">{field.label}</td>
-              <td className="existing-value">
-                {programmerData && programmerData[field.key] ? programmerData[field.key] : '-'}
-              </td>
-              <td className="form-value">
-                {formData && formData[field.key] ? formData[field.key] : '-'}
-              </td>
-              <td className="arrow-cell">
-                {formData && formData[field.key] && (
+              <td className="submission-value">{submission[field.key] || ''}</td>
+              <td className="action-cell">
+                {submission[field.key] && (
                   <button 
-                    className="arrow-button right-arrow"
-                    onClick={() => handleCopyValue(field.key, formData[field.key])}
-                    title="Utiliser la valeur du formulaire"
+                    className="copy-btn"
+                    onClick={() => handleCopyFromSubmission(field.key)}
+                    title="Utiliser cette valeur"
                   >
                     →
                   </button>
                 )}
+              </td>
+              <td className="programmer-value">
+                {programmerData ? (programmerData[field.key] || '') : ''}
+              </td>
+              <td className="action-cell">
                 {programmerData && programmerData[field.key] && (
                   <button 
-                    className="arrow-button left-arrow"
-                    onClick={() => handleCopyValue(field.key, programmerData[field.key])}
-                    title="Utiliser la valeur existante"
+                    className="copy-btn"
+                    onClick={() => handleCopyFromProgrammer(field.key)}
+                    title="Utiliser cette valeur"
                   >
-                    ←
+                    →
                   </button>
                 )}
               </td>
               <td className="final-value">
                 <input 
                   type="text" 
-                  value={selectedValues[field.key] || ''} 
-                  onChange={(e) => handleChange(field.key, e.target.value)}
-                  className="final-value-input"
+                  value={finalData[field.key] || ''} 
+                  onChange={(e) => handleInputChange(field.key, e.target.value)}
                 />
               </td>
             </tr>
@@ -129,9 +182,13 @@ const ComparisonTable = ({ formData, programmerData, onSave, onCancel }) => {
         </tbody>
       </table>
       
-      <div className="comparison-actions">
-        <button className="cancel-button" onClick={onCancel}>Annuler</button>
-        <button className="save-button" onClick={handleSave}>Valider et intégrer</button>
+      <div className="validation-actions">
+        <button 
+          className="validate-final-btn"
+          onClick={handleValidateData}
+        >
+          Valider les données
+        </button>
       </div>
     </div>
   );

@@ -1,139 +1,170 @@
 .form-validation-container {
   padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
-.loading, .error {
-  text-align: center;
-  padding: 20px;
-  margin: 20px 0;
-}
-
-.error {
-  color: #d32f2f;
-  background-color: #ffebee;
-  border-radius: 4px;
-  padding: 15px;
-}
-
-.status-message {
-  padding: 15px;
-  margin: 15px 0;
-  border-radius: 4px;
-  text-align: center;
-}
-
-.status-message.success {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-}
-
-.status-message.error {
-  background-color: #ffebee;
-  color: #d32f2f;
-}
-
-.submissions-list {
-  margin-top: 20px;
-}
-
-.submissions-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-
-.submissions-table th, .submissions-table td {
-  padding: 12px 15px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-}
-
-.submissions-table th {
-  background-color: #f5f5f5;
-  font-weight: bold;
-}
-
-.submissions-table tr:hover {
-  background-color: #f9f9f9;
-}
-
-.action-button {
-  background-color: #1976d2;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.action-button:hover {
-  background-color: #1565c0;
-}
-
-.submission-details {
-  background-color: #f5f5f5;
-  padding: 15px;
-  border-radius: 4px;
+.form-validation-container h1 {
   margin-bottom: 20px;
-}
-
-.submission-details h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-
-.submission-details p {
-  margin: 5px 0;
-}
-
-.refresh-button-container {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 15px;
-}
-
-.refresh-button {
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-}
-
-.refresh-button:hover {
-  background-color: #388e3c;
+  color: #2c3e50;
 }
 
 .debug-info {
-  background-color: #f5f5f5;
+  background-color: #f8f9fa;
+  border-radius: 8px;
   padding: 15px;
-  border-radius: 4px;
-  margin: 15px 0;
-  font-size: 14px;
+  margin-bottom: 20px;
+  border: 1px solid #e9ecef;
 }
 
 .debug-info h3 {
   margin-top: 0;
   margin-bottom: 10px;
-  color: #333;
+  font-size: 1rem;
+  color: #6c757d;
 }
 
-.debug-info p {
-  margin: 5px 0;
+.debug-info pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #495057;
 }
 
-.debug-info ul {
-  margin: 5px 0;
-  padding-left: 20px;
+.pending-submissions {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.debug-info li {
-  margin: 3px 0;
+.pending-submissions h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+.submissions-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.submissions-table th,
+.submissions-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.submissions-table th {
+  background-color: #f8f9fa;
+  color: #7f8c8d;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.submissions-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.validate-btn,
+.reject-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.validate-btn {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.validate-btn:hover {
+  background-color: #27ae60;
+}
+
+.reject-btn {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.reject-btn:hover {
+  background-color: #c0392b;
+}
+
+.no-submissions {
+  text-align: center;
+  color: #95a5a6;
+  padding: 20px 0;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 1.2rem;
+  color: #7f8c8d;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.comparison-modal {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  width: 90%;
+  max-width: 1000px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.close-modal {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #7f8c8d;
+}
+
+.close-modal:hover {
+  color: #2c3e50;
+}
+
+@media (max-width: 768px) {
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .submissions-table {
+    font-size: 0.9rem;
+  }
+  
+  .submissions-table th,
+  .submissions-table td {
+    padding: 8px 10px;
+  }
 }

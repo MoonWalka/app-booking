@@ -1,241 +1,141 @@
 import { db } from '../firebase';
-import { collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore';
-
-const COLLECTION_NAME = 'formSubmissions';
+import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where } from 'firebase/firestore';
 
 // Récupérer toutes les soumissions de formulaire
-export const getFormSubmissions = async () => {
+export const getAllFormSubmissions = async () => {
   try {
-    console.log('FormSubmissionsService - Récupération de toutes les soumissions...');
-    const submissionsCollection = collection(db, COLLECTION_NAME);
+    const submissionsCollection = collection(db, 'formSubmissions');
     const submissionsSnapshot = await getDocs(submissionsCollection);
-    
-    const submissions = submissionsSnapshot.docs.map(doc => ({
+    const submissionsList = submissionsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
     
-    console.log(`FormSubmissionsService - ${submissions.length} soumissions récupérées`);
-    
     // Mettre à jour les soumissions sans statut
-    const submissionsToUpdate = submissions.filter(submission => !submission.status);
-    if (submissionsToUpdate.length > 0) {
-      console.log(`FormSubmissionsService - Mise à jour de ${submissionsToUpdate.length} soumissions sans statut...`);
-      for (const submission of submissionsToUpdate) {
+    for (const submission of submissionsList) {
+      if (!submission.status) {
         await updateFormSubmissionStatus(submission.id, 'pending');
+        submission.status = 'pending';
       }
-      
-      // Récupérer à nouveau les soumissions après la mise à jour
-      const updatedSubmissionsSnapshot = await getDocs(submissionsCollection);
-      const updatedSubmissions = updatedSubmissionsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      console.log(`FormSubmissionsService - ${updatedSubmissions.length} soumissions récupérées après mise à jour`);
-      return updatedSubmissions;
     }
     
-    return submissions;
+    return submissionsList;
   } catch (error) {
-    console.error('FormSubmissionsService - Erreur lors de la récupération des soumissions:', error);
-    throw new Error('Erreur lors de la récupération des soumissions de formulaire');
+    console.error("Erreur lors de la récupération des soumissions:", error);
+    return [];
   }
 };
 
 // Récupérer les soumissions en attente
 export const getPendingFormSubmissions = async () => {
   try {
-    console.log('FormSubmissionsService - Récupération des soumissions en attente...');
-    const submissionsCollection = collection(db, COLLECTION_NAME);
-    const pendingQuery = query(
-      submissionsCollection,
-      where('status', '==', 'pending'),
-      orderBy('submissionDate', 'desc')
-    );
-    
-    const pendingSnapshot = await getDocs(pendingQuery);
-    const pendingSubmissions = pendingSnapshot.docs.map(doc => ({
+    const submissionsCollection = collection(db, 'formSubmissions');
+    const q = query(submissionsCollection, where("status", "==", "pending"));
+    const submissionsSnapshot = await getDocs(q);
+    return submissionsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
-    
-    console.log(`FormSubmissionsService - ${pendingSubmissions.length} soumissions en attente récupérées`);
-    return pendingSubmissions;
   } catch (error) {
-    console.error('FormSubmissionsService - Erreur lors de la récupération des soumissions en attente:', error);
-    throw new Error('Erreur lors de la récupération des soumissions en attente');
+    console.error("Erreur lors de la récupération des soumissions en attente:", error);
+    return [];
   }
 };
 
-// Récupérer une soumission de formulaire par ID
-export const getFormSubmission = async (id) => {
+// Récupérer une soumission par ID
+export const getFormSubmissionById = async (id) => {
   try {
-    console.log(`FormSubmissionsService - Récupération de la soumission ${id}...`);
-    const submissionDoc = doc(db, COLLECTION_NAME, id);
+    const submissionDoc = doc(db, 'formSubmissions', id);
     const submissionSnapshot = await getDoc(submissionDoc);
     
-    if (!submissionSnapshot.exists()) {
-      console.error(`FormSubmissionsService - Soumission ${id} non trouvée`);
-      throw new Error('Soumission de formulaire non trouvée');
+    if (submissionSnapshot.exists()) {
+      return {
+        id: submissionSnapshot.id,
+        ...submissionSnapshot.data()
+      };
+    } else {
+      console.log("Aucune soumission trouvée avec cet ID");
+      return null;
     }
-    
-    const submission = {
-      id: submissionSnapshot.id,
-      ...submissionSnapshot.data()
-    };
-    
-    console.log(`FormSubmissionsService - Soumission ${id} récupérée:`, submission);
-    return submission;
   } catch (error) {
-    console.error(`FormSubmissionsService - Erreur lors de la récupération de la soumission ${id}:`, error);
-    throw new Error('Erreur lors de la récupération de la soumission de formulaire');
+    console.error("Erreur lors de la récupération de la soumission:", error);
+    return null;
   }
 };
 
-// Ajouter une nouvelle soumission de formulaire
-export const addFormSubmission = async (formData) => {
-  try {
-    console.log('FormSubmissionsService - Ajout d\'une nouvelle soumission:', formData);
-    
-    // S'assurer que le statut est défini
-    const submissionData = {
-      ...formData,
-      status: formData.status || 'pending',
-      submissionDate: new Date()
-    };
-    
-    const submissionsCollection = collection(db, COLLECTION_NAME);
-    const docRef = await addDoc(submissionsCollection, submissionData);
-    
-    const newSubmission = {
-      id: docRef.id,
-      ...submissionData
-    };
-    
-    console.log('FormSubmissionsService - Nouvelle soumission ajoutée:', newSubmission);
-    return newSubmission;
-  } catch (error) {
-    console.error('FormSubmissionsService - Erreur lors de l\'ajout de la soumission:', error);
-    throw new Error('Erreur lors de l\'ajout de la soumission de formulaire');
-  }
-};
-
-// Mettre à jour le statut d'une soumission de formulaire
-export const updateFormSubmissionStatus = async (id, status) => {
-  try {
-    console.log(`FormSubmissionsService - Mise à jour du statut de la soumission ${id} à ${status}...`);
-    const submissionDoc = doc(db, COLLECTION_NAME, id);
-    
-    await updateDoc(submissionDoc, { status });
-    
-    console.log(`FormSubmissionsService - Statut de la soumission ${id} mis à jour à ${status}`);
-    return { id, status };
-  } catch (error) {
-    console.error(`FormSubmissionsService - Erreur lors de la mise à jour du statut de la soumission ${id}:`, error);
-    throw new Error('Erreur lors de la mise à jour du statut de la soumission');
-  }
-};
-
-// Supprimer une soumission de formulaire
-export const deleteFormSubmission = async (id) => {
-  try {
-    console.log(`FormSubmissionsService - Suppression de la soumission ${id}...`);
-    const submissionDoc = doc(db, COLLECTION_NAME, id);
-    
-    await deleteDoc(submissionDoc);
-    
-    console.log(`FormSubmissionsService - Soumission ${id} supprimée`);
-    return { id };
-  } catch (error) {
-    console.error(`FormSubmissionsService - Erreur lors de la suppression de la soumission ${id}:`, error);
-    throw new Error('Erreur lors de la suppression de la soumission de formulaire');
-  }
-};
-
-// Récupérer les statistiques des soumissions
-export const getFormSubmissionsStats = async () => {
-  try {
-    console.log('FormSubmissionsService - Calcul des statistiques des soumissions...');
-    const submissions = await getFormSubmissions();
-    
-    // Compter les soumissions par statut
-    const statusCounts = submissions.reduce((counts, submission) => {
-      const status = submission.status || 'pending';
-      counts[status] = (counts[status] || 0) + 1;
-      return counts;
-    }, {});
-    
-    // Compter les soumissions avec et sans token commun
-    const withCommonToken = submissions.filter(submission => submission.commonToken).length;
-    const withoutCommonToken = submissions.length - withCommonToken;
-    
-    // Compter les soumissions en attente
-    const pendingCount = statusCounts.pending || 0;
-    
-    const stats = {
-      total: submissions.length,
-      pendingCount,
-      statusCounts,
-      withCommonToken,
-      withoutCommonToken
-    };
-    
-    console.log('FormSubmissionsService - Statistiques calculées:', stats);
-    return stats;
-  } catch (error) {
-    console.error('FormSubmissionsService - Erreur lors du calcul des statistiques:', error);
-    throw new Error('Erreur lors du calcul des statistiques des soumissions');
-  }
-};
-
-// Créer une nouvelle soumission de formulaire (alias pour addFormSubmission)
+// Créer une nouvelle soumission de formulaire
 export const createFormSubmission = async (formData) => {
   try {
-    console.log('FormSubmissionsService - Création d\'une nouvelle soumission:', formData);
-    
     // S'assurer que le statut est défini
-    const submissionData = {
+    const dataWithStatus = {
       ...formData,
       status: formData.status || 'pending',
-      submissionDate: new Date()
+      createdAt: new Date()
     };
     
-    const submissionsCollection = collection(db, COLLECTION_NAME);
-    const docRef = await addDoc(submissionsCollection, submissionData);
+    const submissionsCollection = collection(db, 'formSubmissions');
+    const docRef = await addDoc(submissionsCollection, dataWithStatus);
     
-    const newSubmission = {
+    return {
       id: docRef.id,
-      ...submissionData
+      ...dataWithStatus
     };
-    
-    console.log('FormSubmissionsService - Nouvelle soumission créée:', newSubmission);
-    return newSubmission;
   } catch (error) {
-    console.error('FormSubmissionsService - Erreur lors de la création de la soumission:', error);
-    throw new Error('Erreur lors de la création de la soumission de formulaire');
+    console.error("Erreur lors de la création de la soumission:", error);
+    throw error;
   }
 };
 
-// Mettre à jour une soumission de formulaire avec les données du programmateur
-export const updateFormSubmissionWithProgrammerData = async (submissionId, programmerData) => {
+// Mettre à jour le statut d'une soumission
+export const updateFormSubmissionStatus = async (id, status) => {
   try {
-    console.log(`FormSubmissionsService - Mise à jour de la soumission ${submissionId} avec les données du programmateur:`, programmerData);
-    const submissionDoc = doc(db, COLLECTION_NAME, submissionId);
-    
-    // Mettre à jour uniquement les champs pertinents
-    const updateData = {
-      status: 'approved',
-      processedAt: new Date(),
-      processedData: programmerData
-    };
-    
-    await updateDoc(submissionDoc, updateData);
-    
-    console.log(`FormSubmissionsService - Soumission ${submissionId} mise à jour avec les données du programmateur`);
-    return { id: submissionId, ...updateData };
+    const submissionDoc = doc(db, 'formSubmissions', id);
+    await updateDoc(submissionDoc, { status });
+    return true;
   } catch (error) {
-    console.error(`FormSubmissionsService - Erreur lors de la mise à jour de la soumission ${submissionId}:`, error);
-    throw new Error('Erreur lors de la mise à jour de la soumission avec les données du programmateur');
+    console.error("Erreur lors de la mise à jour du statut:", error);
+    return false;
+  }
+};
+
+// Mettre à jour une soumission avec les données validées
+export const updateFormSubmissionWithValidatedData = async (id, validatedData) => {
+  try {
+    const submissionDoc = doc(db, 'formSubmissions', id);
+    await updateDoc(submissionDoc, { 
+      ...validatedData,
+      status: 'validated',
+      validatedAt: new Date()
+    });
+    return true;
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour des données validées:", error);
+    return false;
+  }
+};
+
+// Mettre à jour les entités liées via le token commun
+export const updateLinkedEntities = async (commonToken, validatedData) => {
+  try {
+    // Rechercher toutes les soumissions avec ce token commun
+    const submissionsCollection = collection(db, 'formSubmissions');
+    const q = query(submissionsCollection, where("commonToken", "==", commonToken));
+    const submissionsSnapshot = await getDocs(q);
+    
+    // Mettre à jour chaque soumission
+    const updatePromises = submissionsSnapshot.docs.map(async (submission) => {
+      const submissionDoc = doc(db, 'formSubmissions', submission.id);
+      await updateDoc(submissionDoc, { 
+        ...validatedData,
+        status: 'validated',
+        validatedAt: new Date()
+      });
+    });
+    
+    await Promise.all(updatePromises);
+    return true;
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour des entités liées:", error);
+    return false;
   }
 };
