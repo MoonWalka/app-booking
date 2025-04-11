@@ -1,94 +1,68 @@
-import React from 'react';
-import { FaCalendarAlt, FaMusic, FaMapMarkerAlt, FaUsers, FaMoneyBillWave } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaChartLine } from 'react-icons/fa';
 import './ConcertsDashboard.css';
 
-const ConcertsDashboard = ({ concerts, onViewConcert, onEditConcert }) => {
-  // Vérifier si concerts est défini et est un tableau
-  if (!concerts || !Array.isArray(concerts)) {
-    console.error('ConcertsDashboard - Erreur: concerts n\'est pas un tableau valide', concerts);
-    return <div className="error-message">Erreur de chargement des données</div>;
-  }
+const ConcertsDashboard = ({ concerts }) => {
+  const [stats, setStats] = useState({
+    totalConcerts: 0,
+    upcomingConcerts: 0,
+    totalRevenue: 0,
+    averageAttendance: 0
+  });
 
-  // Calculer les statistiques
-  const totalConcerts = concerts.length;
-  const upcomingConcerts = concerts.filter(concert => 
-    concert.status === 'À venir' || concert.status === 'En cours'
-  ).length;
-  const completedConcerts = concerts.filter(concert => 
-    concert.status === 'Terminé'
-  ).length;
-  const canceledConcerts = concerts.filter(concert => 
-    concert.status === 'Annulé'
-  ).length;
-  
-  // Calculer le revenu total (si le prix est disponible)
-  const totalRevenue = concerts.reduce((sum, concert) => {
-    const price = parseFloat(concert.price) || 0;
-    return sum + price;
-  }, 0);
-  
-  // Obtenir les villes uniques
-  const uniqueCities = [...new Set(concerts.map(concert => concert.city).filter(Boolean))];
-  
-  // Obtenir les artistes uniques
-  const uniqueArtists = [...new Set(concerts.map(concert => 
-    concert.artist ? concert.artist.name : null
-  ).filter(Boolean))];
-
-  // Fonction pour formater la date
-  const formatDate = (dateObj) => {
-    if (!dateObj) return 'Date non spécifiée';
-    
-    if (dateObj instanceof Date) {
-      return dateObj.toLocaleDateString();
-    } else if (dateObj.seconds) {
-      return new Date(dateObj.seconds * 1000).toLocaleDateString();
-    } else {
-      return 'Date invalide';
+  useEffect(() => {
+    if (concerts && concerts.length > 0) {
+      // Calculer les statistiques
+      const now = new Date();
+      const upcoming = concerts.filter(concert => {
+        const concertDate = new Date(concert.date);
+        return concertDate > now;
+      });
+      
+      const revenue = concerts.reduce((total, concert) => {
+        return total + (parseFloat(concert.amount) || 0);
+      }, 0);
+      
+      const attendance = concerts.reduce((total, concert) => {
+        return total + (parseInt(concert.attendance) || 0);
+      }, 0);
+      
+      setStats({
+        totalConcerts: concerts.length,
+        upcomingConcerts: upcoming.length,
+        totalRevenue: revenue,
+        averageAttendance: concerts.length > 0 ? Math.round(attendance / concerts.length) : 0
+      });
     }
+  }, [concerts]);
+
+  // Fonction pour formater les montants en euros
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
   };
 
   return (
     <div className="concerts-dashboard">
+      <h2 className="dashboard-title">Tableau de bord des concerts</h2>
+      
       <div className="stats-container">
         <div className="stat-card">
           <div className="stat-icon">
             <FaCalendarAlt />
           </div>
           <div className="stat-content">
-            <h3>Total des concerts</h3>
-            <p className="stat-value">{totalConcerts}</p>
-            <div className="stat-details">
-              <span className="upcoming">{upcomingConcerts} à venir</span>
-              <span className="completed">{completedConcerts} terminés</span>
-              <span className="canceled">{canceledConcerts} annulés</span>
-            </div>
+            <h3>Concerts totaux</h3>
+            <p className="stat-value">{stats.totalConcerts}</p>
           </div>
         </div>
         
         <div className="stat-card">
           <div className="stat-icon">
-            <FaMusic />
+            <FaCalendarAlt />
           </div>
           <div className="stat-content">
-            <h3>Artistes</h3>
-            <p className="stat-value">{uniqueArtists.length}</p>
-            <div className="stat-details">
-              <span>Artistes différents programmés</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FaMapMarkerAlt />
-          </div>
-          <div className="stat-content">
-            <h3>Villes</h3>
-            <p className="stat-value">{uniqueCities.length}</p>
-            <div className="stat-details">
-              <span>Villes différentes</span>
-            </div>
+            <h3>Concerts à venir</h3>
+            <p className="stat-value">{stats.upcomingConcerts}</p>
           </div>
         </div>
         
@@ -97,138 +71,59 @@ const ConcertsDashboard = ({ concerts, onViewConcert, onEditConcert }) => {
             <FaMoneyBillWave />
           </div>
           <div className="stat-content">
-            <h3>Revenus estimés</h3>
-            <p className="stat-value">{totalRevenue.toFixed(2)} €</p>
-            <div className="stat-details">
-              <span>Basé sur les prix des billets</span>
-            </div>
+            <h3>Revenus totaux</h3>
+            <p className="stat-value">{formatCurrency(stats.totalRevenue)}</p>
+          </div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon">
+            <FaUsers />
+          </div>
+          <div className="stat-content">
+            <h3>Audience moyenne</h3>
+            <p className="stat-value">{stats.averageAttendance}</p>
           </div>
         </div>
       </div>
       
-      <div className="concerts-grid">
-        <h2>Concerts à venir</h2>
-        {concerts.filter(concert => concert.status === 'À venir' || concert.status === 'En cours').length === 0 ? (
-          <p className="no-concerts">Aucun concert à venir</p>
-        ) : (
-          <div className="grid-container">
-            {concerts
-              .filter(concert => concert.status === 'À venir' || concert.status === 'En cours')
-              .sort((a, b) => {
-                const dateA = a.date instanceof Date ? a.date : a.date && a.date.seconds ? new Date(a.date.seconds * 1000) : new Date(0);
-                const dateB = b.date instanceof Date ? b.date : b.date && b.date.seconds ? new Date(b.date.seconds * 1000) : new Date(0);
-                return dateA - dateB;
-              })
-              .map(concert => (
-                <div key={concert.id} className="concert-card">
-                  <div className="concert-header">
-                    <h3>{concert.artist ? concert.artist.name : 'Artiste inconnu'}</h3>
-                    <span className={`status-badge ${concert.status === 'À venir' ? 'upcoming' : 'in-progress'}`}>
-                      {concert.status}
-                    </span>
-                  </div>
-                  <div className="concert-details">
-                    <p><strong>Date:</strong> {formatDate(concert.date)} {concert.time || ''}</p>
-                    <p><strong>Lieu:</strong> {concert.venue || 'Non spécifié'}</p>
-                    <p><strong>Ville:</strong> {concert.city || 'Non spécifiée'}</p>
-                    <p><strong>Prix:</strong> {concert.price ? `${concert.price} €` : 'Non spécifié'}</p>
-                  </div>
-                  <div className="concert-actions">
-                    <button 
-                      className="view-button"
-                      onClick={() => onViewConcert && onViewConcert(concert)}
-                    >
-                      Voir
-                    </button>
-                    <button 
-                      className="edit-button"
-                      onClick={() => onEditConcert && onEditConcert(concert)}
-                    >
-                      Modifier
-                    </button>
-                  </div>
-                </div>
-              ))
-            }
-          </div>
-        )}
-      </div>
-      
-      <div className="concerts-grid">
-        <h2>Concerts passés</h2>
-        {concerts.filter(concert => concert.status === 'Terminé').length === 0 ? (
-          <p className="no-concerts">Aucun concert passé</p>
-        ) : (
-          <div className="grid-container">
-            {concerts
-              .filter(concert => concert.status === 'Terminé')
-              .sort((a, b) => {
-                const dateA = a.date instanceof Date ? a.date : a.date && a.date.seconds ? new Date(a.date.seconds * 1000) : new Date(0);
-                const dateB = b.date instanceof Date ? b.date : b.date && b.date.seconds ? new Date(b.date.seconds * 1000) : new Date(0);
-                return dateB - dateA; // Tri décroissant pour les concerts passés
-              })
-              .map(concert => (
-                <div key={concert.id} className="concert-card past">
-                  <div className="concert-header">
-                    <h3>{concert.artist ? concert.artist.name : 'Artiste inconnu'}</h3>
-                    <span className="status-badge completed">
-                      {concert.status}
-                    </span>
-                  </div>
-                  <div className="concert-details">
-                    <p><strong>Date:</strong> {formatDate(concert.date)} {concert.time || ''}</p>
-                    <p><strong>Lieu:</strong> {concert.venue || 'Non spécifié'}</p>
-                    <p><strong>Ville:</strong> {concert.city || 'Non spécifiée'}</p>
-                    <p><strong>Prix:</strong> {concert.price ? `${concert.price} €` : 'Non spécifié'}</p>
-                  </div>
-                  <div className="concert-actions">
-                    <button 
-                      className="view-button"
-                      onClick={() => onViewConcert && onViewConcert(concert)}
-                    >
-                      Voir
-                    </button>
-                  </div>
-                </div>
-              ))
-            }
-          </div>
-        )}
-      </div>
-      
-      {concerts.filter(concert => concert.status === 'Annulé').length > 0 && (
-        <div className="concerts-grid">
-          <h2>Concerts annulés</h2>
-          <div className="grid-container">
-            {concerts
-              .filter(concert => concert.status === 'Annulé')
-              .map(concert => (
-                <div key={concert.id} className="concert-card canceled">
-                  <div className="concert-header">
-                    <h3>{concert.artist ? concert.artist.name : 'Artiste inconnu'}</h3>
-                    <span className="status-badge canceled">
-                      {concert.status}
-                    </span>
-                  </div>
-                  <div className="concert-details">
-                    <p><strong>Date:</strong> {formatDate(concert.date)} {concert.time || ''}</p>
-                    <p><strong>Lieu:</strong> {concert.venue || 'Non spécifié'}</p>
-                    <p><strong>Ville:</strong> {concert.city || 'Non spécifiée'}</p>
-                  </div>
-                  <div className="concert-actions">
-                    <button 
-                      className="view-button"
-                      onClick={() => onViewConcert && onViewConcert(concert)}
-                    >
-                      Voir
-                    </button>
-                  </div>
-                </div>
-              ))
-            }
-          </div>
+      <div className="recent-concerts">
+        <h3>Concerts récents</h3>
+        <div className="concerts-table-container">
+          <table className="concerts-table">
+            <thead>
+              <tr>
+                <th>Artiste</th>
+                <th>Lieu</th>
+                <th>Date</th>
+                <th>Montant</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {concerts && concerts.length > 0 ? (
+                concerts.slice(0, 5).map((concert, index) => (
+                  <tr key={index}>
+                    <td>{concert.artist || 'Artiste inconnu'}</td>
+                    <td>{concert.venue || 'Lieu non spécifié'}</td>
+                    <td>{concert.date || 'Date non spécifiée'}</td>
+                    <td>{formatCurrency(parseFloat(concert.amount) || 0)}</td>
+                    <td>
+                      <span className={`status-badge ${concert.status || 'pending'}`}>
+                        {concert.status || 'En attente'}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="no-data">Aucun concert trouvé</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
     </div>
   );
 };
