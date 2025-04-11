@@ -1,10 +1,16 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { createFormSubmission } from '../../services/formSubmissionsService';
 import './PublicFormPage.css';
 
 const PublicFormPage = () => {
   const { concertId } = useParams();
+  const location = useLocation();
+  
+  // Extraire le token commun de l'URL s'il existe
+  const queryParams = new URLSearchParams(location.search);
+  const commonToken = queryParams.get('token');
+  
   const [formData, setFormData] = useState({
     businessName: '',
     firstName: '',
@@ -46,13 +52,14 @@ const PublicFormPage = () => {
       setError(null);
       
       console.log('PublicFormPage - Soumission du formulaire pour le concert:', concertId);
+      console.log('PublicFormPage - Token commun:', commonToken);
       
       // Préparer les données à envoyer
       const submissionData = {
         ...formData,
         // Champs obligatoires pour la compatibilité avec le système existant
         programmerId: 'public-form-submission',
-        programmerName: 'Formulaire Public',
+        programmerName: formData.businessName || 'Formulaire Public',
         concertId: concertId, // S'assurer que concertId est explicitement inclus
         concertName: `Concert ID: ${concertId}`,
         // Créer un champ contact à partir du prénom et du nom
@@ -60,6 +67,8 @@ const PublicFormPage = () => {
           ? `${formData.firstName} ${formData.lastName}` 
           : formData.firstName || formData.lastName || 'Contact non spécifié',
         status: 'pending', // Forcer le statut à 'pending'
+        // Ajouter le token commun s'il existe
+        commonToken: commonToken || `public-form-${concertId}-${Date.now()}`,
         // Ajouter un formLinkId fictif si nécessaire
         formLinkId: `public-form-${concertId}`
       };

@@ -187,7 +187,7 @@ export const getFormSubmissionsStats = async () => {
     console.error('FormSubmissionsService - Erreur lors du calcul des statistiques:', error);
     throw new Error('Erreur lors du calcul des statistiques des soumissions');
   }
-
+};
 
 // Créer une nouvelle soumission de formulaire (alias pour addFormSubmission)
 export const createFormSubmission = async (formData) => {
@@ -217,3 +217,25 @@ export const createFormSubmission = async (formData) => {
   }
 };
 
+// Mettre à jour une soumission de formulaire avec les données du programmateur
+export const updateFormSubmissionWithProgrammerData = async (submissionId, programmerData) => {
+  try {
+    console.log(`FormSubmissionsService - Mise à jour de la soumission ${submissionId} avec les données du programmateur:`, programmerData);
+    const submissionDoc = doc(db, COLLECTION_NAME, submissionId);
+    
+    // Mettre à jour uniquement les champs pertinents
+    const updateData = {
+      status: 'approved',
+      processedAt: new Date(),
+      processedData: programmerData
+    };
+    
+    await updateDoc(submissionDoc, updateData);
+    
+    console.log(`FormSubmissionsService - Soumission ${submissionId} mise à jour avec les données du programmateur`);
+    return { id: submissionId, ...updateData };
+  } catch (error) {
+    console.error(`FormSubmissionsService - Erreur lors de la mise à jour de la soumission ${submissionId}:`, error);
+    throw new Error('Erreur lors de la mise à jour de la soumission avec les données du programmateur');
+  }
+};

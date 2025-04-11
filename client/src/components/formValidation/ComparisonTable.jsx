@@ -48,7 +48,8 @@ const ComparisonTable = ({ formData, programmerData, onSave, onCancel }) => {
     const updatedData = {
       ...selectedValues,
       commonToken: formData.commonToken,
-      formLinkId: formData.formLinkId
+      formLinkId: formData.formLinkId,
+      concertId: formData.concertId
     };
     console.log('ComparisonTable - Données finales à sauvegarder:', updatedData);
     onSave(updatedData);
@@ -103,6 +104,15 @@ const ComparisonTable = ({ formData, programmerData, onSave, onCancel }) => {
                     title="Utiliser la valeur du formulaire"
                   >
                     →
+                  </button>
+                )}
+                {programmerData && programmerData[field.key] && (
+                  <button 
+                    className="arrow-button left-arrow"
+                    onClick={() => handleCopyValue(field.key, programmerData[field.key])}
+                    title="Utiliser la valeur existante"
+                  >
+                    ←
                   </button>
                 )}
               </td>
