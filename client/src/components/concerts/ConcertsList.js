@@ -23,6 +23,8 @@ const ConcertsList = () => {
   const [currentDate, setCurrentDate] = useState('');
   const [currentHour, setCurrentHour] = useState('');
   const [currentMinute, setCurrentMinute] = useState('');
+  const [useDashboard, setUseDashboard] = useState(true); // Activer le tableau de bord par défaut
+  const [error, setError] = useState(null);
 
   // Options pour les heures et minutes
   const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
@@ -33,23 +35,32 @@ const ConcertsList = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError(null);
+        
+        console.log('ConcertsList - Chargement des concerts...');
         const concertsData = await getConcerts();
+        console.log(`ConcertsList - ${concertsData.length} concerts récupérés`);
+        
+        console.log('ConcertsList - Chargement des artistes...');
         const artistsData = await getArtists();
+        console.log(`ConcertsList - ${artistsData.length} artistes récupérés`);
         
         // Enrichir les données de concerts avec les informations d'artistes
         const enrichedConcerts = concertsData.map(concert => {
           const artist = artistsData.find(a => a.id === concert.artistId);
           return {
             ...concert,
-            artist: artist || null
+            artist: artist || { name: 'Artiste inconnu' }
           };
         });
         
+        console.log('ConcertsList - Données enrichies:', enrichedConcerts);
         setConcerts(enrichedConcerts);
         setArtists(artistsData);
         setLoading(false);
       } catch (error) {
-        console.error('Erreur lors du chargement des données:', error);
+        console.error('ConcertsList - Erreur lors du chargement des données:', error);
+        setError('Erreur lors du chargement des données. Veuillez réessayer.');
         setLoading(false);
       }
     };
@@ -79,6 +90,7 @@ const ConcertsList = () => {
     
     try {
       setLoading(true);
+      setError(null);
       
       // Construire la date et l'heure
       const dateObj = new Date(currentDate);
@@ -90,13 +102,15 @@ const ConcertsList = () => {
         time: timeString
       };
       
+      console.log('ConcertsList - Ajout d\'un nouveau concert:', concertToAdd);
       const addedConcert = await addConcert(concertToAdd);
+      console.log('ConcertsList - Concert ajouté avec succès:', addedConcert);
       
       // Ajouter l'artiste à l'objet concert
       const artist = artists.find(a => a.id === concertToAdd.artistId);
       const enrichedConcert = {
         ...addedConcert,
-        artist: artist || null
+        artist: artist || { name: 'Artiste inconnu' }
       };
       
       setConcerts(prev => [...prev, enrichedConcert]);
@@ -116,34 +130,67 @@ const ConcertsList = () => {
       setCurrentMinute('');
       setLoading(false);
     } catch (error) {
-      console.error('Erreur lors de l\'ajout du concert:', error);
+      console.error('ConcertsList - Erreur lors de l\'ajout du concert:', error);
+      setError('Erreur lors de l\'ajout du concert. Veuillez réessayer.');
       setLoading(false);
     }
   };
 
   const handleViewConcert = (concert) => {
-    // Cette fonction est appelée par le composant ConcertsDashboard
-    // Nous utilisons simplement la navigation existante
-    window.location.href = `/concerts/${concert.id}`;
+    try {
+      // Cette fonction est appelée par le composant ConcertsDashboard
+      console.log('ConcertsList - Redirection vers la page du concert:', concert.id);
+      window.location.href = `/concerts/${concert.id}`;
+    } catch (error) {
+      console.error('ConcertsList - Erreur lors de la redirection:', error);
+      setError('Erreur lors de la redirection. Veuillez réessayer.');
+    }
   };
 
   const handleEditConcert = (concert) => {
-    // Cette fonction est appelée par le composant ConcertsDashboard
-    // Nous utilisons simplement la navigation existante
-    window.location.href = `/concerts/${concert.id}`;
+    try {
+      // Cette fonction est appelée par le composant ConcertsDashboard
+      console.log('ConcertsList - Redirection vers la page d\'édition du concert:', concert.id);
+      window.location.href = `/concerts/${concert.id}`;
+    } catch (error) {
+      console.error('ConcertsList - Erreur lors de la redirection:', error);
+      setError('Erreur lors de la redirection. Veuillez réessayer.');
+    }
+  };
+
+  // Basculer entre le tableau de bord et la vue classique
+  const toggleView = () => {
+    console.log('ConcertsList - Basculement de la vue:', useDashboard ? 'classique' : 'tableau de bord');
+    setUseDashboard(!useDashboard);
   };
 
   if (loading && concerts.length === 0) {
     return <div className="loading">Chargement des concerts...</div>;
   }
 
+  if (error) {
+    return (
+      <div className="error-container">
+        <div className="error">{error}</div>
+        <button className="refresh-button" onClick={() => window.location.reload()}>
+          Rafraîchir la page
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="concerts-container">
       <div className="concerts-header">
         <h1>Gestion des concerts</h1>
-        <button className="add-concert-btn" onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Annuler' : 'Ajouter un concert'}
-        </button>
+        <div className="header-buttons">
+          <button className="toggle-view-btn" onClick={toggleView}>
+            {useDashboard ? 'Vue classique' : 'Vue tableau de bord'}
+          </button>
+          <button className="add-concert-btn" onClick={() => setShowForm(!showForm)}>
+            {showForm ? 'Annuler' : 'Ajouter un concert'}
+          </button>
+        </div>
       </div>
       
       {showForm && (
@@ -289,13 +336,56 @@ const ConcertsList = () => {
         </div>
       )}
       
-      {/* Utilisation du nouveau composant ConcertsDashboard */}
       {!showForm && (
-        <ConcertsDashboard 
-          concerts={concerts}
-          onViewConcert={handleViewConcert}
-          onEditConcert={handleEditConcert}
-        />
+        <>
+          {useDashboard ? (
+            <ConcertsDashboard 
+              concerts={concerts}
+              onViewConcert={handleViewConcert}
+              onEditConcert={handleEditConcert}
+            />
+          ) : (
+            <div className="concerts-list">
+              <h2>Liste des concerts ({concerts.length})</h2>
+              <table className="concerts-table">
+                <thead>
+                  <tr>
+                    <th>Artiste</th>
+                    <th>Date</th>
+                    <th>Lieu</th>
+                    <th>Ville</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {concerts.map(concert => (
+                    <tr key={concert.id}>
+                      <td>{concert.artist ? concert.artist.name : 'Artiste inconnu'}</td>
+                      <td>
+                        {concert.date instanceof Date 
+                          ? concert.date.toLocaleDateString() 
+                          : concert.date && concert.date.seconds 
+                            ? new Date(concert.date.seconds * 1000).toLocaleDateString() 
+                            : 'Date non spécifiée'}
+                        {' '}
+                        {concert.time || ''}
+                      </td>
+                      <td>{concert.venue || 'Non spécifié'}</td>
+                      <td>{concert.city || 'Non spécifié'}</td>
+                      <td>{concert.status || 'Non spécifié'}</td>
+                      <td>
+                        <Link to={`/concerts/${concert.id}`} className="action-link">
+                          Voir
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

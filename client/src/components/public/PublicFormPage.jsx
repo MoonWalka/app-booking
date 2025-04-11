@@ -1,83 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { createFormSubmission } from '../../services/formSubmissionsService';
-import { generateToken } from "../../utils/tokenGenerator";
 import './PublicFormPage.css';
 
-// Fonction utilitaire pour extraire le concertId de l'URL avec HashRouter
-const extractConcertIdFromHash = () => {
-  const hash = window.location.hash;
-  
-  // Format attendu: /#/form/CONCERT_ID
-  const match = hash.match(/\/#\/form\/([^\/\?]+)/);
-  if (match && match[1]) {
-    console.log('extractConcertIdFromHash - concertId extrait:', match[1]);
-    return match[1];
-  }
-  
-  // Essayer un autre format possible: #/form/CONCERT_ID
-  const altMatch = hash.match(/#\/form\/([^\/\?]+)/);
-  if (altMatch && altMatch[1]) {
-    console.log('extractConcertIdFromHash - concertId extrait (format alt):', altMatch[1]);
-    return altMatch[1];
-  }
-  
-  console.log('extractConcertIdFromHash - aucun concertId trouvé dans le hash');
-  return null;
-};
-
-const PublicFormPage = (props) => {
-  // Extraction robuste du concertId
-  const params = useParams();
-  const [concertId, setConcertId] = useState(null);
-  const navigate = useNavigate();
+const PublicFormPage = () => {
+  const { concertId } = useParams();
+  const [formData, setFormData] = useState({
+    businessName: '',
+    firstName: '',
+    lastName: '',
+    role: '',
+    address: '',
+    venue: '',
+    venueAddress: '',
+    vatNumber: '',
+    siret: '',
+    email: '',
+    phone: '',
+    website: '',
+    concertDate: '',
+    concertTime: '',
+    concertVenue: '',
+    concertCity: '',
+    concertPrice: '',
+    concertNotes: '',
+    additionalInfo: ''
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [submissionSuccess, setSubmissionSuccess] = useState(false);
-  const [submissionResult, setSubmissionResult] = useState(null);
-  const [formData, setFormData] = useState({
-    businessName: '',      // Raison sociale
-    firstName: '',         // Prénom
-    lastName: '',          // Nom
-    role: '',              // Qualité
-    address: '',           // Adresse de la raison sociale
-    venue: '',             // Lieu ou festival
-    venueAddress: '',      // Adresse du lieu ou festival
-    vatNumber: '',         // Numéro intracommunautaire
-    siret: '',             // Siret
-    email: '',             // Mail
-    phone: '',             // Téléphone
-    website: ''            // Site web
-  });
-  
-  // Déterminer le concertId de manière robuste
-  useEffect(() => {
-    // Priorité 1: Props passées directement
-    if (props.concertId) {
-      console.log('PublicFormPage - concertId depuis props:', props.concertId);
-      setConcertId(props.concertId);
-      return;
-    }
-    
-    // Priorité 2: Paramètres de route via useParams()
-    if (params.concertId) {
-      console.log('PublicFormPage - concertId depuis useParams:', params.concertId);
-      setConcertId(params.concertId);
-      return;
-    }
-    
-    // Priorité 3: Extraction directe depuis l'URL
-    const extractedId = extractConcertIdFromHash();
-    if (extractedId) {
-      console.log('PublicFormPage - concertId extrait de l\'URL:', extractedId);
-      setConcertId(extractedId);
-      return;
-    }
-    
-    console.log('PublicFormPage - AUCUN concertId trouvé!');
-    setError("Erreur: ID du concert manquant. Veuillez accéder à ce formulaire via un lien valide.");
-  }, [props.concertId, params.concertId]);
-  
+  const [success, setSuccess] = useState(false);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -85,48 +37,17 @@ const PublicFormPage = (props) => {
       [name]: value
     }));
   };
-  
-  // Réinitialiser le formulaire
-  const resetForm = () => {
-    setFormData({
-      businessName: '',
-      firstName: '',
-      lastName: '',
-      role: '',
-      address: '',
-      venue: '',
-      venueAddress: '',
-      vatNumber: '',
-      siret: '',
-      email: '',
-      phone: '',
-      website: ''
-    });
-    console.log('PublicFormPage - Formulaire réinitialisé');
-  };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Vérifier que concertId est disponible
-    if (!concertId) {
-      setError("Erreur: ID du concert manquant. Veuillez accéder à ce formulaire via un lien valide.");
-      return;
-    }
     
     try {
       setLoading(true);
       setError(null);
       
-      console.log('PublicFormPage - Début de la soumission du formulaire');
-      console.log('PublicFormPage - Données du formulaire:', formData);
-      console.log('PublicFormPage - concertId utilisé pour la soumission:', concertId);
+      console.log('PublicFormPage - Soumission du formulaire pour le concert:', concertId);
       
-      // Générer un token commun pour lier les entités
-      const commonToken = generateToken(concertId);
-      console.log('PublicFormPage - Token commun généré:', commonToken);
-      
-      // Préparer les données à soumettre avec tous les champs requis
+      // Préparer les données à envoyer
       const submissionData = {
         ...formData,
         // Champs obligatoires pour la compatibilité avec le système existant
@@ -138,232 +59,207 @@ const PublicFormPage = (props) => {
         contact: formData.firstName && formData.lastName 
           ? `${formData.firstName} ${formData.lastName}` 
           : formData.firstName || formData.lastName || 'Contact non spécifié',
-        status: 'pending', // Forcer explicitement le statut à 'pending'
+        status: 'pending', // Forcer le statut à 'pending'
         // Ajouter un formLinkId fictif si nécessaire
-        formLinkId: `public-form-${concertId}`,
-        // Ajouter le token commun pour lier les entités
-        commonToken: commonToken
+        formLinkId: `public-form-${concertId}`
       };
       
-      console.log('PublicFormPage - Données préparées pour la soumission:', submissionData);
-      console.log('PublicFormPage - Vérification de la présence de concertId:', submissionData.concertId ? 'Présent' : 'Manquant');
-      console.log('PublicFormPage - Vérification de la présence du token commun:', submissionData.commonToken ? 'Présent' : 'Manquant');
-      console.log('PublicFormPage - Vérification du statut:', submissionData.status);
+      console.log('PublicFormPage - Données à envoyer:', submissionData);
       
-      // Soumettre le formulaire avec un timeout pour éviter les blocages
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout de la soumission du formulaire')), 15000)
-      );
-      
-      const submissionPromise = createFormSubmission(submissionData);
-      
-      // Utiliser Promise.race pour éviter les blocages
-      const result = await Promise.race([submissionPromise, timeoutPromise]);
-      
+      // Envoyer les données
+      const result = await createFormSubmission(submissionData);
       console.log('PublicFormPage - Résultat de la soumission:', result);
       
-      // Afficher le message de succès et réinitialiser le formulaire
-      if (result && result.id) {
-        console.log('PublicFormPage - Soumission réussie avec ID:', result.id);
-        console.log('PublicFormPage - Token commun dans le résultat:', result.commonToken);
-        console.log('PublicFormPage - Statut dans le résultat:', result.status);
-        setSubmissionResult(result);
-        setSubmissionSuccess(true);
-        resetForm();
-      } else {
-        console.error('PublicFormPage - Échec de la soumission du formulaire');
-        setError('Une erreur est survenue lors de la soumission du formulaire.');
-      }
+      // Réinitialiser le formulaire et afficher un message de succès
+      setFormData({
+        businessName: '',
+        firstName: '',
+        lastName: '',
+        role: '',
+        address: '',
+        venue: '',
+        venueAddress: '',
+        vatNumber: '',
+        siret: '',
+        email: '',
+        phone: '',
+        website: '',
+        concertDate: '',
+        concertTime: '',
+        concertVenue: '',
+        concertCity: '',
+        concertPrice: '',
+        concertNotes: '',
+        additionalInfo: ''
+      });
       
+      setSuccess(true);
       setLoading(false);
     } catch (err) {
       console.error('PublicFormPage - Erreur lors de la soumission du formulaire:', err);
-      setError(`Une erreur est survenue lors de la soumission du formulaire: ${err.message}`);
+      setError('Une erreur est survenue lors de la soumission du formulaire. Veuillez réessayer.');
       setLoading(false);
     }
   };
-  
-  if (loading) {
+
+  if (success) {
     return (
       <div className="public-form-container">
-        <div className="public-form-card">
-          <h2>Chargement...</h2>
-          <p>Veuillez patienter pendant le traitement de votre demande.</p>
-        </div>
-      </div>
-    );
-  }
-  
-  if (submissionSuccess) {
-    return (
-      <div className="public-form-container">
-        <div className="public-form-card success">
-          <h2>Merci pour votre soumission</h2>
+        <div className="success-message">
+          <h2>Merci pour votre soumission !</h2>
           <p>Votre formulaire a bien été transmis. Vous pouvez fermer cette fenêtre.</p>
           <button 
-            className="form-button"
-            onClick={() => {
-              setSubmissionSuccess(false);
-              setSubmissionResult(null);
-            }}
+            className="new-submission-btn"
+            onClick={() => setSuccess(false)}
           >
             Soumettre un nouveau formulaire
           </button>
-          <button 
-            className="form-button secondary"
-            onClick={() => window.location.href = window.location.origin}
-            style={{ marginTop: "10px" }}
-          >
-            Retour à l'accueil
-          </button>
         </div>
       </div>
     );
   }
-  
-  if (error) {
-    return (
-      <div className="public-form-container">
-        <div className="public-form-card error">
-          <h2>Erreur</h2>
-          <p>{error}</p>
-          <button 
-            className="form-button"
-            onClick={() => {
-              setError(null);
-              setLoading(false);
-            }}
-          >
-            Réessayer
-          </button>
-          <button 
-            className="form-button secondary"
-            onClick={() => window.location.href = window.location.origin}
-            style={{ marginTop: "10px" }}
-          >
-            Retour à l'accueil
-          </button>
-        </div>
-      </div>
-    );
-  }
-  
+
   return (
     <div className="public-form-container">
-      <div className="public-form-card">
-        <h2>Formulaire de renseignements</h2>
-        <div className="form-header">
-          <p><strong>ID du Concert :</strong> {concertId || "Non spécifié"}</p>
-        </div>
-        
-        <form onSubmit={handleSubmit}>
+      <h1>Formulaire de soumission pour le concert</h1>
+      <p className="form-description">
+        Veuillez remplir ce formulaire pour soumettre vos informations concernant le concert.
+        Les champs marqués d'un astérisque (*) sont obligatoires.
+      </p>
+      
+      {error && <div className="error-message">{error}</div>}
+      
+      <form onSubmit={handleSubmit} className="public-form">
+        <div className="form-section">
+          <h2>Informations sur l'organisateur</h2>
+          
           <div className="form-group">
-            <label htmlFor="businessName">Raison sociale</label>
+            <label htmlFor="businessName">Raison sociale / Nom de l'organisation *</label>
             <input
               type="text"
               id="businessName"
               name="businessName"
               value={formData.businessName}
               onChange={handleChange}
+              required
+              placeholder="Nom de votre organisation"
             />
           </div>
           
-          <div className="form-group">
-            <label htmlFor="lastName">Nom</label>
-            <input
-              type="text"
-              id="lastName"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleChange}
-            />
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="firstName">Prénom</label>
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                placeholder="Prénom du contact"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="lastName">Nom</label>
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                placeholder="Nom du contact"
+              />
+            </div>
           </div>
           
           <div className="form-group">
-            <label htmlFor="firstName">Prénom</label>
-            <input
-              type="text"
-              id="firstName"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleChange}
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="role">Qualité</label>
+            <label htmlFor="role">Fonction</label>
             <input
               type="text"
               id="role"
               name="role"
               value={formData.role}
               onChange={handleChange}
+              placeholder="Votre fonction dans l'organisation"
             />
           </div>
           
           <div className="form-group">
-            <label htmlFor="address">Adresse de la raison sociale</label>
+            <label htmlFor="address">Adresse</label>
             <textarea
               id="address"
               name="address"
               value={formData.address}
               onChange={handleChange}
               rows="3"
-            />
+              placeholder="Adresse complète de l'organisation"
+            ></textarea>
           </div>
           
           <div className="form-group">
-            <label htmlFor="venue">Lieu ou festival</label>
+            <label htmlFor="venue">Nom de la salle</label>
             <input
               type="text"
               id="venue"
               name="venue"
               value={formData.venue}
               onChange={handleChange}
+              placeholder="Nom de la salle de concert"
             />
           </div>
           
           <div className="form-group">
-            <label htmlFor="venueAddress">Adresse du lieu ou festival</label>
+            <label htmlFor="venueAddress">Adresse de la salle</label>
             <textarea
               id="venueAddress"
               name="venueAddress"
               value={formData.venueAddress}
               onChange={handleChange}
               rows="3"
-            />
+              placeholder="Adresse complète de la salle de concert"
+            ></textarea>
           </div>
           
-          <div className="form-group">
-            <label htmlFor="vatNumber">Numéro intracommunautaire</label>
-            <input
-              type="text"
-              id="vatNumber"
-              name="vatNumber"
-              value={formData.vatNumber}
-              onChange={handleChange}
-            />
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="vatNumber">Numéro de TVA</label>
+              <input
+                type="text"
+                id="vatNumber"
+                name="vatNumber"
+                value={formData.vatNumber}
+                onChange={handleChange}
+                placeholder="Numéro de TVA"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="siret">SIRET</label>
+              <input
+                type="text"
+                id="siret"
+                name="siret"
+                value={formData.siret}
+                onChange={handleChange}
+                placeholder="Numéro SIRET"
+              />
+            </div>
           </div>
+        </div>
+        
+        <div className="form-section">
+          <h2>Coordonnées</h2>
           
           <div className="form-group">
-            <label htmlFor="siret">Siret</label>
-            <input
-              type="text"
-              id="siret"
-              name="siret"
-              value={formData.siret}
-              onChange={handleChange}
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="email">Mail</label>
+            <label htmlFor="email">Email *</label>
             <input
               type="email"
               id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
+              required
+              placeholder="Adresse email de contact"
             />
           </div>
           
@@ -375,6 +271,7 @@ const PublicFormPage = (props) => {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
+              placeholder="Numéro de téléphone"
             />
           </div>
           
@@ -386,21 +283,111 @@ const PublicFormPage = (props) => {
               name="website"
               value={formData.website}
               onChange={handleChange}
+              placeholder="Site web (avec http:// ou https://)"
+            />
+          </div>
+        </div>
+        
+        <div className="form-section">
+          <h2>Informations sur le concert</h2>
+          
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="concertDate">Date</label>
+              <input
+                type="date"
+                id="concertDate"
+                name="concertDate"
+                value={formData.concertDate}
+                onChange={handleChange}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="concertTime">Heure</label>
+              <input
+                type="time"
+                id="concertTime"
+                name="concertTime"
+                value={formData.concertTime}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="concertVenue">Lieu du concert</label>
+            <input
+              type="text"
+              id="concertVenue"
+              name="concertVenue"
+              value={formData.concertVenue}
+              onChange={handleChange}
+              placeholder="Nom du lieu du concert"
             />
           </div>
           
-          <div className="form-footer">
-            <p>Tous les champs sont facultatifs</p>
-            <button 
-              type="submit" 
-              className="form-button"
-              disabled={loading || !concertId}
-            >
-              {loading ? 'Envoi en cours...' : 'Soumettre le formulaire'}
-            </button>
+          <div className="form-group">
+            <label htmlFor="concertCity">Ville</label>
+            <input
+              type="text"
+              id="concertCity"
+              name="concertCity"
+              value={formData.concertCity}
+              onChange={handleChange}
+              placeholder="Ville du concert"
+            />
           </div>
-        </form>
-      </div>
+          
+          <div className="form-group">
+            <label htmlFor="concertPrice">Prix (€)</label>
+            <input
+              type="number"
+              id="concertPrice"
+              name="concertPrice"
+              value={formData.concertPrice}
+              onChange={handleChange}
+              min="0"
+              step="0.01"
+              placeholder="Prix en euros"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="concertNotes">Notes sur le concert</label>
+            <textarea
+              id="concertNotes"
+              name="concertNotes"
+              value={formData.concertNotes}
+              onChange={handleChange}
+              rows="4"
+              placeholder="Informations complémentaires sur le concert"
+            ></textarea>
+          </div>
+        </div>
+        
+        <div className="form-section">
+          <h2>Informations supplémentaires</h2>
+          
+          <div className="form-group">
+            <label htmlFor="additionalInfo">Commentaires ou demandes particulières</label>
+            <textarea
+              id="additionalInfo"
+              name="additionalInfo"
+              value={formData.additionalInfo}
+              onChange={handleChange}
+              rows="4"
+              placeholder="Toute information supplémentaire que vous souhaitez partager"
+            ></textarea>
+          </div>
+        </div>
+        
+        <div className="form-actions">
+          <button type="submit" className="submit-btn" disabled={loading}>
+            {loading ? 'Envoi en cours...' : 'Soumettre le formulaire'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
