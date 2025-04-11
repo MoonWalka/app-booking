@@ -1,81 +1,15 @@
-// ConcertsDashboard.jsx
 import React, { useState, useEffect } from 'react';
-import { 
-  MdMusicNote, 
-  MdHistory, 
-  MdPlayCircleFilled, 
-  MdEvent, 
-  MdEuroSymbol,
-  MdVisibility,
-  MdEdit
-} from 'react-icons/md';
+import { FaMusic, FaCalendarAlt, FaEye, FaPencilAlt, FaEuroSign } from 'react-icons/fa';
+import { BsClockHistory } from 'react-icons/bs';
 import './ConcertsDashboard.css';
 
-// Composant pour les cartes statistiques
-const StatCard = ({ title, value, icon, color }) => (
-  <div className="stat-card" style={{ backgroundColor: color }}>
-    <div className="stat-icon">{icon}</div>
-    <div className="stat-content">
-      <h3 className="stat-title">{title}</h3>
-      <p className="stat-value">{value}</p>
-    </div>
-  </div>
-);
-
-// Composant pour les filtres rapides
-const FilterButtons = ({ activeFilter, onFilterChange }) => (
-  <div className="filter-buttons">
-    <button 
-      className={`filter-button ${activeFilter === 'all' ? 'active' : ''}`}
-      onClick={() => onFilterChange('all')}
-    >
-      Tous
-    </button>
-    <button 
-      className={`filter-button ${activeFilter === 'past' ? 'active' : ''}`}
-      onClick={() => onFilterChange('past')}
-    >
-      Passés
-    </button>
-    <button 
-      className={`filter-button ${activeFilter === 'current' ? 'active' : ''}`}
-      onClick={() => onFilterChange('current')}
-    >
-      En cours
-    </button>
-  </div>
-);
-
-// Composant pour le badge de statut
-const StatusBadge = ({ status }) => {
-  let badgeClass = '';
-  
-  switch(status) {
-    case 'Passé':
-      badgeClass = 'status-past';
-      break;
-    case 'En cours':
-      badgeClass = 'status-current';
-      break;
-    case 'À venir':
-      badgeClass = 'status-upcoming';
-      break;
-    default:
-      badgeClass = '';
-  }
-  
-  return <span className={`status-badge ${badgeClass}`}>{status}</span>;
-};
-
 // Composant principal du tableau de bord des concerts
-const ConcertsDashboard = () => {
-  // États pour gérer les données et les filtres
-  const [concerts, setConcerts] = useState([]);
+const ConcertsDashboard = ({ concerts = [], onViewConcert, onEditConcert }) => {
   const [filteredConcerts, setFilteredConcerts] = useState([]);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState('');
   
   // Statistiques calculées
   const [stats, setStats] = useState({
@@ -83,121 +17,79 @@ const ConcertsDashboard = () => {
     past: 0,
     current: 0,
     upcoming: 0,
-    revenue: 0
+    totalRevenue: 0
   });
   
-  // Simuler le chargement des données (à remplacer par l'appel API réel)
+  // Calculer les statistiques à partir des concerts
   useEffect(() => {
-    // Exemple de données (à remplacer par les données réelles de l'application)
-    const sampleConcerts = [
-      {
-        id: 1,
-        date: '15/01/2023',
-        venue: 'La Cigale, Paris',
-        artist: 'Groupe Harmony',
-        programmer: 'Jean Dupont',
-        status: 'Passé',
-        amount: '2 500 €'
-      },
-      {
-        id: 2,
-        date: '25/02/2023',
-        venue: 'Le Bikini, Toulouse',
-        artist: 'DJ Electronic',
-        programmer: 'Sophie Martin',
-        status: 'Passé',
-        amount: '1 800 €'
-      },
-      {
-        id: 3,
-        date: '10/06/2023',
-        venue: 'L\'Olympia, Paris',
-        artist: 'Les Rockers',
-        programmer: 'François Leblanc',
-        status: 'En cours',
-        amount: '3 200 €'
-      },
-      {
-        id: 4,
-        date: '22/07/2023',
-        venue: 'La Belle Électrique, Grenoble',
-        artist: 'Melodic Sisters',
-        programmer: 'Marie Dubois',
-        status: 'À venir',
-        amount: '2 200 €'
-      },
-      {
-        id: 5,
-        date: '18/08/2023',
-        venue: 'Le Transbordeur, Lyon',
-        artist: 'Jazz Quartet',
-        programmer: 'Pierre Moreau',
-        status: 'En cours',
-        amount: '1 950 €'
-      }
-    ];
+    if (!concerts || concerts.length === 0) return;
     
-    setConcerts(sampleConcerts);
+    const now = new Date();
+    const pastCount = concerts.filter(concert => new Date(concert.date) < now && concert.status !== 'current').length;
+    const currentCount = concerts.filter(concert => concert.status === 'current').length;
+    const upcomingCount = concerts.filter(concert => new Date(concert.date) > now && concert.status !== 'current').length;
     
-    // Calculer les statistiques
-    const pastCount = sampleConcerts.filter(c => c.status === 'Passé').length;
-    const currentCount = sampleConcerts.filter(c => c.status === 'En cours').length;
-    const upcomingCount = sampleConcerts.filter(c => c.status === 'À venir').length;
-    
-    // Calculer le revenu total (en supposant que les montants sont au format "X XXX €")
-    const totalRevenue = sampleConcerts.reduce((sum, concert) => {
-      const amount = parseFloat(concert.amount.replace(/\s/g, '').replace('€', '').replace(',', '.'));
+    // Calculer le revenu total (convertir les montants en nombres)
+    const totalRevenue = concerts.reduce((sum, concert) => {
+      const amount = parseFloat(concert.amount?.toString().replace(/[^\d.-]/g, '') || 0);
       return sum + amount;
     }, 0);
     
     setStats({
-      total: sampleConcerts.length,
+      total: concerts.length,
       past: pastCount,
       current: currentCount,
       upcoming: upcomingCount,
-      revenue: totalRevenue.toLocaleString('fr-FR')
+      totalRevenue
     });
-    
-    // Appliquer le filtre initial
-    applyFilter('all', sampleConcerts);
-  }, []);
+  }, [concerts]);
   
-  // Fonction pour appliquer les filtres
-  const applyFilter = (filter, concertList = concerts) => {
-    setActiveFilter(filter);
-    
-    let filtered = [...concertList];
-    
-    // Appliquer le filtre de statut
-    if (filter === 'past') {
-      filtered = filtered.filter(concert => concert.status === 'Passé');
-    } else if (filter === 'current') {
-      filtered = filtered.filter(concert => concert.status === 'En cours');
+  // Filtrer les concerts en fonction du filtre actif et du terme de recherche
+  useEffect(() => {
+    if (!concerts || concerts.length === 0) {
+      setFilteredConcerts([]);
+      return;
     }
     
-    // Appliquer la recherche si elle existe
-    if (searchTerm) {
+    let filtered = [...concerts];
+    const now = new Date();
+    
+    // Appliquer le filtre
+    if (activeFilter === 'past') {
+      filtered = filtered.filter(concert => new Date(concert.date) < now && concert.status !== 'current');
+    } else if (activeFilter === 'current') {
+      filtered = filtered.filter(concert => concert.status === 'current');
+    } else if (activeFilter === 'upcoming') {
+      filtered = filtered.filter(concert => new Date(concert.date) > now && concert.status !== 'current');
+    }
+    
+    // Appliquer la recherche
+    if (searchTerm.trim() !== '') {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(concert => 
-        concert.artist.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        concert.venue.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        concert.programmer.toLowerCase().includes(searchTerm.toLowerCase())
+        (concert.artist && concert.artist.toLowerCase().includes(term)) ||
+        (concert.venue && concert.venue.toLowerCase().includes(term)) ||
+        (concert.programmer && concert.programmer.toLowerCase().includes(term))
       );
     }
     
     setFilteredConcerts(filtered);
-    setCurrentPage(1); // Réinitialiser à la première page après un changement de filtre
-  };
+    setCurrentPage(1); // Réinitialiser à la première page lors du filtrage
+  }, [concerts, activeFilter, searchTerm]);
   
   // Gérer le changement de filtre
   const handleFilterChange = (filter) => {
-    applyFilter(filter);
+    setActiveFilter(filter);
   };
   
-  // Gérer la recherche
-  const handleSearch = (e) => {
-    const term = e.target.value;
-    setSearchTerm(term);
-    applyFilter(activeFilter, concerts);
+  // Gérer le changement de terme de recherche
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+  
+  // Gérer le changement de page
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
   
   // Gérer le changement du nombre d'éléments par page
@@ -206,77 +98,154 @@ const ConcertsDashboard = () => {
     setCurrentPage(1); // Réinitialiser à la première page
   };
   
-  // Calculer les indices pour la pagination
+  // Calculer les indices de début et de fin pour la pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredConcerts.slice(indexOfFirstItem, indexOfLastItem);
-  
-  // Calculer le nombre total de pages
   const totalPages = Math.ceil(filteredConcerts.length / itemsPerPage);
   
-  // Générer les numéros de page
-  const pageNumbers = [];
-  for (let i = 1; i <= totalPages; i++) {
-    pageNumbers.push(i);
-  }
+  // Formater un montant en euros
+  const formatAmount = (amount) => {
+    if (!amount) return '0 €';
+    
+    // Si amount est déjà une chaîne formatée avec €, la retourner telle quelle
+    if (typeof amount === 'string' && amount.includes('€')) {
+      return amount;
+    }
+    
+    // Sinon, formater le nombre
+    const numAmount = parseFloat(amount.toString().replace(/[^\d.-]/g, '') || 0);
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
+      .format(numAmount)
+      .replace(',00', ''); // Supprimer les centimes si c'est un nombre entier
+  };
+  
+  // Formater une date
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }).format(date);
+  };
+  
+  // Obtenir la classe CSS pour le statut
+  const getStatusClass = (concert) => {
+    const now = new Date();
+    const concertDate = new Date(concert.date);
+    
+    if (concert.status === 'current' || (concertDate <= now && concertDate >= new Date(now - 7 * 24 * 60 * 60 * 1000))) {
+      return 'status-current';
+    } else if (concertDate < now) {
+      return 'status-past';
+    } else {
+      return 'status-upcoming';
+    }
+  };
+  
+  // Obtenir le texte du statut
+  const getStatusText = (concert) => {
+    const now = new Date();
+    const concertDate = new Date(concert.date);
+    
+    if (concert.status === 'current' || (concertDate <= now && concertDate >= new Date(now - 7 * 24 * 60 * 60 * 1000))) {
+      return 'En cours';
+    } else if (concertDate < now) {
+      return 'Passé';
+    } else {
+      return 'À venir';
+    }
+  };
   
   return (
     <div className="concerts-dashboard">
       <h1 className="dashboard-title">Gestion des concerts</h1>
       
-      {/* Bouton d'ajout de concert */}
-      <div className="add-concert-container">
-        <button className="add-concert-button">
-          <span className="add-icon">+</span> Ajouter un concert
-        </button>
-      </div>
-      
-      {/* Cartes statistiques */}
-      <div className="stat-cards-container">
-        <StatCard 
-          title="Total des concerts" 
-          value={stats.total} 
-          icon={<MdMusicNote />} 
-          color="#1a237e" 
-        />
-        <StatCard 
-          title="Concerts passés" 
-          value={stats.past} 
-          icon={<MdHistory />} 
-          color="#4a148c" 
-        />
-        <StatCard 
-          title="En cours" 
-          value={stats.current} 
-          icon={<MdPlayCircleFilled />} 
-          color="#bf360c" 
-        />
-        <StatCard 
-          title="À venir" 
-          value={stats.upcoming} 
-          icon={<MdEvent />} 
-          color="#1b5e20" 
-        />
-        <StatCard 
-          title="Revenu total" 
-          value={`${stats.revenue} €`} 
-          icon={<MdEuroSymbol />} 
-          color="#b71c1c" 
-        />
+      {/* Widgets statistiques */}
+      <div className="stats-widgets">
+        <div className="stat-card total">
+          <div className="stat-icon">
+            <FaMusic />
+          </div>
+          <div className="stat-content">
+            <h3>Total des concerts</h3>
+            <p className="stat-value">{stats.total}</p>
+          </div>
+        </div>
+        
+        <div className="stat-card past">
+          <div className="stat-icon">
+            <BsClockHistory />
+          </div>
+          <div className="stat-content">
+            <h3>Concerts passés</h3>
+            <p className="stat-value">{stats.past}</p>
+          </div>
+        </div>
+        
+        <div className="stat-card current">
+          <div className="stat-icon">
+            <FaCalendarAlt />
+          </div>
+          <div className="stat-content">
+            <h3>En cours</h3>
+            <p className="stat-value">{stats.current}</p>
+          </div>
+        </div>
+        
+        <div className="stat-card upcoming">
+          <div className="stat-icon">
+            <FaCalendarAlt />
+          </div>
+          <div className="stat-content">
+            <h3>À venir</h3>
+            <p className="stat-value">{stats.upcoming}</p>
+          </div>
+        </div>
+        
+        <div className="stat-card revenue">
+          <div className="stat-icon">
+            <FaEuroSign />
+          </div>
+          <div className="stat-content">
+            <h3>Revenu total</h3>
+            <p className="stat-value">{formatAmount(stats.totalRevenue)}</p>
+          </div>
+        </div>
       </div>
       
       {/* Filtres et recherche */}
       <div className="filters-container">
-        <FilterButtons 
-          activeFilter={activeFilter} 
-          onFilterChange={handleFilterChange} 
-        />
+        <div className="filter-buttons">
+          <button 
+            className={`filter-button ${activeFilter === 'all' ? 'active' : ''}`}
+            onClick={() => handleFilterChange('all')}
+          >
+            Tous
+          </button>
+          <button 
+            className={`filter-button ${activeFilter === 'past' ? 'active' : ''}`}
+            onClick={() => handleFilterChange('past')}
+          >
+            Passés
+          </button>
+          <button 
+            className={`filter-button ${activeFilter === 'current' ? 'active' : ''}`}
+            onClick={() => handleFilterChange('current')}
+          >
+            En cours
+          </button>
+        </div>
+        
         <div className="search-container">
-          <input 
-            type="text" 
-            placeholder="Rechercher..." 
+          <input
+            type="text"
+            placeholder="Rechercher..."
             value={searchTerm}
-            onChange={handleSearch}
+            onChange={handleSearchChange}
             className="search-input"
           />
         </div>
@@ -287,34 +256,52 @@ const ConcertsDashboard = () => {
         <table className="concerts-table">
           <thead>
             <tr>
-              <th>DATE</th>
-              <th>LIEU</th>
-              <th>ARTISTE</th>
-              <th>PROGRAMMATEUR</th>
-              <th>STATUT</th>
-              <th>MONTANT</th>
-              <th>ACTIONS</th>
+              <th>Date</th>
+              <th>Lieu</th>
+              <th>Artiste</th>
+              <th>Programmateur</th>
+              <th>Statut</th>
+              <th>Montant</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {currentItems.map(concert => (
-              <tr key={concert.id}>
-                <td>{concert.date}</td>
-                <td>{concert.venue}</td>
-                <td>{concert.artist}</td>
-                <td>{concert.programmer}</td>
-                <td><StatusBadge status={concert.status} /></td>
-                <td>{concert.amount}</td>
-                <td className="actions-cell">
-                  <button className="action-button view-button" title="Voir la fiche">
-                    <MdVisibility />
-                  </button>
-                  <button className="action-button edit-button" title="Modifier">
-                    <MdEdit />
-                  </button>
-                </td>
+            {currentItems.length === 0 ? (
+              <tr>
+                <td colSpan="7" className="no-data">Aucun concert trouvé</td>
               </tr>
-            ))}
+            ) : (
+              currentItems.map((concert, index) => (
+                <tr key={concert.id || index}>
+                  <td>{formatDate(concert.date)}</td>
+                  <td>{concert.venue || 'Non spécifié'}</td>
+                  <td>{concert.artist || 'Non spécifié'}</td>
+                  <td>{concert.programmer || 'Non spécifié'}</td>
+                  <td>
+                    <span className={`status-badge ${getStatusClass(concert)}`}>
+                      {getStatusText(concert)}
+                    </span>
+                  </td>
+                  <td>{formatAmount(concert.amount)}</td>
+                  <td className="actions-cell">
+                    <button 
+                      className="action-button view"
+                      onClick={() => onViewConcert && onViewConcert(concert)}
+                      title="Voir la fiche"
+                    >
+                      <FaEye />
+                    </button>
+                    <button 
+                      className="action-button edit"
+                      onClick={() => onEditConcert && onEditConcert(concert)}
+                      title="Modifier"
+                    >
+                      <FaPencilAlt />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -323,15 +310,11 @@ const ConcertsDashboard = () => {
       <div className="pagination-container">
         <div className="items-per-page">
           <span>Afficher</span>
-          <select 
-            value={itemsPerPage} 
-            onChange={handleItemsPerPageChange}
-            className="items-per-page-select"
-          >
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
+          <select value={itemsPerPage} onChange={handleItemsPerPageChange}>
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
           </select>
           <span>par page</span>
         </div>
@@ -339,36 +322,36 @@ const ConcertsDashboard = () => {
         <div className="pagination-controls">
           <button 
             className="pagination-button"
-            onClick={() => setCurrentPage(1)}
+            onClick={() => handlePageChange(1)}
             disabled={currentPage === 1}
           >
-            «
+            &laquo;
           </button>
           <button 
             className="pagination-button"
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
           >
-            ‹
+            &lsaquo;
           </button>
           
           <span className="pagination-info">
-            Page {currentPage} sur {totalPages}
+            Page {currentPage} sur {totalPages || 1}
           </span>
           
           <button 
             className="pagination-button"
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages || totalPages === 0}
           >
-            ›
+            &rsaquo;
           </button>
           <button 
             className="pagination-button"
-            onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages}
+            onClick={() => handlePageChange(totalPages)}
+            disabled={currentPage === totalPages || totalPages === 0}
           >
-            »
+            &raquo;
           </button>
         </div>
       </div>
