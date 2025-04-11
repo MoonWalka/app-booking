@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs } from 'firebase/firestore';
-import './TestFirebaseIntegration.css';
+
 
 const TestFirebaseIntegration = () => {
   const [testResults, setTestResults] = useState({

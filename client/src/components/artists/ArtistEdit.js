@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getArtistById, updateArtist } from '../../services/artistsService';
-import './ArtistDetail.css';
+
 
 const ArtistEdit = () => {
   const { id } = useParams();

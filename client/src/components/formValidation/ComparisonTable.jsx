@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { updateFormSubmissionWithValidatedData, updateLinkedEntities } from '../../services/formSubmissionsService';
 import { getProgrammerByEmail, updateProgrammer } from '../../services/programmersService';
-import './ComparisonTable.css';
+
 
 const ComparisonTable = ({ submission, onValidationComplete }) => {
   const [programmerData, setProgrammerData] = useState(null);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getProgrammers, addProgrammer } from '../../services/programmersService';
-import './ProgrammersList.css';
+
 
 const ProgrammersList = () => {
   const [programmers, setProgrammers] = useState([]);

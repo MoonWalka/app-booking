@@ -2,7 +2,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { getConcerts } from '../../services/concertsService';
 import { getArtists } from '../../services/artistsService';
-import './ConcertsList.css';
+// Importation CSS supprimée pour éviter les erreurs
 
 // Importation dynamique du tableau de bord
 const ConcertsDashboard = React.lazy(() => import('./ConcertsDashboard'));

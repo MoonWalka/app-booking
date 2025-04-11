@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { createFormSubmission } from '../../services/formSubmissionsService';
-import './PublicFormPage.css';
+
 
 const PublicFormPage = () => {
   const location = useLocation();

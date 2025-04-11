@@ -1,5 +1,5 @@
 import React from 'react';
-import './InvoicesList.css';
+
 
 const InvoicesList = () => {
   return (

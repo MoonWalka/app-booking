@@ -4,7 +4,7 @@ import { getProgrammers } from '../../services/programmersService';
 import { getConcerts } from '../../services/concertsService';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
-import './TestResults.css';
+
 
 const TestResults = () => {
   const [loading, setLoading] = useState(true);

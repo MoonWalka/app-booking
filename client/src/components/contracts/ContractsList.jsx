@@ -1,5 +1,5 @@
 import React from 'react';
-import './ContractsList.css';
+
 
 const ContractsList = () => {
   return (

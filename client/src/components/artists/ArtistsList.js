@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getArtists, addArtist } from '../../services/artistsService';
-import './ArtistsList.css';
+
 
 const ArtistsList = () => {
   const [artists, setArtists] = useState([]);

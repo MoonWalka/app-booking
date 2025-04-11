@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import './PublicFormPage.css';
+
 
 const FormSubmittedPage = () => {
   // Logs de débogage détaillés

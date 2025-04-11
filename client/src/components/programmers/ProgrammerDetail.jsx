@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProgrammerById, deleteProgrammer, updateProgrammer } from '../../services/programmersService';
-import './ProgrammerDetail.css';
+
 
 const ProgrammerDetail = () => {
   const { id } = useParams();
