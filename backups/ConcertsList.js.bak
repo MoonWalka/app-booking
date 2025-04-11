@@ -2,78 +2,65 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getConcerts, addConcert } from '../../services/concertsService';
 import { getArtists } from '../../services/artistsService';
-import { getProgrammers } from '../../services/programmersService';
+import ConcertsDashboard from './ConcertsDashboard';
 import './ConcertsList.css';
 
 const ConcertsList = () => {
   const [concerts, setConcerts] = useState([]);
-  const [artists, setArtists] = useState([]);
-  const [programmers, setProgrammers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  
-  // État pour le formulaire d'ajout de concert
+  const [artists, setArtists] = useState([]);
   const [newConcert, setNewConcert] = useState({
-    artist: { id: '', name: '' },
-    programmer: { id: '', name: '', structure: '' },
+    artistId: '',
     date: '',
     time: '',
     venue: '',
     city: '',
     price: '',
-    status: 'En attente',
+    status: 'À venir',
     notes: ''
   });
-  
-  // Statuts possibles pour un concert
-  const statuses = [
-    'En attente',
-    'Confirmé',
-    'Contrat envoyé',
-    'Contrat signé',
-    'Acompte reçu',
-    'Soldé',
-    'Annulé'
-  ];
-  
-  // Générer les options pour les heures (00h à 23h)
-  const hours = Array.from({ length: 24 }, (_, i) => 
-    i < 10 ? `0${i}` : `${i}`
-  );
-  
-  // Générer les options pour les minutes (00 à 59)
-  const minutes = Array.from({ length: 60 }, (_, i) => 
-    i < 10 ? `0${i}` : `${i}`
-  );
+  const [currentDate, setCurrentDate] = useState('');
+  const [currentHour, setCurrentHour] = useState('');
+  const [currentMinute, setCurrentMinute] = useState('');
+  const [useDashboard, setUseDashboard] = useState(true); // Activer le tableau de bord par défaut
+  const [error, setError] = useState(null);
+
+  // Options pour les heures et minutes
+  const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+  const minutes = ['00', '15', '30', '45'];
+  const statuses = ['À venir', 'En cours', 'Terminé', 'Annulé'];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError(null);
         
-        // Récupérer les concerts
-        console.log("Tentative de récupération des concerts via Firebase...");
+        console.log('ConcertsList - Chargement des concerts...');
         const concertsData = await getConcerts();
-        console.log("Concerts récupérés:", concertsData);
-        setConcerts(concertsData);
+        console.log(`ConcertsList - ${concertsData.length} concerts récupérés`);
         
-        // Récupérer les artistes pour le formulaire
-        console.log("Tentative de récupération des artistes...");
+        console.log('ConcertsList - Chargement des artistes...');
         const artistsData = await getArtists();
-        console.log("Artistes récupérés:", artistsData);
+        console.log(`ConcertsList - ${artistsData.length} artistes récupérés`);
+        
+        // Enrichir les données de concerts avec les informations d'artistes
+        const enrichedConcerts = concertsData.map(concert => {
+          const artist = artistsData.find(a => a.id === concert.artistId);
+          return {
+            ...concert,
+            artist: artist || { name: 'Artiste inconnu' }
+          };
+        });
+        
+        console.log('ConcertsList - Données enrichies:', enrichedConcerts);
+        setConcerts(enrichedConcerts);
         setArtists(artistsData);
-        
-        // Récupérer les programmateurs pour le formulaire
-        console.log("Tentative de récupération des programmateurs...");
-        const programmersData = await getProgrammers();
-        console.log("Programmateurs récupérés:", programmersData);
-        setProgrammers(programmersData);
-        
         setLoading(false);
-      } catch (err) {
-        console.error("Erreur dans le composant lors de la récupération des données:", err);
-        setError(err.message);
+      } catch (error) {
+        console.error('ConcertsList - Erreur lors du chargement des données:', error);
+        setError('Erreur lors du chargement des données. Veuillez réessayer.');
         setLoading(false);
       }
     };
@@ -84,120 +71,138 @@ const ConcertsList = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    if (name === 'artist') {
-      const selectedArtist = artists.find(artist => artist.id === value);
-      setNewConcert({
-        ...newConcert,
-        artist: {
-          id: selectedArtist.id,
-          name: selectedArtist.name
-        }
-      });
-    } else if (name === 'programmer') {
-      const selectedProgrammer = programmers.find(programmer => programmer.id === value);
-      setNewConcert({
-        ...newConcert,
-        programmer: {
-          id: selectedProgrammer.id,
-          name: selectedProgrammer.name || "Inconnu",
-          structure: selectedProgrammer.structure || ''
-        }
-      });
-    } else if (name === 'hour' || name === 'minute') {
-      // Gérer les sélections d'heure et de minute
-      const currentTime = newConcert.time ? newConcert.time.split(':') : ['00', '00'];
-      const hour = name === 'hour' ? value : currentTime[0];
-      const minute = name === 'minute' ? value : currentTime[1];
-      
-      setNewConcert({
-        ...newConcert,
-        time: `${hour}:${minute}`
-      });
+    if (name === 'date') {
+      setCurrentDate(value);
+    } else if (name === 'hour') {
+      setCurrentHour(value);
+    } else if (name === 'minute') {
+      setCurrentMinute(value);
     } else {
-      setNewConcert({
-        ...newConcert,
+      setNewConcert(prev => ({
+        ...prev,
         [name]: value
-      });
+      }));
     }
-    
-    // Log pour le débogage
-    console.log(`Champ ${name} mis à jour avec la valeur: ${value}`);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     try {
       setLoading(true);
+      setError(null);
       
-      // Convertir price en nombre
-      const concertData = {
+      // Construire la date et l'heure
+      const dateObj = new Date(currentDate);
+      const timeString = `${currentHour}:${currentMinute}`;
+      
+      const concertToAdd = {
         ...newConcert,
-        price: parseFloat(newConcert.price) || 0
+        date: dateObj,
+        time: timeString
       };
       
-      console.log("Données du concert à ajouter:", concertData);
+      console.log('ConcertsList - Ajout d\'un nouveau concert:', concertToAdd);
+      const addedConcert = await addConcert(concertToAdd);
+      console.log('ConcertsList - Concert ajouté avec succès:', addedConcert);
       
-      await addConcert(concertData);
-      console.log("concertData envoyé :", concertData);
+      // Ajouter l'artiste à l'objet concert
+      const artist = artists.find(a => a.id === concertToAdd.artistId);
+      const enrichedConcert = {
+        ...addedConcert,
+        artist: artist || { name: 'Artiste inconnu' }
+      };
       
-      // Réinitialiser le formulaire
+      setConcerts(prev => [...prev, enrichedConcert]);
+      setShowForm(false);
       setNewConcert({
-        artist: { id: '', name: '' },
-        programmer: { id: '', name: '', structure: '' },
+        artistId: '',
         date: '',
         time: '',
         venue: '',
         city: '',
         price: '',
-        status: 'En attente',
+        status: 'À venir',
         notes: ''
       });
-      
-      // Masquer le formulaire
-      setShowForm(false);
-      
-      // Rafraîchir la liste des concerts
-      const updatedConcerts = await getConcerts();
-      setConcerts(updatedConcerts);
-      
+      setCurrentDate('');
+      setCurrentHour('');
+      setCurrentMinute('');
       setLoading(false);
-    } catch (err) {
-      console.error("Erreur lors de l'ajout du concert:", err);
-      setError(err.message);
+    } catch (error) {
+      console.error('ConcertsList - Erreur lors de l\'ajout du concert:', error);
+      setError('Erreur lors de l\'ajout du concert. Veuillez réessayer.');
       setLoading(false);
     }
   };
 
-  if (loading && concerts.length === 0) return <div className="loading">Chargement des concerts...</div>;
-  if (error) return <div className="error-message">Erreur: {error}</div>;
+  const handleViewConcert = (concert) => {
+    try {
+      // Cette fonction est appelée par le composant ConcertsDashboard
+      console.log('ConcertsList - Redirection vers la page du concert:', concert.id);
+      window.location.href = `/concerts/${concert.id}`;
+    } catch (error) {
+      console.error('ConcertsList - Erreur lors de la redirection:', error);
+      setError('Erreur lors de la redirection. Veuillez réessayer.');
+    }
+  };
 
-  // Extraire l'heure et les minutes du temps actuel
-  const currentTime = newConcert.time ? newConcert.time.split(':') : ['', ''];
-  const currentHour = currentTime[0];
-  const currentMinute = currentTime[1];
+  const handleEditConcert = (concert) => {
+    try {
+      // Cette fonction est appelée par le composant ConcertsDashboard
+      console.log('ConcertsList - Redirection vers la page d\'édition du concert:', concert.id);
+      window.location.href = `/concerts/${concert.id}`;
+    } catch (error) {
+      console.error('ConcertsList - Erreur lors de la redirection:', error);
+      setError('Erreur lors de la redirection. Veuillez réessayer.');
+    }
+  };
+
+  // Basculer entre le tableau de bord et la vue classique
+  const toggleView = () => {
+    console.log('ConcertsList - Basculement de la vue:', useDashboard ? 'classique' : 'tableau de bord');
+    setUseDashboard(!useDashboard);
+  };
+
+  if (loading && concerts.length === 0) {
+    return <div className="loading">Chargement des concerts...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="error-container">
+        <div className="error">{error}</div>
+        <button className="refresh-button" onClick={() => window.location.reload()}>
+          Rafraîchir la page
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="concerts-list-container">
+    <div className="concerts-container">
       <div className="concerts-header">
-        <h2>Liste des Concerts</h2>
-        <button 
-          className="add-concert-btn"
-          onClick={() => setShowForm(!showForm)}
-        >
-          {showForm ? 'Annuler' : 'Ajouter un concert'}
-        </button>
+        <h1>Gestion des concerts</h1>
+        <div className="header-buttons">
+          <button className="toggle-view-btn" onClick={toggleView}>
+            {useDashboard ? 'Vue classique' : 'Vue tableau de bord'}
+          </button>
+          <button className="add-concert-btn" onClick={() => setShowForm(!showForm)}>
+            {showForm ? 'Annuler' : 'Ajouter un concert'}
+          </button>
+        </div>
       </div>
       
       {showForm && (
-        <div className="add-concert-form-container">
-          <h3>Ajouter un nouveau concert</h3>
-          <form onSubmit={handleSubmit} className="add-concert-form">
+        <div className="add-concert-form">
+          <h2>Ajouter un nouveau concert</h2>
+          <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label htmlFor="artist">Artiste *</label>
+              <label htmlFor="artistId">Artiste *</label>
               <select
-                id="artist"
-                name="artist"
-                value={newConcert.artist.id}
+                id="artistId"
+                name="artistId"
+                value={newConcert.artistId}
                 onChange={handleInputChange}
                 required
               >
@@ -209,36 +214,18 @@ const ConcertsList = () => {
             </div>
             
             <div className="form-group">
-              <label htmlFor="programmer">Programmateur *</label>
-              <select
-                id="programmer"
-                name="programmer"
-                value={newConcert.programmer.id}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">Sélectionner un programmateur</option>
-                {programmers.map(programmer => (
-                  <option key={programmer.id} value={programmer.id}>
-                    {programmer.name} ({programmer.structure || 'Structure non spécifiée'})
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group">
               <label htmlFor="date">Date *</label>
               <input
                 type="date"
                 id="date"
                 name="date"
-                value={newConcert.date}
+                value={currentDate}
                 onChange={handleInputChange}
                 required
               />
             </div>
             
-            <div className="form-group time-selects">
+            <div className="form-group">
               <label>Heure *</label>
               <div className="time-inputs">
                 <select
@@ -349,41 +336,56 @@ const ConcertsList = () => {
         </div>
       )}
       
-      {concerts.length === 0 ? (
-        <p className="no-results">Aucun concert trouvé.</p>
-      ) : (
-        <div className="concerts-table-container">
-          <table className="concerts-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Heure</th>
-                <th>Artiste</th>
-                <th>Lieu</th>
-                <th>Ville</th>
-                <th>Statut</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {concerts.map((concert) => (
-                <tr key={concert.id}>
-                  <td>{concert.date ? new Date(concert.date).toLocaleDateString() : 'Non spécifié'}</td>
-                  <td>{concert.time || 'Non spécifié'}</td>
-                  <td>{concert.artist?.name || 'Non spécifié'}</td>
-                  <td>{concert.venue || 'Non spécifié'}</td>
-                  <td>{concert.city || 'Non spécifié'}</td>
-                  <td>{concert.status || 'Non spécifié'}</td>
-                  <td>
-                    <Link to={`/concerts/${concert.id}`} className="view-details-btn">
-                      Voir
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {!showForm && (
+        <>
+          {useDashboard ? (
+            <ConcertsDashboard 
+              concerts={concerts}
+              onViewConcert={handleViewConcert}
+              onEditConcert={handleEditConcert}
+            />
+          ) : (
+            <div className="concerts-list">
+              <h2>Liste des concerts ({concerts.length})</h2>
+              <table className="concerts-table">
+                <thead>
+                  <tr>
+                    <th>Artiste</th>
+                    <th>Date</th>
+                    <th>Lieu</th>
+                    <th>Ville</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {concerts.map(concert => (
+                    <tr key={concert.id}>
+                      <td>{concert.artist ? concert.artist.name : 'Artiste inconnu'}</td>
+                      <td>
+                        {concert.date instanceof Date 
+                          ? concert.date.toLocaleDateString() 
+                          : concert.date && concert.date.seconds 
+                            ? new Date(concert.date.seconds * 1000).toLocaleDateString() 
+                            : 'Date non spécifiée'}
+                        {' '}
+                        {concert.time || ''}
+                      </td>
+                      <td>{concert.venue || 'Non spécifié'}</td>
+                      <td>{concert.city || 'Non spécifié'}</td>
+                      <td>{concert.status || 'Non spécifié'}</td>
+                      <td>
+                        <Link to={`/concerts/${concert.id}`} className="action-link">
+                          Voir
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
