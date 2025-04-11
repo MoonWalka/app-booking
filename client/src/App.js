@@ -1,125 +1,127 @@
-import React, { useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from './context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { auth } from './firebase';
 import './App.css';
 
-// Composants protégés
-import Layout from './components/common/Layout';
-import Login from './components/auth/Login';
-import NotFound from './components/common/NotFound';
+// Composants
+import Sidebar from './components/layout/Sidebar';
 import Dashboard from './components/dashboard/Dashboard';
-import ProgrammersList from './components/programmers/ProgrammersList';
-import ProgrammerDetail from './components/programmers/ProgrammerDetail';
 import ConcertsList from './components/concerts/ConcertsList';
-import ConcertDetail from './components/concerts/ConcertDetail';
+import ConcertDetails from './components/concerts/ConcertDetails';
 import ArtistsList from './components/artists/ArtistsList';
-import ArtistDetail from './components/artists/ArtistDetail';
-import EmailSystem from './components/emails/EmailSystem';
-import DocumentsManager from './components/documents/DocumentsManager';
-import TestFirebaseIntegration from './components/tests/TestFirebaseIntegration';
-import ArtistEdit from './components/artists/ArtistEdit';
-import ContractsTable from './components/contracts/ContractsTable';
-import FormValidationList from './components/formValidation/FormValidationList';
-
-// Composants publics (affichés sans authentification)
-// Note: Ces routes sont maintenues ici pour compatibilité, mais elles sont gérées directement dans index.js
+import ArtistDetails from './components/artists/ArtistDetails';
+import ProgrammersList from './components/programmers/ProgrammersList';
+import ProgrammerDetails from './components/programmers/ProgrammerDetails';
+import ContractsList from './components/contracts/ContractsList';
+import ContractDetails from './components/contracts/ContractDetails';
+import InvoicesList from './components/invoices/InvoicesList';
+import InvoiceDetails from './components/invoices/InvoiceDetails';
+import EmailsList from './components/emails/EmailsList';
+import DocumentsList from './components/documents/DocumentsList';
+import Settings from './components/settings/Settings';
 import PublicFormPage from './components/public/PublicFormPage';
-import FormSubmittedPage from './components/public/FormSubmittedPage';
-
-// Composant ProtectedRoute pour sécuriser les routes privées
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading, bypassEnabled } = useAuth();
-  const location = useLocation();
-  
-  // Logs de débogage
-  useEffect(() => {
-    console.log('ProtectedRoute - Route actuelle (hash):', location.hash);
-    console.log('ProtectedRoute - Route actuelle (pathname):', location.pathname);
-    console.log('ProtectedRoute - Utilisateur authentifié:', isAuthenticated);
-    console.log('ProtectedRoute - Bypass activé:', bypassEnabled);
-  }, [location.hash, location.pathname, isAuthenticated, bypassEnabled]);
-
-  if (loading) {
-    console.log('ProtectedRoute - Chargement en cours...');
-    return <div>Chargement...</div>;
-  }
-  
-  if (bypassEnabled) {
-    console.log('ProtectedRoute - Mode bypass d\'authentification activé - Accès autorisé');
-    return children;
-  }
-
-  if (!isAuthenticated) {
-    console.log('ProtectedRoute - Utilisateur non authentifié, redirection vers /login');
-    return <Navigate to="/login" />;
-  }
-  
-  console.log('ProtectedRoute - Utilisateur authentifié, accès autorisé');
-  return children;
-};
+import FormValidationList from './components/formValidation/FormValidationList';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 function App() {
-  const { bypassEnabled, isAuthenticated } = useAuth();
-  const location = useLocation();
-  
-  // Logs de débogage
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [testMode] = useState(true); // Mode test pour le développement
+
   useEffect(() => {
-    console.log('App - Rendu avec:');
-    console.log('App - Route actuelle (hash):', location.hash);
-    console.log('App - Route actuelle (pathname):', location.pathname);
-    console.log('App - URL complète:', window.location.href);
-    console.log('App - Utilisateur authentifié:', isAuthenticated);
-    console.log('App - Bypass activé:', bypassEnabled);
-  }, [location.hash, location.pathname, isAuthenticated, bypassEnabled]);
+    console.log("App - Initialisation de l'application...");
+    
+    try {
+      // Vérifier l'authentification
+      const unsubscribe = auth.onAuthStateChanged(user => {
+        console.log("App - État d'authentification changé:", user ? "Utilisateur connecté" : "Utilisateur non connecté");
+        setUser(user);
+        setLoading(false);
+      }, error => {
+        console.error("App - Erreur d'authentification:", error);
+        setError("Erreur lors de la vérification de l'authentification. Veuillez réessayer.");
+        setLoading(false);
+      });
+      
+      return () => unsubscribe();
+    } catch (error) {
+      console.error("App - Erreur lors de l'initialisation:", error);
+      setError("Erreur lors de l'initialisation de l'application. Veuillez réessayer.");
+      setLoading(false);
+    }
+  }, []);
+
+  // Gestion des erreurs globales
+  if (error) {
+    return (
+      <div className="error-container">
+        <h1>Erreur</h1>
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()}>Rafraîchir la page</button>
+      </div>
+    );
+  }
+
+  // Afficher un message de chargement pendant l'initialisation
+  if (loading && !testMode) {
+    return <div className="loading-container">Chargement de l'application...</div>;
+  }
+
+  // Vérifier si l'utilisateur est authentifié ou si le mode test est activé
+  const isAuthenticated = user || testMode;
 
   return (
-    <div className="App">
-      <Routes>
-        {/* Routes publiques - maintenues pour compatibilité mais gérées dans index.js */}
-        <Route path="/form/:concertId" element={<PublicFormPage />} />
-        <Route path="/form-submitted" element={<FormSubmittedPage />} />
-
-        <Route path="/login" element={
-          bypassEnabled ? <Navigate to="/" /> : <Login />
-        } />
+    <Router>
+      <div className="app-container">
+        {isAuthenticated && (
+          <Sidebar />
+        )}
         
-        {/* Routes protégées accessibles uniquement aux utilisateurs authentifiés */}
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route index element={<Dashboard />} />
-          <Route path="contrats" element={<ContractsTable />} />
-          <Route path="factures" element={<div>Module Factures à venir</div>} />
-          <Route path="programmateurs" element={<ProgrammersList />} />
-          <Route path="programmateurs/:id" element={<ProgrammerDetail />} />
-          <Route path="concerts" element={<ConcertsList />} />
-          <Route path="concerts/:id" element={<ConcertDetail />} />
-          <Route path="artistes" element={<ArtistsList />} />
-          <Route path="artistes/:id" element={<ArtistDetail />} />
-          <Route path="emails" element={<EmailSystem />} />
-          <Route path="documents" element={<DocumentsManager />} />
-          <Route path="validation-formulaires" element={<FormValidationList />} />
-          <Route path="tests" element={<TestFirebaseIntegration />} />
-        </Route>
-        
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-
-      {bypassEnabled && (
-        <div style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: '#fff3cd',
-          color: '#856404',
-          padding: '10px',
-          textAlign: 'center',
-          borderTop: '1px solid #ffeeba',
-          zIndex: 1000
-        }}>
-          Mode test activé - Authentification désactivée
+        <div className="main-content">
+          {isAuthenticated && (
+            <div className="user-info">
+              <p>Utilisateur Test</p>
+              {testMode && <p className="test-mode">Mode test activé - Authentification désactivée</p>}
+            </div>
+          )}
+          
+          <ErrorBoundary>
+            <Routes>
+              {/* Routes publiques */}
+              <Route path="/public-form" element={<PublicFormPage />} />
+              
+              {/* Routes protégées */}
+              {isAuthenticated ? (
+                <>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/concerts" element={<ConcertsList />} />
+                  <Route path="/concerts/:id" element={<ConcertDetails />} />
+                  <Route path="/artists" element={<ArtistsList />} />
+                  <Route path="/artists/:id" element={<ArtistDetails />} />
+                  <Route path="/programmers" element={<ProgrammersList />} />
+                  <Route path="/programmers/:id" element={<ProgrammerDetails />} />
+                  <Route path="/contracts" element={<ContractsList />} />
+                  <Route path="/contracts/:id" element={<ContractDetails />} />
+                  <Route path="/invoices" element={<InvoicesList />} />
+                  <Route path="/invoices/:id" element={<InvoiceDetails />} />
+                  <Route path="/emails" element={<EmailsList />} />
+                  <Route path="/documents" element={<DocumentsList />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/form-validation" element={<FormValidationList />} />
+                  <Route path="/validation-formulaire" element={<FormValidationList />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </>
+              ) : (
+                // Rediriger vers la page de connexion si non authentifié
+                <Route path="*" element={<Navigate to="/login" replace />} />
+              )}
+            </Routes>
+          </ErrorBoundary>
         </div>
-      )}
-    </div>
+      </div>
+    </Router>
   );
 }
 

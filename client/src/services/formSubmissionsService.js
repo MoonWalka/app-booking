@@ -1,451 +1,190 @@
-import { 
-  collection, 
-  getDocs, 
-  getDoc, 
-  doc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc,
-  query,
-  orderBy,
-  where,
-  setDoc,
-  Timestamp,
-  limit
-} from 'firebase/firestore';
 import { db } from '../firebase';
+import { collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore';
 
-// Collection de référence
-const FORM_SUBMISSIONS_COLLECTION = 'formSubmissions';
+const COLLECTION_NAME = 'formSubmissions';
 
-// Assurez-vous que la collection existe
-const ensureCollection = async (collectionName) => {
+// Récupérer toutes les soumissions de formulaire
+export const getFormSubmissions = async () => {
   try {
-    console.log(`[ensureCollection] Vérification de la collection ${collectionName}...`);
+    console.log('FormSubmissionsService - Récupération de toutes les soumissions...');
+    const submissionsCollection = collection(db, COLLECTION_NAME);
+    const submissionsSnapshot = await getDocs(submissionsCollection);
     
-    // Vérifier si la collection existe en essayant de récupérer des documents
-    const collectionRef = collection(db, collectionName);
-    const snapshot = await getDocs(query(collectionRef, limit(1)));
-    
-    console.log(`[ensureCollection] Résultat de la vérification: ${snapshot.empty ? 'collection vide' : snapshot.size + ' documents trouvés'}`);
-    
-    return true;
-  } catch (error) {
-    console.error(`[ensureCollection] Erreur lors de la vérification de la collection ${collectionName}:`, error);
-    return false;
-  }
-};
-
-// Assurez-vous que la collection formSubmissions existe
-const formSubmissionsCollection = collection(db, FORM_SUBMISSIONS_COLLECTION);
-
-/**
- * Récupère tous les formulaires soumis
- * @param {Object} filters - Filtres à appliquer (optionnel)
- * @returns {Promise<Array>} Liste des formulaires soumis
- */
-export const getFormSubmissions = async (filters = {}) => {
-  try {
-    // S'assurer que la collection existe
-    await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
-    
-    console.log("[getFormSubmissions] Tentative de récupération des formulaires depuis Firebase...");
-    console.log("[getFormSubmissions] Filtres appliqués:", filters);
-    
-    // Vérifier et mettre à jour les soumissions sans statut
-    await updateSubmissionsWithoutStatus();
-    
-    // Création d'une requête de base
-    let formQuery = formSubmissionsCollection;
-    
-    // Application des filtres si nécessaire
-    if (filters) {
-      // Filtrer par statut
-      if (filters.status) {
-        console.log(`[getFormSubmissions] Filtrage par statut: ${filters.status}`);
-        formQuery = query(formQuery, where('status', '==', filters.status));
-      }
-      
-      // Filtrer par programmateur
-      if (filters.programmerId) {
-        console.log(`[getFormSubmissions] Filtrage par programmateur: ${filters.programmerId}`);
-        formQuery = query(formQuery, where('programmerId', '==', filters.programmerId));
-      }
-      
-      // Filtrer par concert
-      if (filters.concertId) {
-        console.log(`[getFormSubmissions] Filtrage par concert: ${filters.concertId}`);
-        formQuery = query(formQuery, where('concertId', '==', filters.concertId));
-      }
-      
-      // Filtrer par lien de formulaire
-      if (filters.formLinkId) {
-        console.log(`[getFormSubmissions] Filtrage par lien de formulaire: ${filters.formLinkId}`);
-        formQuery = query(formQuery, where('formLinkId', '==', filters.formLinkId));
-      }
-      
-      // Filtrer par token commun
-      if (filters.commonToken) {
-        console.log(`[getFormSubmissions] Filtrage par token commun: ${filters.commonToken}`);
-        formQuery = query(formQuery, where('commonToken', '==', filters.commonToken));
-      }
-    }
-    
-    // Ajout d'un tri par date de soumission (du plus récent au plus ancien)
-    formQuery = query(formQuery, orderBy('submittedAt', 'desc'));
-    
-    // Exécution de la requête
-    const snapshot = await getDocs(formQuery);
-    
-    if (snapshot.empty) {
-      console.log("[getFormSubmissions] Aucun formulaire trouvé avec les filtres spécifiés");
-      return [];
-    }
-    
-    const formSubmissions = snapshot.docs.map(doc => ({
+    const submissions = submissionsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
     
-    console.log(`[getFormSubmissions] ${formSubmissions.length} formulaires récupérés depuis Firebase`);
-    formSubmissions.forEach(form => {
-      console.log(`[getFormSubmissions] Formulaire ID: ${form.id}, Token: ${form.commonToken}, Status: ${form.status}`);
-    });
+    console.log(`FormSubmissionsService - ${submissions.length} soumissions récupérées`);
     
-    return formSubmissions;
+    // Mettre à jour les soumissions sans statut
+    const submissionsToUpdate = submissions.filter(submission => !submission.status);
+    if (submissionsToUpdate.length > 0) {
+      console.log(`FormSubmissionsService - Mise à jour de ${submissionsToUpdate.length} soumissions sans statut...`);
+      for (const submission of submissionsToUpdate) {
+        await updateFormSubmissionStatus(submission.id, 'pending');
+      }
+      
+      // Récupérer à nouveau les soumissions après la mise à jour
+      const updatedSubmissionsSnapshot = await getDocs(submissionsCollection);
+      const updatedSubmissions = updatedSubmissionsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      console.log(`FormSubmissionsService - ${updatedSubmissions.length} soumissions récupérées après mise à jour`);
+      return updatedSubmissions;
+    }
+    
+    return submissions;
   } catch (error) {
-    console.error("[getFormSubmissions] Erreur lors de la récupération des formulaires:", error);
-    return [];
+    console.error('FormSubmissionsService - Erreur lors de la récupération des soumissions:', error);
+    throw new Error('Erreur lors de la récupération des soumissions de formulaire');
   }
 };
 
-/**
- * Met à jour les soumissions sans statut défini
- * @returns {Promise<number>} Nombre de soumissions mises à jour
- */
-export const updateSubmissionsWithoutStatus = async () => {
+// Récupérer les soumissions en attente
+export const getPendingFormSubmissions = async () => {
   try {
-    console.log("[updateSubmissionsWithoutStatus] Recherche de formulaires sans statut défini...");
+    console.log('FormSubmissionsService - Récupération des soumissions en attente...');
+    const submissionsCollection = collection(db, COLLECTION_NAME);
+    const pendingQuery = query(
+      submissionsCollection,
+      where('status', '==', 'pending'),
+      orderBy('submissionDate', 'desc')
+    );
     
-    // Récupérer tous les formulaires
-    const allFormsSnapshot = await getDocs(formSubmissionsCollection);
-    if (allFormsSnapshot.empty) {
-      console.log("[updateSubmissionsWithoutStatus] Aucun formulaire trouvé");
-      return 0;
-    }
+    const pendingSnapshot = await getDocs(pendingQuery);
+    const pendingSubmissions = pendingSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
     
-    // Compter les formulaires par statut
-    const statusMap = {};
-    const formsWithoutStatus = [];
-    
-    allFormsSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      const status = data.status || 'non défini';
-      statusMap[status] = (statusMap[status] || 0) + 1;
-      
-      if (!data.status || data.status === 'non défini') {
-        formsWithoutStatus.push({
-          id: doc.id,
-          ...data
-        });
-      }
-    });
-    
-    console.log("[updateSubmissionsWithoutStatus] Distribution des statuts:", statusMap);
-    
-    // Si des formulaires sans statut sont trouvés, les mettre à jour
-    if (formsWithoutStatus.length > 0) {
-      console.log(`[updateSubmissionsWithoutStatus] ${formsWithoutStatus.length} formulaires sans statut trouvés, mise à jour...`);
-      
-      // Mettre à jour les formulaires sans statut
-      for (const form of formsWithoutStatus) {
-        console.log(`[updateSubmissionsWithoutStatus] Mise à jour du statut pour le formulaire ${form.id}`);
-        await updateDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, form.id), {
-          status: 'pending'
-        });
-      }
-      
-      console.log(`[updateSubmissionsWithoutStatus] ${formsWithoutStatus.length} formulaires mis à jour avec statut 'pending'`);
-      return formsWithoutStatus.length;
-    }
-    
-    console.log("[updateSubmissionsWithoutStatus] Aucun formulaire sans statut trouvé");
-    return 0;
+    console.log(`FormSubmissionsService - ${pendingSubmissions.length} soumissions en attente récupérées`);
+    return pendingSubmissions;
   } catch (error) {
-    console.error("[updateSubmissionsWithoutStatus] Erreur lors de la mise à jour des formulaires sans statut:", error);
-    return 0;
+    console.error('FormSubmissionsService - Erreur lors de la récupération des soumissions en attente:', error);
+    throw new Error('Erreur lors de la récupération des soumissions en attente');
   }
 };
 
-/**
- * Récupère un formulaire soumis par son ID
- * @param {string} id - ID du formulaire
- * @returns {Promise<Object>} Données du formulaire
- */
-export const getFormSubmissionById = async (id) => {
+// Récupérer une soumission de formulaire par ID
+export const getFormSubmission = async (id) => {
   try {
-    // S'assurer que la collection existe
-    await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
+    console.log(`FormSubmissionsService - Récupération de la soumission ${id}...`);
+    const submissionDoc = doc(db, COLLECTION_NAME, id);
+    const submissionSnapshot = await getDoc(submissionDoc);
     
-    console.log(`[getFormSubmissionById] Tentative de récupération du formulaire ${id} depuis Firebase...`);
-    const docRef = doc(db, FORM_SUBMISSIONS_COLLECTION, id);
-    const snapshot = await getDoc(docRef);
-    
-    if (snapshot.exists()) {
-      const formData = {
-        id: snapshot.id,
-        ...snapshot.data()
-      };
-      
-      // Vérifier si le statut est défini, sinon le mettre à jour
-      if (!formData.status) {
-        console.log(`[getFormSubmissionById] Le formulaire ${id} n'a pas de statut défini, mise à jour à 'pending'`);
-        await updateDoc(docRef, { status: 'pending' });
-        formData.status = 'pending';
-      }
-      
-      console.log(`[getFormSubmissionById] Formulaire ${id} récupéré depuis Firebase:`, formData);
-      return formData;
+    if (!submissionSnapshot.exists()) {
+      console.error(`FormSubmissionsService - Soumission ${id} non trouvée`);
+      throw new Error('Soumission de formulaire non trouvée');
     }
     
-    console.log(`[getFormSubmissionById] Formulaire ${id} non trouvé dans Firebase`);
-    return null;
+    const submission = {
+      id: submissionSnapshot.id,
+      ...submissionSnapshot.data()
+    };
+    
+    console.log(`FormSubmissionsService - Soumission ${id} récupérée:`, submission);
+    return submission;
   } catch (error) {
-    console.error(`[getFormSubmissionById] Erreur lors de la récupération du formulaire ${id}:`, error);
-    return null;
+    console.error(`FormSubmissionsService - Erreur lors de la récupération de la soumission ${id}:`, error);
+    throw new Error('Erreur lors de la récupération de la soumission de formulaire');
   }
 };
 
-/**
- * Crée un nouveau formulaire soumis
- * @param {Object} formData - Données du formulaire
- * @returns {Promise<Object>} Formulaire créé avec ID
- */
-export const createFormSubmission = async (formData) => {
-  console.log("[createFormSubmission] Début de la création d'un nouveau formulaire");
-  console.log("[createFormSubmission] Données reçues:", formData);
-  
+// Ajouter une nouvelle soumission de formulaire
+export const addFormSubmission = async (formData) => {
   try {
-    // S'assurer que la collection existe
-    console.log("[createFormSubmission] Vérification de l'existence de la collection...");
-    const collectionExists = await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
-    console.log(`[createFormSubmission] Résultat de la vérification: ${collectionExists ? 'collection existe' : 'échec de la vérification'}`);
+    console.log('FormSubmissionsService - Ajout d\'une nouvelle soumission:', formData);
     
-    // Vérifier les champs obligatoires
-    const requiredFields = ['concertId'];
-    const missingFields = requiredFields.filter(field => !formData[field]);
-    
-    if (missingFields.length > 0) {
-      console.error(`[createFormSubmission] Champs obligatoires manquants: ${missingFields.join(', ')}`);
-      throw new Error(`Champs obligatoires manquants: ${missingFields.join(', ')}`);
-    }
-    
-    // Générer un token commun si non fourni
-    let commonToken = formData.commonToken;
-    if (!commonToken) {
-      // Importer dynamiquement pour éviter les dépendances circulaires
-      const { generateToken } = await import('../utils/tokenGenerator');
-      commonToken = generateToken(formData.concertId);
-      console.log(`[createFormSubmission] Génération d'un nouveau token commun: ${commonToken}`);
-    }
-    
-    // S'assurer que les champs obligatoires sont présents et que le statut est explicitement défini
-    const completeFormData = {
+    // S'assurer que le statut est défini
+    const submissionData = {
       ...formData,
-      commonToken, // Ajouter le token commun
-      status: 'pending', // Forcer le statut à 'pending' pour garantir la cohérence
-      submittedAt: Timestamp.fromDate(new Date()),
-      // Convertir la date du concert en Timestamp si elle existe
-      concertDate: formData.concertDate ? 
-        (formData.concertDate instanceof Date ? 
-          Timestamp.fromDate(formData.concertDate) : 
-          formData.concertDate) : 
-        null
+      status: formData.status || 'pending',
+      submissionDate: new Date()
     };
     
-    console.log("[createFormSubmission] Tentative d'ajout d'un formulaire à Firebase avec addDoc:", completeFormData);
-    console.log("[createFormSubmission] Vérification de la présence de concertId:", completeFormData.concertId ? 'Présent' : 'Manquant');
-    console.log("[createFormSubmission] Vérification de la présence du token commun:", completeFormData.commonToken ? 'Présent' : 'Manquant');
-    console.log("[createFormSubmission] Vérification du statut:", completeFormData.status);
+    const submissionsCollection = collection(db, COLLECTION_NAME);
+    const docRef = await addDoc(submissionsCollection, submissionData);
     
-    try {
-      const docRef = await addDoc(formSubmissionsCollection, completeFormData);
-      console.log(`[createFormSubmission] Formulaire ajouté avec succès via addDoc, ID: ${docRef.id}`);
-      
-      // Vérifier immédiatement que le document a été créé avec le bon statut
-      const createdDoc = await getDoc(docRef);
-      if (createdDoc.exists()) {
-        const createdData = createdDoc.data();
-        console.log(`[createFormSubmission] Vérification du document créé - Statut: ${createdData.status}`);
-        
-        // Si le statut n'est pas 'pending', le corriger immédiatement
-        if (createdData.status !== 'pending') {
-          console.log(`[createFormSubmission] Correction du statut à 'pending' pour le document ${docRef.id}`);
-          await updateDoc(docRef, { status: 'pending' });
-        }
-      }
-      
-      return {
-        id: docRef.id,
-        ...completeFormData
-      };
-    } catch (addDocError) {
-      console.error("[createFormSubmission] Erreur lors de l'ajout du formulaire avec addDoc:", addDocError);
-      
-      // Essayer d'ajouter le formulaire avec un ID généré manuellement
-      console.log("[createFormSubmission] Tentative alternative avec setDoc...");
-      const mockId = 'form-' + Date.now();
-      
-      try {
-        await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, mockId), completeFormData);
-        console.log(`[createFormSubmission] Formulaire ajouté avec succès via setDoc, ID: ${mockId}`);
-        
-        // Vérifier immédiatement que le document a été créé avec le bon statut
-        const createdDoc = await getDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, mockId));
-        if (createdDoc.exists()) {
-          const createdData = createdDoc.data();
-          console.log(`[createFormSubmission] Vérification du document créé - Statut: ${createdData.status}`);
-          
-          // Si le statut n'est pas 'pending', le corriger immédiatement
-          if (createdData.status !== 'pending') {
-            console.log(`[createFormSubmission] Correction du statut à 'pending' pour le document ${mockId}`);
-            await updateDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, mockId), { status: 'pending' });
-          }
-        }
-        
-        return {
-          id: mockId,
-          ...completeFormData
-        };
-      } catch (setDocError) {
-        console.error("[createFormSubmission] Erreur lors de l'ajout du formulaire avec setDoc:", setDocError);
-        throw setDocError; // Propager l'erreur pour la gestion dans le composant
-      }
-    }
+    const newSubmission = {
+      id: docRef.id,
+      ...submissionData
+    };
+    
+    console.log('FormSubmissionsService - Nouvelle soumission ajoutée:', newSubmission);
+    return newSubmission;
   } catch (error) {
-    console.error("[createFormSubmission] Erreur générale lors de l'ajout du formulaire:", error);
-    
-    // Vérifier si l'erreur est liée à un champ manquant
-    if (error.message && error.message.includes('Champs obligatoires manquants')) {
-      throw error; // Propager l'erreur spécifique
-    }
-    
-    throw error;
+    console.error('FormSubmissionsService - Erreur lors de l\'ajout de la soumission:', error);
+    throw new Error('Erreur lors de l\'ajout de la soumission de formulaire');
   }
 };
 
-/**
- * Met à jour un formulaire soumis existant
- * @param {string} id - ID du formulaire
- * @param {Object} formData - Nouvelles données du formulaire
- * @returns {Promise<Object>} Formulaire mis à jour
- */
-export const updateFormSubmission = async (id, formData) => {
+// Mettre à jour le statut d'une soumission de formulaire
+export const updateFormSubmissionStatus = async (id, status) => {
   try {
-    // S'assurer que la collection existe
-    await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
+    console.log(`FormSubmissionsService - Mise à jour du statut de la soumission ${id} à ${status}...`);
+    const submissionDoc = doc(db, COLLECTION_NAME, id);
     
-    console.log(`[updateFormSubmission] Tentative de mise à jour du formulaire ${id}:`, formData);
-    const docRef = doc(db, FORM_SUBMISSIONS_COLLECTION, id);
+    await updateDoc(submissionDoc, { status });
     
-    // Si le statut change à 'processed' ou 'rejected', ajouter la date de traitement
-    const updatedData = {
-      ...formData
-    };
-    
-    if (formData.status === 'processed' || formData.status === 'rejected') {
-      updatedData.processedAt = Timestamp.fromDate(new Date());
-    }
-    
-    // Convertir la date du concert en Timestamp si elle existe
-    if (formData.concertDate) {
-      updatedData.concertDate = formData.concertDate instanceof Date ? 
-        Timestamp.fromDate(formData.concertDate) : 
-        formData.concertDate;
-    }
-    
-    await updateDoc(docRef, updatedData);
-    console.log(`[updateFormSubmission] Formulaire ${id} mis à jour avec succès`);
-    
-    return {
-      id,
-      ...updatedData
-    };
+    console.log(`FormSubmissionsService - Statut de la soumission ${id} mis à jour à ${status}`);
+    return { id, status };
   } catch (error) {
-    console.error(`[updateFormSubmission] Erreur lors de la mise à jour du formulaire ${id}:`, error);
-    throw error;
+    console.error(`FormSubmissionsService - Erreur lors de la mise à jour du statut de la soumission ${id}:`, error);
+    throw new Error('Erreur lors de la mise à jour du statut de la soumission');
   }
 };
 
-/**
- * Supprime un formulaire soumis
- * @param {string} id - ID du formulaire
- * @returns {Promise<boolean>} Succès de la suppression
- */
+// Supprimer une soumission de formulaire
 export const deleteFormSubmission = async (id) => {
   try {
-    // S'assurer que la collection existe
-    await ensureCollection(FORM_SUBMISSIONS_COLLECTION);
+    console.log(`FormSubmissionsService - Suppression de la soumission ${id}...`);
+    const submissionDoc = doc(db, COLLECTION_NAME, id);
     
-    console.log(`[deleteFormSubmission] Tentative de suppression du formulaire ${id}`);
-    const docRef = doc(db, FORM_SUBMISSIONS_COLLECTION, id);
-    await deleteDoc(docRef);
-    console.log(`[deleteFormSubmission] Formulaire ${id} supprimé avec succès`);
+    await deleteDoc(submissionDoc);
     
-    return true;
+    console.log(`FormSubmissionsService - Soumission ${id} supprimée`);
+    return { id };
   } catch (error) {
-    console.error(`[deleteFormSubmission] Erreur lors de la suppression du formulaire ${id}:`, error);
-    throw error;
+    console.error(`FormSubmissionsService - Erreur lors de la suppression de la soumission ${id}:`, error);
+    throw new Error('Erreur lors de la suppression de la soumission de formulaire');
   }
 };
 
-/**
- * Récupère les formulaires soumis par un programmateur
- * @param {string} programmerId - ID du programmateur
- * @returns {Promise<Array>} Liste des formulaires soumis
- */
-export const getFormSubmissionsByProgrammer = async (programmerId) => {
-  return getFormSubmissions({ programmerId });
-};
-
-/**
- * Récupère les formulaires soumis par statut
- * @param {string} status - Statut des formulaires
- * @returns {Promise<Array>} Liste des formulaires soumis
- */
-export const getFormSubmissionsByStatus = async (status) => {
-  return getFormSubmissions({ status });
-};
-
-/**
- * Récupère les formulaires soumis pour un concert
- * @param {string} concertId - ID du concert
- * @returns {Promise<Array>} Liste des formulaires soumis
- */
-export const getFormSubmissionsByConcert = async (concertId) => {
-  return getFormSubmissions({ concertId });
-};
-
-/**
- * Récupère les formulaires soumis par token commun
- * @param {string} commonToken - Token commun
- * @returns {Promise<Array>} Liste des formulaires soumis
- */
-export const getFormSubmissionsByToken = async (commonToken) => {
-  return getFormSubmissions({ commonToken });
-};
-
-/**
- * Récupère un formulaire soumis par son ID de lien
- * @param {string} formLinkId - ID du lien de formulaire
- * @returns {Promise<Object>} Formulaire soumis
- */
-export const getFormSubmissionByFormLinkId = async (formLinkId) => {
+// Récupérer les statistiques des soumissions
+export const getFormSubmissionsStats = async () => {
   try {
-    const submissions = await getFormSubmissions({ formLinkId });
-    return submissions.length > 0 ? submissions[0] : null;
+    console.log('FormSubmissionsService - Calcul des statistiques des soumissions...');
+    const submissions = await getFormSubmissions();
+    
+    // Compter les soumissions par statut
+    const statusCounts = submissions.reduce((counts, submission) => {
+      const status = submission.status || 'pending';
+      counts[status] = (counts[status] || 0) + 1;
+      return counts;
+    }, {});
+    
+    // Compter les soumissions avec et sans token commun
+    const withCommonToken = submissions.filter(submission => submission.commonToken).length;
+    const withoutCommonToken = submissions.length - withCommonToken;
+    
+    // Compter les soumissions en attente
+    const pendingCount = statusCounts.pending || 0;
+    
+    const stats = {
+      total: submissions.length,
+      pendingCount,
+      statusCounts,
+      withCommonToken,
+      withoutCommonToken
+    };
+    
+    console.log('FormSubmissionsService - Statistiques calculées:', stats);
+    return stats;
   } catch (error) {
-    console.error(`[getFormSubmissionByFormLinkId] Erreur lors de la récupération du formulaire avec formLinkId ${formLinkId}:`, error);
-    throw error;
+    console.error('FormSubmissionsService - Erreur lors du calcul des statistiques:', error);
+    throw new Error('Erreur lors du calcul des statistiques des soumissions');
   }
 };
