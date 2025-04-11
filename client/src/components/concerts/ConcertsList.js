@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getConcerts, addConcert } from '../../services/concertsService';
 import { getArtists } from '../../services/artistsService';
-import ConcertsDashboard from './ConcertsDashboard';
 import './ConcertsList.css';
+
+// Import dynamique du composant ConcertsDashboard pour éviter les problèmes de chargement
+const ConcertsDashboard = React.lazy(() => import('./ConcertsDashboard'));
 
 const ConcertsList = () => {
   const [concerts, setConcerts] = useState([]);
@@ -23,7 +25,7 @@ const ConcertsList = () => {
   const [currentDate, setCurrentDate] = useState('');
   const [currentHour, setCurrentHour] = useState('');
   const [currentMinute, setCurrentMinute] = useState('');
-  const [useDashboard, setUseDashboard] = useState(true); // Activer le tableau de bord par défaut
+  const [useDashboard, setUseDashboard] = useState(false); // Désactiver le tableau de bord par défaut en production
   const [error, setError] = useState(null);
 
   // Options pour les heures et minutes
@@ -339,11 +341,13 @@ const ConcertsList = () => {
       {!showForm && (
         <>
           {useDashboard ? (
-            <ConcertsDashboard 
-              concerts={concerts}
-              onViewConcert={handleViewConcert}
-              onEditConcert={handleEditConcert}
-            />
+            <React.Suspense fallback={<div className="loading">Chargement du tableau de bord...</div>}>
+              <ConcertsDashboard 
+                concerts={concerts}
+                onViewConcert={handleViewConcert}
+                onEditConcert={handleEditConcert}
+              />
+            </React.Suspense>
           ) : (
             <div className="concerts-list">
               <h2>Liste des concerts ({concerts.length})</h2>
