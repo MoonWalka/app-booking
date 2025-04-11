@@ -1,1 +1,1 @@
-export { default as ConcertsDashboard } from './ConcertsDashboard';
+export { default } from './ConcertsDashboard';
