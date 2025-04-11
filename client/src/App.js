@@ -7,7 +7,7 @@ import './App.css';
 import Sidebar from './components/layout/Sidebar';
 import Dashboard from './components/dashboard/Dashboard';
 import ConcertsList from './components/concerts/ConcertsList';
-import ConcertDetails from './components/concerts/ConcertDetails';
+import ConcertDetail from './components/concerts/ConcertDetail';
 import ArtistsList from './components/artists/ArtistsList';
 import ArtistDetails from './components/artists/ArtistDetails';
 import ProgrammersList from './components/programmers/ProgrammersList';
