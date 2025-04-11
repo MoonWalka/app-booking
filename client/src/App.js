@@ -97,7 +97,7 @@ function App() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/concerts" element={<ConcertsList />} />
-                  <Route path="/concerts/:id" element={<ConcertDetails />} />
+                  <Route path="/concerts/:id" element={<ConcertDetail />} />
                   <Route path="/artists" element={<ArtistsList />} />
                   <Route path="/artists/:id" element={<ArtistDetails />} />
                   <Route path="/programmers" element={<ProgrammersList />} />

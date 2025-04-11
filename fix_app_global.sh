@@ -33,7 +33,7 @@ import './App.css';
 import Sidebar from './components/layout/Sidebar';
 import Dashboard from './components/dashboard/Dashboard';
 import ConcertsList from './components/concerts/ConcertsList';
-import ConcertDetails from './components/concerts/ConcertDetails';
+import ConcertDetail from './components/concerts/ConcertDetail';
 import ArtistsList from './components/artists/ArtistsList';
 import ArtistDetails from './components/artists/ArtistDetails';
 import ProgrammersList from './components/programmers/ProgrammersList';
@@ -123,7 +123,7 @@ function App() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/concerts" element={<ConcertsList />} />
-                  <Route path="/concerts/:id" element={<ConcertDetails />} />
+                  <Route path="/concerts/:id" element={<ConcertDetail />} />
                   <Route path="/artists" element={<ArtistsList />} />
                   <Route path="/artists/:id" element={<ArtistDetails />} />
                   <Route path="/programmers" element={<ProgrammersList />} />
