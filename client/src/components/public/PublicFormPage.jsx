@@ -34,6 +34,7 @@ const PublicFormPage = (props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
+  const [submissionResult, setSubmissionResult] = useState(null);
   const [formData, setFormData] = useState({
     businessName: '',      // Raison sociale
     firstName: '',         // Prénom
@@ -137,7 +138,7 @@ const PublicFormPage = (props) => {
         contact: formData.firstName && formData.lastName 
           ? `${formData.firstName} ${formData.lastName}` 
           : formData.firstName || formData.lastName || 'Contact non spécifié',
-        status: 'pending',
+        status: 'pending', // Forcer explicitement le statut à 'pending'
         // Ajouter un formLinkId fictif si nécessaire
         formLinkId: `public-form-${concertId}`,
         // Ajouter le token commun pour lier les entités
@@ -147,6 +148,7 @@ const PublicFormPage = (props) => {
       console.log('PublicFormPage - Données préparées pour la soumission:', submissionData);
       console.log('PublicFormPage - Vérification de la présence de concertId:', submissionData.concertId ? 'Présent' : 'Manquant');
       console.log('PublicFormPage - Vérification de la présence du token commun:', submissionData.commonToken ? 'Présent' : 'Manquant');
+      console.log('PublicFormPage - Vérification du statut:', submissionData.status);
       
       // Soumettre le formulaire avec un timeout pour éviter les blocages
       const timeoutPromise = new Promise((_, reject) => 
@@ -164,6 +166,8 @@ const PublicFormPage = (props) => {
       if (result && result.id) {
         console.log('PublicFormPage - Soumission réussie avec ID:', result.id);
         console.log('PublicFormPage - Token commun dans le résultat:', result.commonToken);
+        console.log('PublicFormPage - Statut dans le résultat:', result.status);
+        setSubmissionResult(result);
         setSubmissionSuccess(true);
         resetForm();
       } else {
@@ -200,6 +204,7 @@ const PublicFormPage = (props) => {
             className="form-button"
             onClick={() => {
               setSubmissionSuccess(false);
+              setSubmissionResult(null);
             }}
           >
             Soumettre un nouveau formulaire

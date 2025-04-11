@@ -14,6 +14,7 @@ const FormValidationList = () => {
   const [showComparisonTable, setShowComparisonTable] = useState(false);
   const [updateStatus, setUpdateStatus] = useState({ status: '', message: '' });
   const [refreshCount, setRefreshCount] = useState(0);
+  const [debugInfo, setDebugInfo] = useState(null);
 
   // Charger les soumissions de formulaire
   useEffect(() => {
@@ -21,9 +22,38 @@ const FormValidationList = () => {
       try {
         setLoading(true);
         console.log('FormValidationList - Chargement des soumissions en attente...');
-        const submissions = await getFormSubmissions({ status: 'pending' });
-        console.log(`FormValidationList - ${submissions.length} soumissions récupérées`);
-        setFormSubmissions(submissions);
+        
+        // Récupérer toutes les soumissions pour le débogage
+        const allSubmissions = await getFormSubmissions({});
+        console.log(`FormValidationList - ${allSubmissions.length} soumissions totales récupérées`);
+        
+        // Filtrer pour n'obtenir que les soumissions en attente
+        const pendingSubmissions = await getFormSubmissions({ status: 'pending' });
+        console.log(`FormValidationList - ${pendingSubmissions.length} soumissions en attente récupérées`);
+        
+        // Collecter des informations de débogage
+        const debug = {
+          totalCount: allSubmissions.length,
+          pendingCount: pendingSubmissions.length,
+          statusDistribution: {},
+          hasCommonToken: 0,
+          missingCommonToken: 0
+        };
+        
+        // Analyser la distribution des statuts
+        allSubmissions.forEach(submission => {
+          const status = submission.status || 'non défini';
+          debug.statusDistribution[status] = (debug.statusDistribution[status] || 0) + 1;
+          
+          if (submission.commonToken) {
+            debug.hasCommonToken++;
+          } else {
+            debug.missingCommonToken++;
+          }
+        });
+        
+        setDebugInfo(debug);
+        setFormSubmissions(pendingSubmissions);
         setLoading(false);
       } catch (err) {
         console.error('FormValidationList - Erreur lors du chargement des soumissions:', err);
@@ -247,6 +277,22 @@ const FormValidationList = () => {
           Rafraîchir la liste
         </button>
       </div>
+      
+      {debugInfo && (
+        <div className="debug-info">
+          <h3>Informations de débogage</h3>
+          <p>Total des soumissions: {debugInfo.totalCount}</p>
+          <p>Soumissions en attente: {debugInfo.pendingCount}</p>
+          <p>Distribution des statuts:</p>
+          <ul>
+            {Object.entries(debugInfo.statusDistribution).map(([status, count]) => (
+              <li key={status}>{status}: {count}</li>
+            ))}
+          </ul>
+          <p>Avec token commun: {debugInfo.hasCommonToken}</p>
+          <p>Sans token commun: {debugInfo.missingCommonToken}</p>
+        </div>
+      )}
       
       {formSubmissions.length === 0 ? (
         <p>Aucune soumission en attente de validation.</p>

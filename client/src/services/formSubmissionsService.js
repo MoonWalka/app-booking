@@ -96,6 +96,22 @@ export const getFormSubmissions = async (filters = {}) => {
     
     if (snapshot.empty) {
       console.log("[getFormSubmissions] Aucun formulaire trouvé dans Firebase");
+      
+      // Récupérer tous les formulaires pour vérifier s'il y a des données
+      const allFormsSnapshot = await getDocs(formSubmissionsCollection);
+      if (!allFormsSnapshot.empty) {
+        console.log(`[getFormSubmissions] ATTENTION: ${allFormsSnapshot.size} formulaires existent dans la collection, mais aucun ne correspond aux filtres`);
+        console.log("[getFormSubmissions] Vérification des statuts disponibles...");
+        
+        const statusMap = {};
+        allFormsSnapshot.docs.forEach(doc => {
+          const status = doc.data().status || 'non défini';
+          statusMap[status] = (statusMap[status] || 0) + 1;
+        });
+        
+        console.log("[getFormSubmissions] Distribution des statuts:", statusMap);
+      }
+      
       return [];
     }
     
@@ -180,11 +196,11 @@ export const createFormSubmission = async (formData) => {
       console.log(`[createFormSubmission] Génération d'un nouveau token commun: ${commonToken}`);
     }
     
-    // S'assurer que les champs obligatoires sont présents
+    // S'assurer que les champs obligatoires sont présents et que le statut est explicitement défini
     const completeFormData = {
       ...formData,
       commonToken, // Ajouter le token commun
-      status: formData.status || 'pending',
+      status: 'pending', // Forcer le statut à 'pending' pour garantir la cohérence
       submittedAt: Timestamp.fromDate(new Date()),
       // Convertir la date du concert en Timestamp si elle existe
       concertDate: formData.concertDate ? 
@@ -197,10 +213,18 @@ export const createFormSubmission = async (formData) => {
     console.log("[createFormSubmission] Tentative d'ajout d'un formulaire à Firebase avec addDoc:", completeFormData);
     console.log("[createFormSubmission] Vérification de la présence de concertId:", completeFormData.concertId ? 'Présent' : 'Manquant');
     console.log("[createFormSubmission] Vérification de la présence du token commun:", completeFormData.commonToken ? 'Présent' : 'Manquant');
+    console.log("[createFormSubmission] Vérification du statut:", completeFormData.status);
     
     try {
       const docRef = await addDoc(formSubmissionsCollection, completeFormData);
       console.log(`[createFormSubmission] Formulaire ajouté avec succès via addDoc, ID: ${docRef.id}`);
+      
+      // Vérifier immédiatement que le document a été créé avec le bon statut
+      const createdDoc = await getDoc(docRef);
+      if (createdDoc.exists()) {
+        const createdData = createdDoc.data();
+        console.log(`[createFormSubmission] Vérification du document créé - Statut: ${createdData.status}`);
+      }
       
       return {
         id: docRef.id,
@@ -216,6 +240,13 @@ export const createFormSubmission = async (formData) => {
       try {
         await setDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, mockId), completeFormData);
         console.log(`[createFormSubmission] Formulaire ajouté avec succès via setDoc, ID: ${mockId}`);
+        
+        // Vérifier immédiatement que le document a été créé avec le bon statut
+        const createdDoc = await getDoc(doc(db, FORM_SUBMISSIONS_COLLECTION, mockId));
+        if (createdDoc.exists()) {
+          const createdData = createdDoc.data();
+          console.log(`[createFormSubmission] Vérification du document créé - Statut: ${createdData.status}`);
+        }
         
         return {
           id: mockId,

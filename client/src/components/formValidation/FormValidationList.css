@@ -110,3 +110,30 @@
 .refresh-button:hover {
   background-color: #388e3c;
 }
+
+.debug-info {
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 4px;
+  margin: 15px 0;
+  font-size: 14px;
+}
+
+.debug-info h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.debug-info p {
+  margin: 5px 0;
+}
+
+.debug-info ul {
+  margin: 5px 0;
+  padding-left: 20px;
+}
+
+.debug-info li {
+  margin: 3px 0;
+}
