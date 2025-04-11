@@ -3,8 +3,10 @@ import {
   getFormSubmissions, 
   getPendingFormSubmissions, 
   updateFormSubmissionStatus,
+  updateFormSubmissionWithProgrammerData,
   getFormSubmissionsStats
 } from '../../services/formSubmissionsService';
+import ComparisonTable from './ComparisonTable';
 import './FormValidationList.css';
 
 const FormValidationList = () => {
@@ -12,6 +14,8 @@ const FormValidationList = () => {
   const [pendingSubmissions, setPendingSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [showComparisonTable, setShowComparisonTable] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     pendingCount: 0,
@@ -56,6 +60,15 @@ const FormValidationList = () => {
     try {
       setLoading(true);
       console.log(`FormValidationList - Approbation de la soumission ${id}...`);
+      
+      // Trouver la soumission sélectionnée
+      const submission = pendingSubmissions.find(sub => sub.id === id);
+      if (submission) {
+        setSelectedSubmission(submission);
+        setShowComparisonTable(true);
+        setLoading(false);
+        return;
+      }
       
       await updateFormSubmissionStatus(id, 'approved');
       
@@ -126,6 +139,56 @@ const FormValidationList = () => {
     }
   };
 
+  const handleSaveComparisonData = async (finalData) => {
+    try {
+      setLoading(true);
+      console.log(`FormValidationList - Sauvegarde des données de comparaison pour la soumission ${selectedSubmission.id}...`);
+      
+      // Mettre à jour la soumission avec les données finales
+      await updateFormSubmissionWithProgrammerData(selectedSubmission.id, finalData);
+      
+      // Mettre à jour le statut de la soumission
+      await updateFormSubmissionStatus(selectedSubmission.id, 'approved');
+      
+      // Mettre à jour la liste des soumissions
+      const updatedSubmissions = submissions.map(submission => 
+        submission.id === selectedSubmission.id 
+          ? { ...submission, status: 'approved', processedData: finalData } 
+          : submission
+      );
+      setSubmissions(updatedSubmissions);
+      
+      // Mettre à jour la liste des soumissions en attente
+      const updatedPendingSubmissions = pendingSubmissions.filter(
+        submission => submission.id !== selectedSubmission.id
+      );
+      setPendingSubmissions(updatedPendingSubmissions);
+      
+      // Mettre à jour les statistiques
+      const newStats = { ...stats };
+      newStats.statusCounts.pending = (newStats.statusCounts.pending || 0) - 1;
+      newStats.statusCounts.approved = (newStats.statusCounts.approved || 0) + 1;
+      newStats.pendingCount = newStats.pendingCount - 1;
+      setStats(newStats);
+      
+      console.log(`FormValidationList - Données de comparaison sauvegardées pour la soumission ${selectedSubmission.id}`);
+      
+      // Fermer le tableau de comparaison
+      setShowComparisonTable(false);
+      setSelectedSubmission(null);
+      setLoading(false);
+    } catch (error) {
+      console.error(`FormValidationList - Erreur lors de la sauvegarde des données de comparaison:`, error);
+      setError(`Erreur lors de la sauvegarde des données. Veuillez réessayer.`);
+      setLoading(false);
+    }
+  };
+
+  const handleCancelComparison = () => {
+    setShowComparisonTable(false);
+    setSelectedSubmission(null);
+  };
+
   const formatDate = (timestamp) => {
     if (!timestamp) return 'Date inconnue';
     
@@ -169,6 +232,39 @@ const FormValidationList = () => {
     );
   }
 
+  if (showComparisonTable && selectedSubmission) {
+    // Simuler les données du programmateur existant
+    // Dans une vraie application, ces données viendraient d'un service
+    const existingProgrammerData = {
+      id: 'programmer-' + Math.random().toString(36).substr(2, 9),
+      businessName: '',
+      firstName: selectedSubmission.firstName || '',
+      lastName: '',
+      role: '',
+      address: '',
+      venue: '',
+      venueAddress: '',
+      vatNumber: '',
+      siret: '',
+      email: '',
+      phone: '',
+      website: ''
+    };
+    
+    return (
+      <div className="form-validation-container">
+        <h1>Validation des données</h1>
+        
+        <ComparisonTable 
+          formData={selectedSubmission} 
+          programmerData={existingProgrammerData}
+          onSave={handleSaveComparisonData}
+          onCancel={handleCancelComparison}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="form-validation-container">
       <h1>Validation des formulaires</h1>
@@ -206,8 +302,16 @@ const FormValidationList = () => {
               
               <div className="submission-details">
                 <div className="detail-row">
-                  <span className="detail-label">Nom de l'artiste:</span>
-                  <span className="detail-value">{submission.artistName || 'Non spécifié'}</span>
+                  <span className="detail-label">Raison sociale:</span>
+                  <span className="detail-value">{submission.businessName || 'Non spécifié'}</span>
+                </div>
+                
+                <div className="detail-row">
+                  <span className="detail-label">Nom:</span>
+                  <span className="detail-value">
+                    {submission.firstName || ''} {submission.lastName || ''}
+                    {!submission.firstName && !submission.lastName && 'Non spécifié'}
+                  </span>
                 </div>
                 
                 <div className="detail-row">
@@ -236,7 +340,7 @@ const FormValidationList = () => {
                 
                 <div className="detail-row">
                   <span className="detail-label">Ville:</span>
-                  <span className="detail-value">{submission.city || 'Non spécifiée'}</span>
+                  <span className="detail-value">{submission.concertCity || 'Non spécifiée'}</span>
                 </div>
                 
                 <div className="detail-row">
