@@ -1,3 +1,52 @@
+#!/bin/bash
+
+# Script d'intégration du tableau de bord des concerts amélioré
+# Ce script modifie le fichier ConcertsList.js pour utiliser le composant ConcertsDashboard
+
+echo "Intégration du tableau de bord des concerts amélioré..."
+
+# Vérifier que nous sommes à la racine du projet
+if [ ! -d "client" ] || [ ! -d "client/src" ]; then
+  echo "❌ Erreur: Ce script doit être exécuté à la racine du projet."
+  echo "Assurez-vous que vous êtes dans le répertoire principal de votre application."
+  exit 1
+fi
+
+# Vérifier que les fichiers nécessaires existent
+if [ ! -f "ConcertsDashboard.jsx" ] || [ ! -f "ConcertsDashboard.css" ]; then
+  echo "❌ Erreur: Les fichiers ConcertsDashboard.jsx et/ou ConcertsDashboard.css sont manquants."
+  echo "Assurez-vous que ces fichiers sont présents à la racine du projet."
+  exit 1
+fi
+
+# Créer une sauvegarde des fichiers existants
+echo "📦 Création de sauvegardes des fichiers existants..."
+mkdir -p backups
+cp -f client/src/components/concerts/ConcertsList.js backups/ConcertsList.js.bak
+cp -f client/src/components/concerts/ConcertsDashboard.jsx backups/ConcertsDashboard.jsx.bak 2>/dev/null
+cp -f client/src/components/concerts/ConcertsDashboard.css backups/ConcertsDashboard.css.bak 2>/dev/null
+echo "✅ Sauvegardes créées dans le dossier 'backups'"
+
+# Copier les nouveaux fichiers
+echo "📋 Copie des nouveaux fichiers..."
+cp -f ConcertsDashboard.jsx client/src/components/concerts/
+cp -f ConcertsDashboard.css client/src/components/concerts/
+echo "✅ Fichiers copiés"
+
+# Installer react-icons si nécessaire
+if ! grep -q "react-icons" package.json; then
+  echo "📦 Installation de la dépendance react-icons..."
+  npm install --save react-icons
+  echo "✅ react-icons installé"
+else
+  echo "✅ react-icons est déjà installé"
+fi
+
+# Modifier le fichier ConcertsList.js pour utiliser ConcertsDashboard
+echo "🔄 Modification du fichier ConcertsList.js..."
+
+# Créer un nouveau fichier temporaire
+cat > temp_ConcertsList.js << 'EOL'
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getConcerts, addConcert } from '../../services/concertsService';
@@ -302,3 +351,17 @@ const ConcertsList = () => {
 };
 
 export default ConcertsList;
+EOL
+
+# Remplacer le fichier original par le nouveau
+mv temp_ConcertsList.js client/src/components/concerts/ConcertsList.js
+echo "✅ Fichier ConcertsList.js modifié"
+
+echo ""
+echo "✅ Intégration terminée avec succès!"
+echo ""
+echo "Le tableau de bord des concerts amélioré est maintenant intégré à votre application."
+echo "Pour voir les changements, démarrez votre application avec 'npm start'."
+echo ""
+echo "Si vous souhaitez revenir à la version précédente, les fichiers de sauvegarde"
+echo "sont disponibles dans le dossier 'backups'."
