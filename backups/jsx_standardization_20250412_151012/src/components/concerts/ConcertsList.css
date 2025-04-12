@@ -1,0 +1,126 @@
+.concerts-container {
+  padding: 20px;
+}
+
+.concerts-container h1 {
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+
+.concerts-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.view-toggle-btn, .add-concert-btn {
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.view-toggle-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+}
+
+.view-toggle-btn:hover {
+  background-color: #2980b9;
+}
+
+.view-toggle-btn.active {
+  background-color: #2980b9;
+}
+
+.add-concert-btn {
+  background-color: #2ecc71;
+  color: white;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.add-concert-btn:hover {
+  background-color: #27ae60;
+}
+
+.concerts-list {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.concerts-list h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+.concerts-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.concerts-table th,
+.concerts-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.concerts-table th {
+  background-color: #f8f9fa;
+  color: #7f8c8d;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.concerts-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.view-btn {
+  display: inline-block;
+  padding: 5px 10px;
+  background-color: #3498db;
+  color: white;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+}
+
+.view-btn:hover {
+  background-color: #2980b9;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 1.2rem;
+  color: #7f8c8d;
+}
+
+.no-data {
+  text-align: center;
+  color: #95a5a6;
+  padding: 20px 0;
+}
+
+@media (max-width: 768px) {
+  .concerts-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .view-toggle-btn, .add-concert-btn {
+    width: 100%;
+    text-align: center;
+  }
+}

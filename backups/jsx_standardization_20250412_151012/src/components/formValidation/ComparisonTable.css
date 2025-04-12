@@ -1,0 +1,124 @@
+.comparison-table-container {
+  margin-top: 20px;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.comparison-table th {
+  background-color: #f8f9fa;
+  color: #7f8c8d;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.field-label {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.submission-value {
+  background-color: #e8f4fd;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.programmer-value {
+  background-color: #f0fff4;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.action-cell {
+  width: 50px;
+  text-align: center;
+}
+
+.copy-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.copy-btn:hover {
+  background-color: #2980b9;
+}
+
+.final-value input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.final-value input:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.validation-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.validate-final-btn {
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.validate-final-btn:hover {
+  background-color: #27ae60;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 1.2rem;
+  color: #7f8c8d;
+}
+
+@media (max-width: 768px) {
+  .comparison-table {
+    font-size: 0.9rem;
+  }
+  
+  .comparison-table th,
+  .comparison-table td {
+    padding: 8px;
+  }
+  
+  .copy-btn {
+    width: 25px;
+    height: 25px;
+    font-size: 0.8rem;
+  }
+}
