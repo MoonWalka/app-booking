@@ -1,56 +1,62 @@
-import { db } from '../firebase';
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  addDoc,
-  updateDoc,
+import { 
+  collection, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  addDoc, 
+  updateDoc, 
   deleteDoc,
   query,
-  where,
   orderBy,
-  Timestamp,
-  setDoc
+  where,
+  setDoc,
+  Timestamp
 } from 'firebase/firestore';
+import { db } from '../firebase';
 
-// Nom de la collection dans Firestore
+// Collection de référence
 const CONCERTS_COLLECTION = 'concerts';
+
+// Assurez-vous que la collection concerts existe
 const concertsCollection = collection(db, CONCERTS_COLLECTION);
 
 /**
- * Récupère la liste des concerts avec filtrage optionnel
- * @param {Object} filters - Filtres à appliquer (artistId, programmerId, etc.)
+ * Récupère tous les concerts
+ * @param {Object} filters - Filtres à appliquer (optionnel)
  * @returns {Promise<Array>} Liste des concerts
  */
 export const getConcerts = async (filters = {}) => {
   try {
-    console.log("[getConcerts] Tentative de récupération des concerts depuis Firebase avec filtres:", filters);
+    console.log("[getConcerts] Tentative de récupération des concerts depuis Firebase...");
+    console.log("[getConcerts] Filtres appliqués:", filters);
     
-    // Construire la requête avec les filtres
+    // Création d'une requête de base
     let concertsQuery = concertsCollection;
     
-    if (filters.artistId) {
-      console.log(`[getConcerts] Filtrage par artiste: ${filters.artistId}`);
-      concertsQuery = query(concertsQuery, where('artist.id', '==', filters.artistId));
+    // Application des filtres si nécessaire
+    if (filters) {
+      // Filtrer par programmateur
+      if (filters.programmerId) {
+        concertsQuery = query(concertsQuery, where('programmerId', '==', filters.programmerId));
+      }
+      
+      // Filtrer par artiste
+      if (filters.artistId) {
+        concertsQuery = query(concertsQuery, where('artistId', '==', filters.artistId));
+      }
+      
+      // Filtrer par lieu
+      if (filters.venue) {
+        concertsQuery = query(concertsQuery, where('venue', '==', filters.venue));
+      }
+      
+      // Filtrer par token commun
+      if (filters.commonToken) {
+        concertsQuery = query(concertsQuery, where('commonToken', '==', filters.commonToken));
+      }
     }
     
-    if (filters.programmerId) {
-      console.log(`[getConcerts] Filtrage par programmateur: ${filters.programmerId}`);
-      concertsQuery = query(concertsQuery, where('programmer.id', '==', filters.programmerId));
-    }
-    
-    if (filters.status) {
-      console.log(`[getConcerts] Filtrage par statut: ${filters.status}`);
-      concertsQuery = query(concertsQuery, where('status', '==', filters.status));
-    }
-    
-    if (filters.commonToken) {
-      console.log(`[getConcerts] Filtrage par token commun: ${filters.commonToken}`);
-      concertsQuery = query(concertsQuery, where('commonToken', '==', filters.commonToken));
-    }
-    
-    // Tri par date décroissante
+    // Ajout d'un tri par date (du plus récent au plus ancien)
     concertsQuery = query(concertsQuery, orderBy('date', 'desc'));
     
     // Exécution de la requête
@@ -90,7 +96,7 @@ export const getConcertById = async (id) => {
         // Convertir les timestamps en objets Date pour faciliter l'utilisation
         date: snapshot.data().date ? new Date(snapshot.data().date.seconds * 1000) : null
       };
-      console.log(`[getConcertById] Concert ${id} récupéré depuis Firebase:`, concertData);
+      console.log(`[getConcertById] Concert ${id} récupéré depuis Firebase`);
       return concertData;
     }
     
@@ -110,9 +116,6 @@ export const getConcertById = async (id) => {
 export const addConcert = async (concertData) => {
   try {
     console.log("[addConcert] Tentative d'ajout d'un concert à Firebase:", concertData);
-    
-    // Validation des données
-    validateConcertData(concertData);
     
     // Convertir la date en Timestamp si elle existe
     const dataToAdd = {
@@ -143,9 +146,6 @@ export const updateConcert = async (id, concertData) => {
   try {
     console.log(`[updateConcert] Tentative de mise à jour du concert ${id}:`, concertData);
     
-    // Validation des données
-    validateConcertData(concertData);
-    
     // Convertir la date en Timestamp si elle existe
     const dataToUpdate = {
       ...concertData
@@ -157,22 +157,6 @@ export const updateConcert = async (id, concertData) => {
         Timestamp.fromDate(new Date(concertData.date));
     }
     
-    // S'assurer que les objets artist et programmer sont correctement formatés
-    if (dataToUpdate.artist && typeof dataToUpdate.artist === 'object') {
-      if (!dataToUpdate.artist.id) dataToUpdate.artist.id = '';
-      if (!dataToUpdate.artist.name) dataToUpdate.artist.name = '';
-    } else {
-      dataToUpdate.artist = { id: '', name: '' };
-    }
-    
-    if (dataToUpdate.programmer && typeof dataToUpdate.programmer === 'object') {
-      if (!dataToUpdate.programmer.id) dataToUpdate.programmer.id = '';
-      if (!dataToUpdate.programmer.name) dataToUpdate.programmer.name = '';
-      if (!dataToUpdate.programmer.structure) dataToUpdate.programmer.structure = '';
-    } else {
-      dataToUpdate.programmer = { id: '', name: '', structure: '' };
-    }
-    
     // Vérifier si le concert existe déjà
     const docRef = doc(db, CONCERTS_COLLECTION, id);
     const docSnap = await getDoc(docRef);
@@ -180,18 +164,14 @@ export const updateConcert = async (id, concertData) => {
     if (docSnap.exists()) {
       // Mettre à jour le concert existant
       await updateDoc(docRef, dataToUpdate);
-      console.log(`[updateConcert] Concert ${id} mis à jour avec succès:`, dataToUpdate);
+      console.log(`[updateConcert] Concert ${id} mis à jour avec succès`);
     } else {
       // Créer un nouveau concert avec l'ID spécifié
       await setDoc(docRef, dataToUpdate);
-      console.log(`[updateConcert] Nouveau concert créé avec ID spécifié: ${id}`, dataToUpdate);
+      console.log(`[updateConcert] Nouveau concert créé avec ID spécifié: ${id}`);
     }
     
-    // Récupérer le concert mis à jour pour confirmer les changements
-    const updatedConcert = await getConcertById(id);
-    console.log(`[updateConcert] Concert après mise à jour:`, updatedConcert);
-    
-    return updatedConcert || {
+    return {
       id,
       ...concertData
     };
@@ -237,35 +217,4 @@ export const getConcertsByToken = async (commonToken) => {
  */
 export const getConcertsByArtist = async (artistId) => {
   return getConcerts({ artistId });
-};
-
-/**
- * Valide les données d'un concert
- * @param {Object} concertData - Données du concert à valider
- * @throws {Error} Si les données sont invalides
- */
-const validateConcertData = (concertData) => {
-  console.log("[validateConcertData] Validation des données du concert:", concertData);
-  
-  // Vérifier que les champs obligatoires sont présents
-  if (!concertData) {
-    throw new Error("Les données du concert sont requises");
-  }
-  
-  // Vérifier que la date est valide si elle est fournie
-  if (concertData.date && isNaN(new Date(concertData.date).getTime())) {
-    throw new Error("La date du concert est invalide");
-  }
-  
-  // Vérifier que l'artiste est correctement formaté
-  if (concertData.artist && typeof concertData.artist !== 'object') {
-    throw new Error("L'artiste doit être un objet avec id et name");
-  }
-  
-  // Vérifier que le programmateur est correctement formaté
-  if (concertData.programmer && typeof concertData.programmer !== 'object') {
-    throw new Error("Le programmateur doit être un objet avec id, name et structure");
-  }
-  
-  console.log("[validateConcertData] Données du concert valides");
 };

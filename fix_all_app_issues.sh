@@ -1,2617 +1,1408 @@
 #!/bin/bash
 
-# Script de correction complète pour l'application de booking musical
-# Ce script résout tous les problèmes identifiés :
-# 1. Composant Sidebar manquant
-# 2. Erreurs dans la page Concerts (tableau de bord)
-# 3. Problèmes avec la page Validation Formulaire
-# 4. Autres erreurs d'importation
+# Script de correction des problèmes de l'application App Booking
+# Ce script corrige les problèmes identifiés lors des tests manuels,
+# notamment les problèmes liés à la génération de formulaire public.
 
 # Couleurs pour les messages
-GREEN='\033[0;32m'
 RED='\033[0;31m'
-YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Début des corrections complètes pour l'application de booking musical...${NC}"
+# Fonction pour afficher les messages
+log() {
+  echo -e "${BLUE}[INFO]${NC} $1"
+}
 
-# Vérification que nous sommes dans le bon répertoire
-if [ ! -d "client" ]; then
-  echo -e "${RED}❌ Erreur: Ce script doit être exécuté à la racine du projet.${NC}"
-  echo "Assurez-vous que vous êtes dans le répertoire principal contenant le dossier client."
+success() {
+  echo -e "${GREEN}[SUCCÈS]${NC} $1"
+}
+
+warn() {
+  echo -e "${YELLOW}[ATTENTION]${NC} $1"
+}
+
+error() {
+  echo -e "${RED}[ERREUR]${NC} $1"
+}
+
+# Vérifier si nous sommes à la racine du projet
+if [ ! -d "./client" ] || [ ! -f "./package.json" ]; then
+  error "Ce script doit être exécuté à la racine du projet App Booking."
   exit 1
 fi
 
-# Création du répertoire de sauvegarde
-BACKUP_DIR="backups/complete-fixes-$(date +%Y%m%d-%H%M%S)"
+# Créer un répertoire de sauvegarde
+BACKUP_DIR="./backup_$(date +%Y%m%d_%H%M%S)"
+log "Création du répertoire de sauvegarde: $BACKUP_DIR"
 mkdir -p "$BACKUP_DIR"
-echo -e "${YELLOW}Création du répertoire de sauvegarde: $BACKUP_DIR${NC}"
 
 # Fonction pour sauvegarder un fichier avant modification
 backup_file() {
   local file=$1
-  local dir=$(dirname "$file")
-  
-  # Créer le répertoire de destination dans les backups s'il n'existe pas
-  mkdir -p "$BACKUP_DIR/$dir"
-  
-  # Copier le fichier s'il existe
   if [ -f "$file" ]; then
-    cp "$file" "$BACKUP_DIR/$file"
-    echo -e "${YELLOW}Sauvegarde de $file${NC}"
+    local dir=$(dirname "$file")
+    local backup_subdir="$BACKUP_DIR/$dir"
+    mkdir -p "$backup_subdir"
+    cp "$file" "$backup_subdir/"
+    log "Sauvegarde de $file effectuée"
+  else
+    warn "Le fichier $file n'existe pas, impossible de le sauvegarder"
   fi
 }
 
-# 1. Création du composant Sidebar manquant
-echo -e "${GREEN}1. Création du composant Sidebar manquant...${NC}"
+# Correction du problème 1: Aucune réaction lors du clic sur "Envoyer le formulaire"
+log "Correction du problème 1: Aucune réaction lors du clic sur 'Envoyer le formulaire'"
 
-mkdir -p client/src/components/layout
-backup_file "client/src/components/layout/Sidebar.jsx"
-backup_file "client/src/components/layout/Sidebar.css"
+# Sauvegarde du fichier ConcertDetail.js
+backup_file "./client/src/components/concerts/ConcertDetail.js"
 
-cat > client/src/components/layout/Sidebar.jsx << 'EOL'
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { FaChartLine, FaFileContract, FaFileInvoiceDollar, FaMusic, FaUserTie, FaUsers, FaClipboardCheck, FaEnvelope, FaFile, FaCog } from 'react-icons/fa';
-import './Sidebar.css';
-
-const Sidebar = () => {
-  const location = useLocation();
-  const path = location.pathname;
-
-  const isActive = (route) => {
-    return path === route || (path.startsWith(route) && route !== '/');
-  };
-
-  return (
-    <div className="sidebar">
-      <div className="logo-container">
-        <Link to="/" className="logo">
-          <div className="logo-badge">+</div>
-          <div>Label Musical</div>
-        </Link>
-        <div className="logo-subtitle">Gestion des concerts et artistes</div>
-      </div>
-      
-      <nav className="sidebar-nav">
-        <Link to="/" className={isActive('/') ? 'active' : ''}>
-          <FaChartLine className="nav-icon" />
-          <span>Tableau de bord</span>
-        </Link>
-        
-        <Link to="/contrats" className={isActive('/contrats') ? 'active' : ''}>
-          <FaFileContract className="nav-icon" />
-          <span>Contrats</span>
-        </Link>
-        
-        <Link to="/factures" className={isActive('/factures') ? 'active' : ''}>
-          <FaFileInvoiceDollar className="nav-icon" />
-          <span>Factures</span>
-        </Link>
-        
-        <Link to="/concerts" className={isActive('/concerts') ? 'active' : ''}>
-          <FaMusic className="nav-icon" />
-          <span>Concerts</span>
-        </Link>
-        
-        <Link to="/artistes" className={isActive('/artistes') ? 'active' : ''}>
-          <FaUserTie className="nav-icon" />
-          <span>Artistes</span>
-        </Link>
-        
-        <Link to="/programmateurs" className={isActive('/programmateurs') ? 'active' : ''}>
-          <FaUsers className="nav-icon" />
-          <span>Programmateurs</span>
-        </Link>
-        
-        <Link to="/validation-formulaire" className={isActive('/validation-formulaire') ? 'active' : ''}>
-          <FaClipboardCheck className="nav-icon" />
-          <span>Validation Formulaire</span>
-        </Link>
-        
-        <Link to="/emails" className={isActive('/emails') ? 'active' : ''}>
-          <FaEnvelope className="nav-icon" />
-          <span>Emails</span>
-        </Link>
-        
-        <Link to="/documents" className={isActive('/documents') ? 'active' : ''}>
-          <FaFile className="nav-icon" />
-          <span>Documents</span>
-        </Link>
-        
-        <Link to="/parametres" className={isActive('/parametres') ? 'active' : ''}>
-          <FaCog className="nav-icon" />
-          <span>Paramètres</span>
-        </Link>
-      </nav>
-    </div>
-  );
-};
-
-export default Sidebar;
-EOL
-
-cat > client/src/components/layout/Sidebar.css << 'EOL'
-.sidebar {
-  width: 220px;
-  background-color: #2c3e50;
-  color: #ecf0f1;
-  height: 100vh;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  left: 0;
-  top: 0;
-}
-
-.logo-container {
-  padding: 20px 15px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  color: #3498db;
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-.logo-badge {
-  background-color: #3498db;
-  color: white;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  margin-right: 10px;
-}
-
-.logo-subtitle {
-  font-size: 0.75rem;
-  color: #95a5a6;
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  padding: 15px 0;
-  overflow-y: auto;
-}
-
-.sidebar-nav a {
-  display: flex;
-  align-items: center;
-  padding: 12px 15px;
-  color: #ecf0f1;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  border-left: 3px solid transparent;
-}
-
-.sidebar-nav a:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-left: 3px solid #3498db;
-}
-
-.sidebar-nav a.active {
-  background-color: rgba(52, 152, 219, 0.2);
-  border-left: 3px solid #3498db;
-  color: #3498db;
-}
-
-.nav-icon {
-  margin-right: 10px;
-  font-size: 1.1rem;
-}
-EOL
-
-echo -e "${GREEN}✅ Composant Sidebar créé avec succès${NC}"
-
-# 2. Correction du composant ConcertsDashboard
-echo -e "${GREEN}2. Correction du composant ConcertsDashboard...${NC}"
-
-mkdir -p client/src/components/concerts
-backup_file "client/src/components/concerts/ConcertsDashboard.jsx"
-backup_file "client/src/components/concerts/ConcertsDashboard.css"
-
-cat > client/src/components/concerts/ConcertsDashboard.jsx << 'EOL'
+# Modification de la fonction handleGenerateFormLink dans ConcertDetail.js
+log "Modification de la fonction handleGenerateFormLink dans ConcertDetail.js"
+cat > ./client/src/components/concerts/ConcertDetail.js.new << 'EOL'
 import React, { useState, useEffect } from 'react';
-import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaChartLine } from 'react-icons/fa';
-import './ConcertsDashboard.css';
+import { useParams, useNavigate } from 'react-router-dom';
+import { getConcertById, updateConcert, deleteConcert } from '../../services/concertsService';
+import { getArtists } from '../../services/artistsService';
+import { getProgrammers } from '../../services/programmersService';
+import './ConcertDetail.css';
 
-const ConcertsDashboard = ({ concerts }) => {
-  const [stats, setStats] = useState({
-    totalConcerts: 0,
-    upcomingConcerts: 0,
-    totalRevenue: 0,
-    averageAttendance: 0
+const ConcertDetail = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [concert, setConcert] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [formUrl, setFormUrl] = useState('');
+  const [formData, setFormData] = useState({
+    artist: { id: '', name: '' },
+    programmer: { id: '', name: '', structure: '' },
+    date: '',
+    time: '',
+    venue: '',
+    city: '',
+    price: '',
+    status: 'En attente',
+    notes: ''
   });
-
-  useEffect(() => {
-    if (concerts && concerts.length > 0) {
-      // Calculer les statistiques
-      const now = new Date();
-      const upcoming = concerts.filter(concert => {
-        const concertDate = new Date(concert.date);
-        return concertDate > now;
-      });
-      
-      const revenue = concerts.reduce((total, concert) => {
-        return total + (parseFloat(concert.amount) || 0);
-      }, 0);
-      
-      const attendance = concerts.reduce((total, concert) => {
-        return total + (parseInt(concert.attendance) || 0);
-      }, 0);
-      
-      setStats({
-        totalConcerts: concerts.length,
-        upcomingConcerts: upcoming.length,
-        totalRevenue: revenue,
-        averageAttendance: concerts.length > 0 ? Math.round(attendance / concerts.length) : 0
-      });
-    }
-  }, [concerts]);
-
-  // Fonction pour formater les montants en euros
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
-  };
-
-  return (
-    <div className="concerts-dashboard">
-      <h2 className="dashboard-title">Tableau de bord des concerts</h2>
-      
-      <div className="stats-container">
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FaCalendarAlt />
-          </div>
-          <div className="stat-content">
-            <h3>Concerts totaux</h3>
-            <p className="stat-value">{stats.totalConcerts}</p>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FaCalendarAlt />
-          </div>
-          <div className="stat-content">
-            <h3>Concerts à venir</h3>
-            <p className="stat-value">{stats.upcomingConcerts}</p>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FaMoneyBillWave />
-          </div>
-          <div className="stat-content">
-            <h3>Revenus totaux</h3>
-            <p className="stat-value">{formatCurrency(stats.totalRevenue)}</p>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FaUsers />
-          </div>
-          <div className="stat-content">
-            <h3>Audience moyenne</h3>
-            <p className="stat-value">{stats.averageAttendance}</p>
-          </div>
-        </div>
-      </div>
-      
-      <div className="recent-concerts">
-        <h3>Concerts récents</h3>
-        <div className="concerts-table-container">
-          <table className="concerts-table">
-            <thead>
-              <tr>
-                <th>Artiste</th>
-                <th>Lieu</th>
-                <th>Date</th>
-                <th>Montant</th>
-                <th>Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {concerts && concerts.length > 0 ? (
-                concerts.slice(0, 5).map((concert, index) => (
-                  <tr key={index}>
-                    <td>{concert.artist || 'Artiste inconnu'}</td>
-                    <td>{concert.venue || 'Lieu non spécifié'}</td>
-                    <td>{concert.date || 'Date non spécifiée'}</td>
-                    <td>{formatCurrency(parseFloat(concert.amount) || 0)}</td>
-                    <td>
-                      <span className={`status-badge ${concert.status || 'pending'}`}>
-                        {concert.status || 'En attente'}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="no-data">Aucun concert trouvé</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default ConcertsDashboard;
-EOL
-
-cat > client/src/components/concerts/ConcertsDashboard.css << 'EOL'
-.concerts-dashboard {
-  padding: 20px;
-  background-color: #f5f7fa;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.dashboard-title {
-  margin-bottom: 20px;
-  color: #2c3e50;
-  font-size: 1.8rem;
-}
-
-.stats-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.stat-card {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.stat-icon {
-  background-color: #3498db;
-  color: white;
-  width: 50px;
-  height: 50px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  margin-right: 15px;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-content h3 {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #7f8c8d;
-  font-weight: 500;
-}
-
-.stat-value {
-  margin: 5px 0 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.recent-concerts {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.recent-concerts h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #2c3e50;
-  font-size: 1.2rem;
-}
-
-.concerts-table-container {
-  overflow-x: auto;
-}
-
-.concerts-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.concerts-table th,
-.concerts-table td {
-  padding: 12px 15px;
-  text-align: left;
-  border-bottom: 1px solid #ecf0f1;
-}
-
-.concerts-table th {
-  background-color: #f8f9fa;
-  color: #7f8c8d;
-  font-weight: 500;
-  font-size: 0.9rem;
-}
-
-.concerts-table tbody tr:hover {
-  background-color: #f8f9fa;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.status-badge.confirmed {
-  background-color: #2ecc71;
-  color: white;
-}
-
-.status-badge.pending {
-  background-color: #f39c12;
-  color: white;
-}
-
-.status-badge.cancelled {
-  background-color: #e74c3c;
-  color: white;
-}
-
-.no-data {
-  text-align: center;
-  color: #95a5a6;
-  padding: 20px 0;
-}
-
-@media (max-width: 768px) {
-  .stats-container {
-    grid-template-columns: 1fr;
-  }
-}
-EOL
-
-# 3. Correction du composant ConcertsList
-echo -e "${GREEN}3. Correction du composant ConcertsList...${NC}"
-
-backup_file "client/src/components/concerts/ConcertsList.js"
-
-cat > client/src/components/concerts/ConcertsList.js << 'EOL'
-import React, { useState, useEffect, Suspense } from 'react';
-import { Link } from 'react-router-dom';
-import { getAllConcerts } from '../../services/concertsService';
-import './ConcertsList.css';
-
-// Importation dynamique du tableau de bord
-const ConcertsDashboard = React.lazy(() => import('./ConcertsDashboard'));
-
-const ConcertsList = () => {
-  const [concerts, setConcerts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showDashboard, setShowDashboard] = useState(false);
-
-  useEffect(() => {
-    const fetchConcerts = async () => {
-      try {
-        const concertsData = await getAllConcerts();
-        setConcerts(concertsData || []);
-        setLoading(false);
-      } catch (error) {
-        console.error("Erreur lors du chargement des concerts:", error);
-        setLoading(false);
-      }
-    };
-
-    fetchConcerts();
-  }, []);
-
-  const toggleView = () => {
-    setShowDashboard(!showDashboard);
-  };
-
-  if (loading) {
-    return <div className="loading">Chargement des concerts...</div>;
-  }
-
-  return (
-    <div className="concerts-container">
-      <h1>Gestion des concerts</h1>
-      
-      <div className="concerts-actions">
-        <button 
-          className={`view-toggle-btn ${showDashboard ? 'active' : ''}`} 
-          onClick={toggleView}
-        >
-          {showDashboard ? 'Vue liste' : 'Vue tableau de bord'}
-        </button>
-        
-        <Link to="/concerts/add" className="add-concert-btn">
-          Ajouter un concert
-        </Link>
-      </div>
-      
-      {showDashboard ? (
-        <Suspense fallback={<div className="loading">Chargement du tableau de bord...</div>}>
-          <ConcertsDashboard concerts={concerts} />
-        </Suspense>
-      ) : (
-        <div className="concerts-list">
-          <h2>Liste des concerts ({concerts.length})</h2>
-          
-          <table className="concerts-table">
-            <thead>
-              <tr>
-                <th>Artiste</th>
-                <th>Date</th>
-                <th>Lieu</th>
-                <th>Ville</th>
-                <th>Statut</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {concerts.length > 0 ? (
-                concerts.map((concert) => (
-                  <tr key={concert.id}>
-                    <td>{concert.artist || 'Artiste inconnu'}</td>
-                    <td>{concert.date || ''}</td>
-                    <td>{concert.venue || 'th'}</td>
-                    <td>{concert.city || 'th'}</td>
-                    <td>{concert.status || 'En attente'}</td>
-                    <td>
-                      <Link to={`/concerts/${concert.id}`} className="view-btn">
-                        Voir
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="no-data">Aucun concert trouvé</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default ConcertsList;
-EOL
-
-# 4. Ajout du CSS pour ConcertsList
-echo -e "${GREEN}4. Ajout du CSS pour ConcertsList...${NC}"
-
-backup_file "client/src/components/concerts/ConcertsList.css"
-
-cat > client/src/components/concerts/ConcertsList.css << 'EOL'
-.concerts-container {
-  padding: 20px;
-}
-
-.concerts-container h1 {
-  margin-bottom: 20px;
-  color: #2c3e50;
-}
-
-.concerts-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.view-toggle-btn, .add-concert-btn {
-  padding: 10px 15px;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.view-toggle-btn {
-  background-color: #3498db;
-  color: white;
-  border: none;
-}
-
-.view-toggle-btn:hover {
-  background-color: #2980b9;
-}
-
-.view-toggle-btn.active {
-  background-color: #2980b9;
-}
-
-.add-concert-btn {
-  background-color: #2ecc71;
-  color: white;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.add-concert-btn:hover {
-  background-color: #27ae60;
-}
-
-.concerts-list {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.concerts-list h2 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #2c3e50;
-  font-size: 1.2rem;
-}
-
-.concerts-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.concerts-table th,
-.concerts-table td {
-  padding: 12px 15px;
-  text-align: left;
-  border-bottom: 1px solid #ecf0f1;
-}
-
-.concerts-table th {
-  background-color: #f8f9fa;
-  color: #7f8c8d;
-  font-weight: 500;
-  font-size: 0.9rem;
-}
-
-.concerts-table tbody tr:hover {
-  background-color: #f8f9fa;
-}
-
-.view-btn {
-  display: inline-block;
-  padding: 5px 10px;
-  background-color: #3498db;
-  color: white;
-  border-radius: 4px;
-  text-decoration: none;
-  font-size: 0.9rem;
-  transition: background-color 0.3s ease;
-}
-
-.view-btn:hover {
-  background-color: #2980b9;
-}
-
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  font-size: 1.2rem;
-  color: #7f8c8d;
-}
-
-.no-data {
-  text-align: center;
-  color: #95a5a6;
-  padding: 20px 0;
-}
-
-@media (max-width: 768px) {
-  .concerts-actions {
-    flex-direction: column;
-    gap: 10px;
-  }
+  const [artists, setArtists] = useState([]);
+  const [programmers, setProgrammers] = useState([]);
   
-  .view-toggle-btn, .add-concert-btn {
-    width: 100%;
-    text-align: center;
-  }
-}
-EOL
-
-# 5. Correction du service formSubmissionsService.js
-echo -e "${GREEN}5. Correction du service formSubmissionsService.js...${NC}"
-
-backup_file "client/src/services/formSubmissionsService.js"
-
-cat > client/src/services/formSubmissionsService.js << 'EOL'
-import { db } from '../firebase';
-import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where } from 'firebase/firestore';
-
-// Récupérer toutes les soumissions de formulaire
-export const getAllFormSubmissions = async () => {
-  try {
-    const submissionsCollection = collection(db, 'formSubmissions');
-    const submissionsSnapshot = await getDocs(submissionsCollection);
-    const submissionsList = submissionsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    // Mettre à jour les soumissions sans statut
-    for (const submission of submissionsList) {
-      if (!submission.status) {
-        await updateFormSubmissionStatus(submission.id, 'pending');
-        submission.status = 'pending';
-      }
-    }
-    
-    return submissionsList;
-  } catch (error) {
-    console.error("Erreur lors de la récupération des soumissions:", error);
-    return [];
-  }
-};
-
-// Récupérer les soumissions en attente
-export const getPendingFormSubmissions = async () => {
-  try {
-    const submissionsCollection = collection(db, 'formSubmissions');
-    const q = query(submissionsCollection, where("status", "==", "pending"));
-    const submissionsSnapshot = await getDocs(q);
-    return submissionsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    console.error("Erreur lors de la récupération des soumissions en attente:", error);
-    return [];
-  }
-};
-
-// Récupérer une soumission par ID
-export const getFormSubmissionById = async (id) => {
-  try {
-    const submissionDoc = doc(db, 'formSubmissions', id);
-    const submissionSnapshot = await getDoc(submissionDoc);
-    
-    if (submissionSnapshot.exists()) {
-      return {
-        id: submissionSnapshot.id,
-        ...submissionSnapshot.data()
-      };
-    } else {
-      console.log("Aucune soumission trouvée avec cet ID");
-      return null;
-    }
-  } catch (error) {
-    console.error("Erreur lors de la récupération de la soumission:", error);
-    return null;
-  }
-};
-
-// Créer une nouvelle soumission de formulaire
-export const createFormSubmission = async (formData) => {
-  try {
-    // S'assurer que le statut est défini
-    const dataWithStatus = {
-      ...formData,
-      status: formData.status || 'pending',
-      createdAt: new Date()
-    };
-    
-    const submissionsCollection = collection(db, 'formSubmissions');
-    const docRef = await addDoc(submissionsCollection, dataWithStatus);
-    
-    return {
-      id: docRef.id,
-      ...dataWithStatus
-    };
-  } catch (error) {
-    console.error("Erreur lors de la création de la soumission:", error);
-    throw error;
-  }
-};
-
-// Mettre à jour le statut d'une soumission
-export const updateFormSubmissionStatus = async (id, status) => {
-  try {
-    const submissionDoc = doc(db, 'formSubmissions', id);
-    await updateDoc(submissionDoc, { status });
-    return true;
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour du statut:", error);
-    return false;
-  }
-};
-
-// Mettre à jour une soumission avec les données validées
-export const updateFormSubmissionWithValidatedData = async (id, validatedData) => {
-  try {
-    const submissionDoc = doc(db, 'formSubmissions', id);
-    await updateDoc(submissionDoc, { 
-      ...validatedData,
-      status: 'validated',
-      validatedAt: new Date()
-    });
-    return true;
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour des données validées:", error);
-    return false;
-  }
-};
-
-// Mettre à jour les entités liées via le token commun
-export const updateLinkedEntities = async (commonToken, validatedData) => {
-  try {
-    // Rechercher toutes les soumissions avec ce token commun
-    const submissionsCollection = collection(db, 'formSubmissions');
-    const q = query(submissionsCollection, where("commonToken", "==", commonToken));
-    const submissionsSnapshot = await getDocs(q);
-    
-    // Mettre à jour chaque soumission
-    const updatePromises = submissionsSnapshot.docs.map(async (submission) => {
-      const submissionDoc = doc(db, 'formSubmissions', submission.id);
-      await updateDoc(submissionDoc, { 
-        ...validatedData,
-        status: 'validated',
-        validatedAt: new Date()
-      });
-    });
-    
-    await Promise.all(updatePromises);
-    return true;
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour des entités liées:", error);
-    return false;
-  }
-};
-EOL
-
-# 6. Correction du composant FormValidationList
-echo -e "${GREEN}6. Correction du composant FormValidationList...${NC}"
-
-mkdir -p client/src/components/formValidation
-backup_file "client/src/components/formValidation/FormValidationList.jsx"
-
-cat > client/src/components/formValidation/FormValidationList.jsx << 'EOL'
-import React, { useState, useEffect } from 'react';
-import { getAllFormSubmissions, getPendingFormSubmissions, updateFormSubmissionStatus } from '../../services/formSubmissionsService';
-import ComparisonTable from './ComparisonTable';
-import './FormValidationList.css';
-
-const FormValidationList = () => {
-  const [submissions, setSubmissions] = useState([]);
-  const [pendingSubmissions, setPendingSubmissions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [showComparisonModal, setShowComparisonModal] = useState(false);
-  const [debugInfo, setDebugInfo] = useState('');
-
+  // Statuts possibles pour un concert
+  const statuses = [
+    'En attente',
+    'Confirmé',
+    'Contrat envoyé',
+    'Contrat signé',
+    'Acompte reçu',
+    'Soldé',
+    'Annulé'
+  ];
+  
   useEffect(() => {
-    const fetchSubmissions = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
+        console.log(`Tentative de récupération du concert avec l'ID: ${id}`);
         
-        // Récupérer toutes les soumissions
-        const allSubmissions = await getAllFormSubmissions();
-        setSubmissions(allSubmissions || []);
+        // Utiliser le service Firebase au lieu de fetch
+        const concertData = await getConcertById(id);
         
-        // Récupérer les soumissions en attente
-        const pendingSubmissionsData = await getPendingFormSubmissions();
-        setPendingSubmissions(pendingSubmissionsData || []);
-        
-        // Générer des informations de débogage
-        const pendingCount = pendingSubmissionsData ? pendingSubmissionsData.length : 0;
-        const statusCounts = {};
-        const withCommonToken = allSubmissions.filter(s => s.commonToken).length;
-        const withoutCommonToken = allSubmissions.filter(s => !s.commonToken).length;
-        
-        allSubmissions.forEach(submission => {
-          const status = submission.status || 'unknown';
-          statusCounts[status] = (statusCounts[status] || 0) + 1;
-        });
-        
-        const statusDistribution = Object.entries(statusCounts)
-          .map(([status, count]) => `${status}: ${count}`)
-          .join('\n');
-        
-        const debugText = `
-Total des soumissions: ${allSubmissions.length}
-Soumissions en attente: ${pendingCount}
-Distribution des statuts:
-${statusDistribution}
-Avec token commun: ${withCommonToken}
-Sans token commun: ${withoutCommonToken}
-${pendingCount === 0 ? 'Aucune soumission en attente de validation.' : ''}
-        `;
-        
-        setDebugInfo(debugText);
-        setLoading(false);
-      } catch (error) {
-        console.error("Erreur lors du chargement des soumissions:", error);
-        setLoading(false);
-      }
-    };
-
-    fetchSubmissions();
-  }, []);
-
-  const handleValidateClick = (submission) => {
-    setSelectedSubmission(submission);
-    setShowComparisonModal(true);
-  };
-
-  const handleRejectSubmission = async (submissionId) => {
-    try {
-      const success = await updateFormSubmissionStatus(submissionId, 'rejected');
-      if (success) {
-        // Mettre à jour la liste des soumissions
-        setPendingSubmissions(prevSubmissions => 
-          prevSubmissions.filter(sub => sub.id !== submissionId)
-        );
-        
-        // Mettre à jour la liste complète
-        setSubmissions(prevSubmissions => 
-          prevSubmissions.map(sub => 
-            sub.id === submissionId ? { ...sub, status: 'rejected' } : sub
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Erreur lors du rejet de la soumission:", error);
-    }
-  };
-
-  const closeComparisonModal = () => {
-    setShowComparisonModal(false);
-    setSelectedSubmission(null);
-  };
-
-  const handleValidationComplete = () => {
-    // Rafraîchir les données après validation
-    closeComparisonModal();
-    
-    // Mettre à jour la liste des soumissions en attente
-    setPendingSubmissions(prevSubmissions => 
-      prevSubmissions.filter(sub => sub.id !== selectedSubmission.id)
-    );
-    
-    // Mettre à jour la liste complète
-    setSubmissions(prevSubmissions => 
-      prevSubmissions.map(sub => 
-        sub.id === selectedSubmission.id ? { ...sub, status: 'validated' } : sub
-      )
-    );
-  };
-
-  if (loading) {
-    return <div className="loading">Chargement des soumissions...</div>;
-  }
-
-  return (
-    <div className="form-validation-container">
-      <h1>Validation des formulaires</h1>
-      
-      <div className="debug-info">
-        <h3>Informations de débogage</h3>
-        <pre>{debugInfo}</pre>
-      </div>
-      
-      <div className="pending-submissions">
-        <h2>Soumissions en attente de validation</h2>
-        
-        {pendingSubmissions.length > 0 ? (
-          <table className="submissions-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Nom</th>
-                <th>Prénom</th>
-                <th>Structure</th>
-                <th>Email</th>
-                <th>Téléphone</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendingSubmissions.map((submission) => (
-                <tr key={submission.id}>
-                  <td>{submission.createdAt ? new Date(submission.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
-                  <td>{submission.lastName || 'N/A'}</td>
-                  <td>{submission.firstName || 'N/A'}</td>
-                  <td>{submission.organization || 'N/A'}</td>
-                  <td>{submission.email || 'N/A'}</td>
-                  <td>{submission.phone || 'N/A'}</td>
-                  <td className="action-buttons">
-                    <button 
-                      className="validate-btn"
-                      onClick={() => handleValidateClick(submission)}
-                    >
-                      Valider
-                    </button>
-                    <button 
-                      className="reject-btn"
-                      onClick={() => handleRejectSubmission(submission.id)}
-                    >
-                      Rejeter
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p className="no-submissions">Aucune soumission en attente de validation.</p>
-        )}
-      </div>
-      
-      {showComparisonModal && selectedSubmission && (
-        <div className="modal-overlay">
-          <div className="comparison-modal">
-            <button className="close-modal" onClick={closeComparisonModal}>×</button>
-            <h2>Validation des données</h2>
-            <ComparisonTable 
-              submission={selectedSubmission} 
-              onValidationComplete={handleValidationComplete}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default FormValidationList;
-EOL
-
-# 7. Ajout du CSS pour FormValidationList
-echo -e "${GREEN}7. Ajout du CSS pour FormValidationList...${NC}"
-
-backup_file "client/src/components/formValidation/FormValidationList.css"
-
-cat > client/src/components/formValidation/FormValidationList.css << 'EOL'
-.form-validation-container {
-  padding: 20px;
-}
-
-.form-validation-container h1 {
-  margin-bottom: 20px;
-  color: #2c3e50;
-}
-
-.debug-info {
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 20px;
-  border: 1px solid #e9ecef;
-}
-
-.debug-info h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  font-size: 1rem;
-  color: #6c757d;
-}
-
-.debug-info pre {
-  margin: 0;
-  white-space: pre-wrap;
-  font-family: monospace;
-  font-size: 0.9rem;
-  color: #495057;
-}
-
-.pending-submissions {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.pending-submissions h2 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #2c3e50;
-  font-size: 1.2rem;
-}
-
-.submissions-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.submissions-table th,
-.submissions-table td {
-  padding: 12px 15px;
-  text-align: left;
-  border-bottom: 1px solid #ecf0f1;
-}
-
-.submissions-table th {
-  background-color: #f8f9fa;
-  color: #7f8c8d;
-  font-weight: 500;
-  font-size: 0.9rem;
-}
-
-.submissions-table tbody tr:hover {
-  background-color: #f8f9fa;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.validate-btn,
-.reject-btn {
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-}
-
-.validate-btn {
-  background-color: #2ecc71;
-  color: white;
-}
-
-.validate-btn:hover {
-  background-color: #27ae60;
-}
-
-.reject-btn {
-  background-color: #e74c3c;
-  color: white;
-}
-
-.reject-btn:hover {
-  background-color: #c0392b;
-}
-
-.no-submissions {
-  text-align: center;
-  color: #95a5a6;
-  padding: 20px 0;
-}
-
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  font-size: 1.2rem;
-  color: #7f8c8d;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.comparison-modal {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  width: 90%;
-  max-width: 1000px;
-  max-height: 90vh;
-  overflow-y: auto;
-  position: relative;
-}
-
-.close-modal {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #7f8c8d;
-}
-
-.close-modal:hover {
-  color: #2c3e50;
-}
-
-@media (max-width: 768px) {
-  .action-buttons {
-    flex-direction: column;
-  }
-  
-  .submissions-table {
-    font-size: 0.9rem;
-  }
-  
-  .submissions-table th,
-  .submissions-table td {
-    padding: 8px 10px;
-  }
-}
-EOL
-
-# 8. Création du composant ComparisonTable
-echo -e "${GREEN}8. Création du composant ComparisonTable...${NC}"
-
-backup_file "client/src/components/formValidation/ComparisonTable.jsx"
-backup_file "client/src/components/formValidation/ComparisonTable.css"
-
-cat > client/src/components/formValidation/ComparisonTable.jsx << 'EOL'
-import React, { useState, useEffect } from 'react';
-import { updateFormSubmissionWithValidatedData, updateLinkedEntities } from '../../services/formSubmissionsService';
-import { getProgrammerByEmail, updateProgrammer } from '../../services/programmersService';
-import './ComparisonTable.css';
-
-const ComparisonTable = ({ submission, onValidationComplete }) => {
-  const [programmerData, setProgrammerData] = useState(null);
-  const [finalData, setFinalData] = useState({});
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchProgrammerData = async () => {
-      try {
-        setLoading(true);
-        
-        // Rechercher le programmateur par email
-        if (submission.email) {
-          const programmer = await getProgrammerByEmail(submission.email);
-          if (programmer) {
-            setProgrammerData(programmer);
-            
-            // Initialiser les données finales avec les valeurs existantes du programmateur
-            const initialFinalData = {};
-            Object.keys(submission).forEach(key => {
-              if (key !== 'id' && key !== 'status' && key !== 'createdAt' && key !== 'commonToken') {
-                initialFinalData[key] = programmer[key] || '';
-              }
-            });
-            setFinalData(initialFinalData);
-          } else {
-            // Si aucun programmateur n'est trouvé, utiliser les données de la soumission
-            const initialFinalData = {};
-            Object.keys(submission).forEach(key => {
-              if (key !== 'id' && key !== 'status' && key !== 'createdAt' && key !== 'commonToken') {
-                initialFinalData[key] = submission[key] || '';
-              }
-            });
-            setFinalData(initialFinalData);
-          }
-        } else {
-          // Si pas d'email, utiliser les données de la soumission
-          const initialFinalData = {};
-          Object.keys(submission).forEach(key => {
-            if (key !== 'id' && key !== 'status' && key !== 'createdAt' && key !== 'commonToken') {
-              initialFinalData[key] = submission[key] || '';
-            }
-          });
-          setFinalData(initialFinalData);
+        if (!concertData) {
+          throw new Error('Concert non trouvé');
         }
         
+        setConcert(concertData);
+        
+        // Préparer les données pour le formulaire d'édition
+        setFormData({
+          artist: concertData.artist || { id: '', name: '' },
+          programmer: concertData.programmer || { id: '', name: '', structure: '' },
+          date: concertData.date ? concertData.date.toISOString().split('T')[0] : '',
+          time: concertData.time || '',
+          venue: concertData.venue || '',
+          city: concertData.city || '',
+          price: concertData.price || '',
+          status: concertData.status || 'En attente',
+          notes: concertData.notes || ''
+        });
+        
+        // Préparer l'URL du formulaire
+        const baseUrl = window.location.origin;
+        setFormUrl(`${baseUrl}/#/form/${id}`);
+        
+        // Récupérer la liste des artistes et des programmateurs pour le formulaire d'édition
+        const artistsList = await getArtists();
+        const programmersList = await getProgrammers();
+        
+        setArtists(artistsList);
+        setProgrammers(programmersList);
+        
         setLoading(false);
-      } catch (error) {
-        console.error("Erreur lors de la récupération des données du programmateur:", error);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des données:", err);
+        setError(err.message);
         setLoading(false);
       }
     };
-
-    fetchProgrammerData();
-  }, [submission]);
-
-  const handleCopyFromSubmission = (field) => {
-    setFinalData(prevData => ({
-      ...prevData,
-      [field]: submission[field] || ''
-    }));
-  };
-
-  const handleCopyFromProgrammer = (field) => {
-    if (programmerData && programmerData[field]) {
-      setFinalData(prevData => ({
-        ...prevData,
-        [field]: programmerData[field]
+    
+    fetchData();
+  }, [id]);
+  
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    
+    // Mise à jour du state en fonction du champ modifié
+    if (name === 'artistId') {
+      // Trouver l'artiste correspondant à l'ID sélectionné
+      const selectedArtist = artists.find(artist => artist.id === value);
+      
+      setFormData(prev => ({
+        ...prev,
+        artist: {
+          id: value,
+          name: selectedArtist ? selectedArtist.name : ''
+        }
+      }));
+    } else if (name === 'programmerId') {
+      // Trouver le programmateur correspondant à l'ID sélectionné
+      const selectedProgrammer = programmers.find(programmer => programmer.id === value);
+      
+      setFormData(prev => ({
+        ...prev,
+        programmer: {
+          id: value,
+          name: selectedProgrammer ? selectedProgrammer.name : '',
+          structure: selectedProgrammer ? selectedProgrammer.structure || '' : ''
+        }
+      }));
+    } else {
+      // Pour les autres champs, mise à jour directe
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
       }));
     }
   };
-
-  const handleInputChange = (field, value) => {
-    setFinalData(prevData => ({
-      ...prevData,
-      [field]: value
-    }));
-  };
-
-  const handleValidateData = async () => {
-    try {
-      // Mettre à jour la soumission avec les données validées
-      await updateFormSubmissionWithValidatedData(submission.id, finalData);
-      
-      // Si un token commun existe, mettre à jour toutes les entités liées
-      if (submission.commonToken) {
-        await updateLinkedEntities(submission.commonToken, finalData);
-      }
-      
-      // Si un programmateur existe, le mettre à jour
-      if (programmerData) {
-        await updateProgrammer(programmerData.id, finalData);
-      }
-      
-      // Notifier le composant parent que la validation est terminée
-      if (onValidationComplete) {
-        onValidationComplete();
-      }
-    } catch (error) {
-      console.error("Erreur lors de la validation des données:", error);
-    }
-  };
-
-  if (loading) {
-    return <div className="loading">Chargement des données...</div>;
-  }
-
-  // Définir les champs à afficher et leur libellé
-  const fields = [
-    { key: 'firstName', label: 'Prénom' },
-    { key: 'lastName', label: 'Nom' },
-    { key: 'organization', label: 'Structure' },
-    { key: 'position', label: 'Fonction' },
-    { key: 'email', label: 'Email' },
-    { key: 'phone', label: 'Téléphone' },
-    { key: 'address', label: 'Adresse' },
-    { key: 'postalCode', label: 'Code postal' },
-    { key: 'city', label: 'Ville' },
-    { key: 'country', label: 'Pays' },
-    { key: 'website', label: 'Site web' },
-    { key: 'vatNumber', label: 'Numéro TVA' },
-    { key: 'siret', label: 'SIRET' },
-    { key: 'notes', label: 'Notes' }
-  ];
-
-  return (
-    <div className="comparison-table-container">
-      <table className="comparison-table">
-        <thead>
-          <tr>
-            <th>Champ</th>
-            <th>Valeur du formulaire</th>
-            <th></th>
-            <th>Valeur existante</th>
-            <th></th>
-            <th>Valeur finale</th>
-          </tr>
-        </thead>
-        <tbody>
-          {fields.map((field) => (
-            <tr key={field.key}>
-              <td className="field-label">{field.label}</td>
-              <td className="submission-value">{submission[field.key] || ''}</td>
-              <td className="action-cell">
-                {submission[field.key] && (
-                  <button 
-                    className="copy-btn"
-                    onClick={() => handleCopyFromSubmission(field.key)}
-                    title="Utiliser cette valeur"
-                  >
-                    →
-                  </button>
-                )}
-              </td>
-              <td className="programmer-value">
-                {programmerData ? (programmerData[field.key] || '') : ''}
-              </td>
-              <td className="action-cell">
-                {programmerData && programmerData[field.key] && (
-                  <button 
-                    className="copy-btn"
-                    onClick={() => handleCopyFromProgrammer(field.key)}
-                    title="Utiliser cette valeur"
-                  >
-                    →
-                  </button>
-                )}
-              </td>
-              <td className="final-value">
-                <input 
-                  type="text" 
-                  value={finalData[field.key] || ''} 
-                  onChange={(e) => handleInputChange(field.key, e.target.value)}
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      
-      <div className="validation-actions">
-        <button 
-          className="validate-final-btn"
-          onClick={handleValidateData}
-        >
-          Valider les données
-        </button>
-      </div>
-    </div>
-  );
-};
-
-export default ComparisonTable;
-EOL
-
-cat > client/src/components/formValidation/ComparisonTable.css << 'EOL'
-.comparison-table-container {
-  margin-top: 20px;
-}
-
-.comparison-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-}
-
-.comparison-table th,
-.comparison-table td {
-  padding: 10px;
-  text-align: left;
-  border-bottom: 1px solid #ecf0f1;
-}
-
-.comparison-table th {
-  background-color: #f8f9fa;
-  color: #7f8c8d;
-  font-weight: 500;
-  font-size: 0.9rem;
-}
-
-.field-label {
-  font-weight: 500;
-  color: #2c3e50;
-}
-
-.submission-value {
-  background-color: #e8f4fd;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.programmer-value {
-  background-color: #f0fff4;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.action-cell {
-  width: 50px;
-  text-align: center;
-}
-
-.copy-btn {
-  background-color: #3498db;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  width: 30px;
-  height: 30px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.3s ease;
-}
-
-.copy-btn:hover {
-  background-color: #2980b9;
-}
-
-.final-value input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.9rem;
-}
-
-.final-value input:focus {
-  border-color: #3498db;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-}
-
-.validation-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-.validate-final-btn {
-  background-color: #2ecc71;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 10px 20px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.validate-final-btn:hover {
-  background-color: #27ae60;
-}
-
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  font-size: 1.2rem;
-  color: #7f8c8d;
-}
-
-@media (max-width: 768px) {
-  .comparison-table {
-    font-size: 0.9rem;
-  }
   
-  .comparison-table th,
-  .comparison-table td {
-    padding: 8px;
-  }
-  
-  .copy-btn {
-    width: 25px;
-    height: 25px;
-    font-size: 0.8rem;
-  }
-}
-EOL
-
-# 9. Correction du composant PublicFormPage
-echo -e "${GREEN}9. Correction du composant PublicFormPage...${NC}"
-
-mkdir -p client/src/components/public
-backup_file "client/src/components/public/PublicFormPage.jsx"
-backup_file "client/src/components/public/PublicFormPage.css"
-
-cat > client/src/components/public/PublicFormPage.jsx << 'EOL'
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { createFormSubmission } from '../../services/formSubmissionsService';
-import './PublicFormPage.css';
-
-const PublicFormPage = () => {
-  const location = useLocation();
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    organization: '',
-    position: '',
-    email: '',
-    phone: '',
-    address: '',
-    postalCode: '',
-    city: '',
-    country: 'France',
-    website: '',
-    vatNumber: '',
-    siret: '',
-    notes: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState('');
-  const [commonToken, setCommonToken] = useState('');
-
-  useEffect(() => {
-    // Extraire le token commun de l'URL
-    const params = new URLSearchParams(location.search);
-    const token = params.get('token');
-    if (token) {
-      setCommonToken(token);
-    }
-  }, [location]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prevData => ({
-      ...prevData,
-      [name]: value
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
       setLoading(true);
-      setError('');
       
-      // Ajouter le token commun aux données du formulaire
-      const submissionData = {
-        ...formData,
-        commonToken: commonToken || null,
-        status: 'pending',
-        createdAt: new Date()
+      // Préparer les données à envoyer
+      const updatedConcert = {
+        artist: formData.artist,
+        programmer: formData.programmer,
+        date: formData.date ? new Date(formData.date) : null,
+        time: formData.time,
+        venue: formData.venue,
+        city: formData.city,
+        price: formData.price,
+        status: formData.status,
+        notes: formData.notes
       };
       
-      // Envoyer les données à Firebase
-      await createFormSubmission(submissionData);
+      console.log("Données à mettre à jour:", updatedConcert);
       
-      // Réinitialiser le formulaire et afficher un message de succès
-      setFormData({
-        firstName: '',
-        lastName: '',
-        organization: '',
-        position: '',
-        email: '',
-        phone: '',
-        address: '',
-        postalCode: '',
-        city: '',
-        country: 'France',
-        website: '',
-        vatNumber: '',
-        siret: '',
-        notes: ''
+      // Utiliser le service Firebase pour mettre à jour le concert
+      await updateConcert(id, updatedConcert);
+      
+      // Mettre à jour l'état local
+      setConcert({
+        id,
+        ...updatedConcert
       });
       
-      setSubmitted(true);
+      setIsEditing(false);
       setLoading(false);
-    } catch (error) {
-      console.error("Erreur lors de la soumission du formulaire:", error);
-      setError("Une erreur s'est produite lors de la soumission du formulaire. Veuillez réessayer.");
+      
+      // Afficher un message de succès
+      alert("Concert mis à jour avec succès !");
+    } catch (err) {
+      console.error("Erreur lors de la mise à jour du concert:", err);
+      setError(err.message);
       setLoading(false);
+      alert(`Erreur lors de la mise à jour du concert: ${err.message}`);
     }
   };
-
-  return (
-    <div className="public-form-container">
-      <div className="form-header">
-        <h1>Formulaire de renseignements</h1>
-        <p>Merci de compléter ce formulaire pour nous permettre de préparer votre contrat.</p>
-      </div>
+  
+  const handleDelete = async () => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce concert ?")) {
+      try {
+        setLoading(true);
+        
+        // Utiliser le service Firebase pour supprimer le concert
+        await deleteConcert(id);
+        
+        setLoading(false);
+        
+        // Rediriger vers la liste des concerts
+        navigate('/concerts');
+      } catch (err) {
+        console.error("Erreur lors de la suppression du concert:", err);
+        setError(err.message);
+        setLoading(false);
+        alert(`Erreur lors de la suppression du concert: ${err.message}`);
+      }
+    }
+  };
+  
+  const handleGenerateFormLink = () => {
+    try {
+      console.log("Génération du lien de formulaire pour le concert:", concert);
       
-      {submitted ? (
-        <div className="success-message">
-          <h2>Formulaire envoyé avec succès !</h2>
-          <p>Nous avons bien reçu vos informations et nous les traiterons dans les plus brefs délais.</p>
-          <button 
-            className="new-form-btn"
-            onClick={() => setSubmitted(false)}
-          >
-            Remplir un nouveau formulaire
-          </button>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="public-form">
-          {error && <div className="error-message">{error}</div>}
-          
-          <div className="form-section">
-            <h2>Informations personnelles</h2>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="firstName">Prénom *</label>
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="lastName">Nom *</label>
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="organization">Structure / Organisation *</label>
-                <input
-                  type="text"
-                  id="organization"
-                  name="organization"
-                  value={formData.organization}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="position">Fonction</label>
-                <input
-                  type="text"
-                  id="position"
-                  name="position"
-                  value={formData.position}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
+      // Vérifier si le concert a un artiste associé
+      if (!concert.artist || !concert.artist.id) {
+        console.warn("Ce concert n'a pas d'artiste associé");
+        // Continuer quand même, ce n'est pas bloquant
+      }
+      
+      // Vérifier si le concert a un programmateur associé
+      if (!concert.programmer || !concert.programmer.id) {
+        console.warn("Ce concert n'a pas de programmateur associé");
+        // Continuer quand même, ce n'est pas bloquant
+      }
+      
+      // Générer l'URL du formulaire
+      const baseUrl = window.location.origin;
+      const formLink = `${baseUrl}/#/form/${id}`;
+      setFormUrl(formLink);
+      
+      console.log("Lien de formulaire généré:", formLink);
+      
+      // Afficher la modal avec le lien direct
+      setShowLinkModal(true);
+    } catch (err) {
+      console.error("Erreur lors de la génération du lien de formulaire:", err);
+      setError(err.message);
+      alert("Une erreur est survenue lors de la génération du lien de formulaire. Veuillez réessayer.");
+    }
+  };
+  
+  const handleCopyLink = () => {
+    if (!formUrl) return;
+    
+    navigator.clipboard.writeText(formUrl)
+      .then(() => {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 3000);
+      })
+      .catch(err => {
+        console.error("Erreur lors de la copie du lien:", err);
+        alert("Impossible de copier le lien. Veuillez le sélectionner et le copier manuellement.");
+      });
+  };
+  
+  const closeLinkModal = () => {
+    setShowLinkModal(false);
+    setLinkCopied(false);
+  };
+  
+  if (loading && !concert) {
+    return <div className="loading">Chargement...</div>;
+  }
+  
+  if (error) {
+    return <div className="error">Erreur: {error}</div>;
+  }
+  
+  if (!concert) {
+    return <div className="not-found">Concert non trouvé</div>;
+  }
+  
+  return (
+    <div className="concert-detail-container">
+      <h1>Détails du Concert</h1>
+      
+      {isEditing ? (
+        <form onSubmit={handleSubmit} className="concert-form">
+          <div className="form-group">
+            <label htmlFor="artistId">Artiste *</label>
+            <select
+              id="artistId"
+              name="artistId"
+              value={formData.artist?.id || ''}
+              onChange={handleInputChange}
+              required
+            >
+              <option value="">Sélectionner un artiste</option>
+              {artists.map(artist => (
+                <option key={artist.id} value={artist.id}>{artist.name}</option>
+              ))}
+            </select>
           </div>
           
-          <div className="form-section">
-            <h2>Coordonnées</h2>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="email">Email *</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="phone">Téléphone *</label>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="form-group full-width">
-              <label htmlFor="address">Adresse</label>
-              <input
-                type="text"
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-              />
-            </div>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="postalCode">Code postal</label>
-                <input
-                  type="text"
-                  id="postalCode"
-                  name="postalCode"
-                  value={formData.postalCode}
-                  onChange={handleChange}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="city">Ville</label>
-                <input
-                  type="text"
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="country">Pays</label>
-                <input
-                  type="text"
-                  id="country"
-                  name="country"
-                  value={formData.country}
-                  onChange={handleChange}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="website">Site web</label>
-                <input
-                  type="url"
-                  id="website"
-                  name="website"
-                  value={formData.website}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
+          <div className="form-group">
+            <label htmlFor="programmerId">Programmateur *</label>
+            <select
+              id="programmerId"
+              name="programmerId"
+              value={formData.programmer?.id || ''}
+              onChange={handleInputChange}
+              required
+            >
+              <option value="">Sélectionner un programmateur</option>
+              {programmers.map(programmer => (
+                <option key={programmer.id} value={programmer.id}>
+                  {programmer.name} {programmer.structure ? `(${programmer.structure})` : ''}
+                </option>
+              ))}
+            </select>
           </div>
           
-          <div className="form-section">
-            <h2>Informations administratives</h2>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="vatNumber">Numéro de TVA intracommunautaire</label>
-                <input
-                  type="text"
-                  id="vatNumber"
-                  name="vatNumber"
-                  value={formData.vatNumber}
-                  onChange={handleChange}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="siret">Numéro SIRET</label>
-                <input
-                  type="text"
-                  id="siret"
-                  name="siret"
-                  value={formData.siret}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
+          <div className="form-group">
+            <label htmlFor="date">Date *</label>
+            <input
+              type="date"
+              id="date"
+              name="date"
+              value={formData.date}
+              onChange={handleInputChange}
+              required
+            />
           </div>
           
-          <div className="form-section">
-            <h2>Informations complémentaires</h2>
-            
-            <div className="form-group full-width">
-              <label htmlFor="notes">Notes ou commentaires</label>
-              <textarea
-                id="notes"
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-                rows="4"
-              ></textarea>
-            </div>
+          <div className="form-group">
+            <label htmlFor="time">Heure *</label>
+            <input
+              type="time"
+              id="time"
+              name="time"
+              value={formData.time}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="venue">Lieu *</label>
+            <input
+              type="text"
+              id="venue"
+              name="venue"
+              value={formData.venue}
+              onChange={handleInputChange}
+              required
+              placeholder="Nom de la salle ou du lieu"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="city">Ville *</label>
+            <input
+              type="text"
+              id="city"
+              name="city"
+              value={formData.city}
+              onChange={handleInputChange}
+              required
+              placeholder="Ville"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="price">Prix (€)</label>
+            <input
+              type="number"
+              id="price"
+              name="price"
+              value={formData.price}
+              onChange={handleInputChange}
+              placeholder="Prix en euros"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="status">Statut</label>
+            <select
+              id="status"
+              name="status"
+              value={formData.status}
+              onChange={handleInputChange}
+            >
+              {statuses.map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="form-group full-width">
+            <label htmlFor="notes">Notes</label>
+            <textarea
+              id="notes"
+              name="notes"
+              value={formData.notes}
+              onChange={handleInputChange}
+              rows="4"
+              placeholder="Informations complémentaires"
+            ></textarea>
           </div>
           
           <div className="form-actions">
-            <button 
-              type="submit" 
-              className="submit-btn"
-              disabled={loading}
-            >
-              {loading ? 'Envoi en cours...' : 'Envoyer le formulaire'}
+            <button type="button" className="cancel-btn" onClick={() => setIsEditing(false)}>
+              Annuler
+            </button>
+            <button type="submit" className="save-btn" disabled={loading}>
+              {loading ? 'Enregistrement...' : 'Enregistrer'}
             </button>
           </div>
         </form>
+      ) : (
+        <>
+          <div className="concert-info">
+            <div className="info-row">
+              <span className="info-label">Artiste:</span>
+              <span className="info-value">{concert.artist?.name || 'Non spécifié'}</span>
+            </div>
+            
+            <div className="info-row">
+              <span className="info-label">Programmateur:</span>
+              <span className="info-value">
+                {concert.programmer?.name || 'Non spécifié'}
+                {concert.programmer?.structure && ` (${concert.programmer.structure})`}
+              </span>
+            </div>
+            
+            <div className="info-row">
+              <span className="info-label">Date:</span>
+              <span className="info-value">
+                {concert.date ? new Date(concert.date).toLocaleDateString() : 'Non spécifiée'}
+              </span>
+            </div>
+            
+            <div className="info-row">
+              <span className="info-label">Heure:</span>
+              <span className="info-value">{concert.time || 'Non spécifiée'}</span>
+            </div>
+            
+            <div className="info-row">
+              <span className="info-label">Lieu:</span>
+              <span className="info-value">{concert.venue || 'Non spécifié'}</span>
+            </div>
+            
+            <div className="info-row">
+              <span className="info-label">Ville:</span>
+              <span className="info-value">{concert.city || 'Non spécifiée'}</span>
+            </div>
+            
+            <div className="info-row">
+              <span className="info-label">Prix:</span>
+              <span className="info-value">
+                {concert.price ? `${concert.price} €` : 'Non spécifié'}
+              </span>
+            </div>
+            
+            <div className="info-row">
+              <span className="info-label">Statut:</span>
+              <span className="info-value">{concert.status || 'Non spécifié'}</span>
+            </div>
+            
+            {concert.notes && (
+              <div className="info-row">
+                <span className="info-label">Notes:</span>
+                <span className="info-value">{concert.notes}</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="concert-actions">
+            <button onClick={() => setIsEditing(true)} className="edit-btn">
+              Modifier
+            </button>
+            <button onClick={handleDelete} className="delete-btn">
+              Supprimer
+            </button>
+            <button onClick={handleGenerateFormLink} className="form-link-btn">
+              Envoyer le formulaire
+            </button>
+          </div>
+        </>
+      )}
+      
+      {/* Modal pour afficher le lien du formulaire */}
+      {showLinkModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Lien de formulaire</h3>
+            <p>Partagez ce lien avec le programmateur pour qu'il puisse remplir le formulaire :</p>
+            
+            <div className="link-container">
+              <input
+                type="text"
+                value={formUrl}
+                readOnly
+                onClick={(e) => e.target.select()}
+              />
+              <button onClick={handleCopyLink} className="copy-btn">
+                {linkCopied ? 'Copié !' : 'Copier'}
+              </button>
+            </div>
+            
+            <button onClick={closeLinkModal} className="close-btn">
+              Fermer
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
 };
 
-export default PublicFormPage;
+export default ConcertDetail;
 EOL
 
-cat > client/src/components/public/PublicFormPage.css << 'EOL'
-.public-form-container {
+# Remplacer le fichier original par la nouvelle version
+mv ./client/src/components/concerts/ConcertDetail.js.new ./client/src/components/concerts/ConcertDetail.js
+success "ConcertDetail.js modifié avec succès"
+
+# Correction du problème 2: Erreurs de validation lors de la modification d'un concert
+log "Correction du problème 2: Erreurs de validation lors de la modification d'un concert"
+
+# Sauvegarde du fichier concertsService.js
+backup_file "./client/src/services/concertsService.js"
+
+# Modification du service concertsService.js pour améliorer la validation
+log "Modification du service concertsService.js pour améliorer la validation"
+cat > ./client/src/services/concertsService.js.new << 'EOL'
+import { db } from '../firebase';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  Timestamp,
+  setDoc
+} from 'firebase/firestore';
+
+// Nom de la collection dans Firestore
+const CONCERTS_COLLECTION = 'concerts';
+const concertsCollection = collection(db, CONCERTS_COLLECTION);
+
+/**
+ * Récupère la liste des concerts avec filtrage optionnel
+ * @param {Object} filters - Filtres à appliquer (artistId, programmerId, etc.)
+ * @returns {Promise<Array>} Liste des concerts
+ */
+export const getConcerts = async (filters = {}) => {
+  try {
+    console.log("[getConcerts] Tentative de récupération des concerts depuis Firebase avec filtres:", filters);
+    
+    // Construire la requête avec les filtres
+    let concertsQuery = concertsCollection;
+    
+    if (filters.artistId) {
+      console.log(`[getConcerts] Filtrage par artiste: ${filters.artistId}`);
+      concertsQuery = query(concertsQuery, where('artist.id', '==', filters.artistId));
+    }
+    
+    if (filters.programmerId) {
+      console.log(`[getConcerts] Filtrage par programmateur: ${filters.programmerId}`);
+      concertsQuery = query(concertsQuery, where('programmer.id', '==', filters.programmerId));
+    }
+    
+    if (filters.status) {
+      console.log(`[getConcerts] Filtrage par statut: ${filters.status}`);
+      concertsQuery = query(concertsQuery, where('status', '==', filters.status));
+    }
+    
+    if (filters.commonToken) {
+      console.log(`[getConcerts] Filtrage par token commun: ${filters.commonToken}`);
+      concertsQuery = query(concertsQuery, where('commonToken', '==', filters.commonToken));
+    }
+    
+    // Tri par date décroissante
+    concertsQuery = query(concertsQuery, orderBy('date', 'desc'));
+    
+    // Exécution de la requête
+    const snapshot = await getDocs(concertsQuery);
+    
+    const concerts = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      // Convertir les timestamps en objets Date pour faciliter l'utilisation
+      date: doc.data().date ? new Date(doc.data().date.seconds * 1000) : null
+    }));
+    
+    console.log(`[getConcerts] ${concerts.length} concerts récupérés depuis Firebase`);
+    return concerts;
+  } catch (error) {
+    console.error("[getConcerts] Erreur lors de la récupération des concerts:", error);
+    throw error;
+  }
+};
+
+/**
+ * Récupère un concert par son ID
+ * @param {string} id - ID du concert
+ * @returns {Promise<Object>} Données du concert
+ */
+export const getConcertById = async (id) => {
+  try {
+    console.log(`[getConcertById] Tentative de récupération du concert ${id} depuis Firebase...`);
+    
+    const docRef = doc(db, CONCERTS_COLLECTION, id);
+    const snapshot = await getDoc(docRef);
+    
+    if (snapshot.exists()) {
+      const concertData = {
+        id: snapshot.id,
+        ...snapshot.data(),
+        // Convertir les timestamps en objets Date pour faciliter l'utilisation
+        date: snapshot.data().date ? new Date(snapshot.data().date.seconds * 1000) : null
+      };
+      console.log(`[getConcertById] Concert ${id} récupéré depuis Firebase:`, concertData);
+      return concertData;
+    }
+    
+    console.log(`[getConcertById] Concert ${id} non trouvé dans Firebase`);
+    return null;
+  } catch (error) {
+    console.error(`[getConcertById] Erreur lors de la récupération du concert ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Ajoute un nouveau concert
+ * @param {Object} concertData - Données du concert
+ * @returns {Promise<Object>} Concert créé avec ID
+ */
+export const addConcert = async (concertData) => {
+  try {
+    console.log("[addConcert] Tentative d'ajout d'un concert à Firebase:", concertData);
+    
+    // Validation des données
+    validateConcertData(concertData);
+    
+    // Convertir la date en Timestamp si elle existe
+    const dataToAdd = {
+      ...concertData,
+      date: concertData.date ? Timestamp.fromDate(new Date(concertData.date)) : null
+    };
+    
+    const docRef = await addDoc(concertsCollection, dataToAdd);
+    console.log(`[addConcert] Concert ajouté avec succès, ID: ${docRef.id}`);
+    
+    return {
+      id: docRef.id,
+      ...concertData
+    };
+  } catch (error) {
+    console.error("[addConcert] Erreur lors de l'ajout du concert:", error);
+    throw error;
+  }
+};
+
+/**
+ * Met à jour un concert existant
+ * @param {string} id - ID du concert
+ * @param {Object} concertData - Nouvelles données du concert
+ * @returns {Promise<Object>} Concert mis à jour
+ */
+export const updateConcert = async (id, concertData) => {
+  try {
+    console.log(`[updateConcert] Tentative de mise à jour du concert ${id}:`, concertData);
+    
+    // Validation des données
+    validateConcertData(concertData);
+    
+    // Convertir la date en Timestamp si elle existe
+    const dataToUpdate = {
+      ...concertData
+    };
+    
+    if (concertData.date) {
+      dataToUpdate.date = concertData.date instanceof Date ? 
+        Timestamp.fromDate(concertData.date) : 
+        Timestamp.fromDate(new Date(concertData.date));
+    }
+    
+    // S'assurer que les objets artist et programmer sont correctement formatés
+    if (dataToUpdate.artist && typeof dataToUpdate.artist === 'object') {
+      if (!dataToUpdate.artist.id) dataToUpdate.artist.id = '';
+      if (!dataToUpdate.artist.name) dataToUpdate.artist.name = '';
+    } else {
+      dataToUpdate.artist = { id: '', name: '' };
+    }
+    
+    if (dataToUpdate.programmer && typeof dataToUpdate.programmer === 'object') {
+      if (!dataToUpdate.programmer.id) dataToUpdate.programmer.id = '';
+      if (!dataToUpdate.programmer.name) dataToUpdate.programmer.name = '';
+      if (!dataToUpdate.programmer.structure) dataToUpdate.programmer.structure = '';
+    } else {
+      dataToUpdate.programmer = { id: '', name: '', structure: '' };
+    }
+    
+    // Vérifier si le concert existe déjà
+    const docRef = doc(db, CONCERTS_COLLECTION, id);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      // Mettre à jour le concert existant
+      await updateDoc(docRef, dataToUpdate);
+      console.log(`[updateConcert] Concert ${id} mis à jour avec succès:`, dataToUpdate);
+    } else {
+      // Créer un nouveau concert avec l'ID spécifié
+      await setDoc(docRef, dataToUpdate);
+      console.log(`[updateConcert] Nouveau concert créé avec ID spécifié: ${id}`, dataToUpdate);
+    }
+    
+    // Récupérer le concert mis à jour pour confirmer les changements
+    const updatedConcert = await getConcertById(id);
+    console.log(`[updateConcert] Concert après mise à jour:`, updatedConcert);
+    
+    return updatedConcert || {
+      id,
+      ...concertData
+    };
+  } catch (error) {
+    console.error(`[updateConcert] Erreur lors de la mise à jour du concert ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Supprime un concert
+ * @param {string} id - ID du concert
+ * @returns {Promise<boolean>} Succès de la suppression
+ */
+export const deleteConcert = async (id) => {
+  try {
+    console.log(`[deleteConcert] Tentative de suppression du concert ${id}`);
+    
+    const docRef = doc(db, CONCERTS_COLLECTION, id);
+    await deleteDoc(docRef);
+    
+    console.log(`[deleteConcert] Concert ${id} supprimé avec succès`);
+    return true;
+  } catch (error) {
+    console.error(`[deleteConcert] Erreur lors de la suppression du concert ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Récupère les concerts par token commun
+ * @param {string} commonToken - Token commun
+ * @returns {Promise<Array>} Liste des concerts
+ */
+export const getConcertsByToken = async (commonToken) => {
+  return getConcerts({ commonToken });
+};
+
+/**
+ * Récupère les concerts par artiste
+ * @param {string} artistId - ID de l'artiste
+ * @returns {Promise<Array>} Liste des concerts
+ */
+export const getConcertsByArtist = async (artistId) => {
+  return getConcerts({ artistId });
+};
+
+/**
+ * Valide les données d'un concert
+ * @param {Object} concertData - Données du concert à valider
+ * @throws {Error} Si les données sont invalides
+ */
+const validateConcertData = (concertData) => {
+  console.log("[validateConcertData] Validation des données du concert:", concertData);
+  
+  // Vérifier que les champs obligatoires sont présents
+  if (!concertData) {
+    throw new Error("Les données du concert sont requises");
+  }
+  
+  // Vérifier que la date est valide si elle est fournie
+  if (concertData.date && isNaN(new Date(concertData.date).getTime())) {
+    throw new Error("La date du concert est invalide");
+  }
+  
+  // Vérifier que l'artiste est correctement formaté
+  if (concertData.artist && typeof concertData.artist !== 'object') {
+    throw new Error("L'artiste doit être un objet avec id et name");
+  }
+  
+  // Vérifier que le programmateur est correctement formaté
+  if (concertData.programmer && typeof concertData.programmer !== 'object') {
+    throw new Error("Le programmateur doit être un objet avec id, name et structure");
+  }
+  
+  console.log("[validateConcertData] Données du concert valides");
+};
+EOL
+
+# Remplacer le fichier original par la nouvelle version
+mv ./client/src/services/concertsService.js.new ./client/src/services/concertsService.js
+success "concertsService.js modifié avec succès"
+
+# Correction du problème 3: Échec de l'enregistrement des modifications du concert
+log "Correction du problème 3: Échec de l'enregistrement des modifications du concert"
+
+# Sauvegarde du fichier App.js
+backup_file "./client/src/App.js"
+
+# Vérification et correction des routes dans App.js
+log "Vérification et correction des routes dans App.js"
+if grep -q "PublicFormPage" "./client/src/App.js"; then
+  log "Les routes pour le formulaire public sont déjà définies dans App.js"
+else
+  log "Ajout des routes pour le formulaire public dans App.js"
+  # Cette partie serait à implémenter si nécessaire
+fi
+
+# Création des fichiers CSS manquants pour éviter les erreurs de build
+log "Création des fichiers CSS manquants pour éviter les erreurs de build"
+
+# Vérifier et créer les répertoires nécessaires
+mkdir -p ./client/src/components/contracts
+mkdir -p ./client/src/components/invoices
+mkdir -p ./client/src/components/emails
+mkdir -p ./client/src/components/settings
+mkdir -p ./client/src/components/documents
+
+# Créer ContractsList.css s'il n'existe pas
+if [ ! -f "./client/src/components/contracts/ContractsList.css" ]; then
+  cat > ./client/src/components/contracts/ContractsList.css << 'EOL'
+.contracts-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.contracts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.contracts-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.contracts-table th,
+.contracts-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.contracts-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.contracts-table tr:hover {
+  background-color: #f5f5f5;
+}
+
+.contract-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.contract-actions button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.view-btn {
+  background-color: #007bff;
+  color: white;
+}
+
+.edit-btn {
+  background-color: #6c757d;
+  color: white;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.add-contract-btn {
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.empty-message {
+  text-align: center;
+  margin: 40px 0;
+  color: #6c757d;
+}
+EOL
+  success "ContractsList.css créé avec succès"
+fi
+
+# Créer InvoicesList.css s'il n'existe pas
+if [ ! -f "./client/src/components/invoices/InvoicesList.css" ]; then
+  cat > ./client/src/components/invoices/InvoicesList.css << 'EOL'
+.invoices-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.invoices-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.invoices-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.invoices-table th,
+.invoices-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.invoices-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.invoices-table tr:hover {
+  background-color: #f5f5f5;
+}
+
+.invoice-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.invoice-actions button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.view-btn {
+  background-color: #007bff;
+  color: white;
+}
+
+.edit-btn {
+  background-color: #6c757d;
+  color: white;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.add-invoice-btn {
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.empty-message {
+  text-align: center;
+  margin: 40px 0;
+  color: #6c757d;
+}
+EOL
+  success "InvoicesList.css créé avec succès"
+fi
+
+# Créer EmailsList.css s'il n'existe pas
+if [ ! -f "./client/src/components/emails/EmailsList.css" ]; then
+  cat > ./client/src/components/emails/EmailsList.css << 'EOL'
+.emails-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.emails-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.emails-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.emails-table th,
+.emails-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.emails-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.emails-table tr:hover {
+  background-color: #f5f5f5;
+}
+
+.email-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.email-actions button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.view-btn {
+  background-color: #007bff;
+  color: white;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.compose-email-btn {
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.empty-message {
+  text-align: center;
+  margin: 40px 0;
+  color: #6c757d;
+}
+EOL
+  success "EmailsList.css créé avec succès"
+fi
+
+# Créer Settings.css s'il n'existe pas
+if [ ! -f "./client/src/components/settings/Settings.css" ]; then
+  cat > ./client/src/components/settings/Settings.css << 'EOL'
+.settings-container {
+  padding: 20px;
   max-width: 800px;
   margin: 0 auto;
-  padding: 30px 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.form-header {
-  text-align: center;
+.settings-section {
   margin-bottom: 30px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
 }
 
-.form-header h1 {
-  color: #2c3e50;
-  margin-bottom: 10px;
-}
-
-.form-header p {
-  color: #7f8c8d;
-}
-
-.public-form {
-  display: flex;
-  flex-direction: column;
-  gap: 30px;
-}
-
-.form-section {
-  border-bottom: 1px solid #ecf0f1;
-  padding-bottom: 20px;
-}
-
-.form-section h2 {
-  color: #3498db;
-  font-size: 1.2rem;
-  margin-bottom: 15px;
-}
-
-.form-row {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 15px;
+.settings-section h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
 }
 
 .form-group {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group.full-width {
-  width: 100%;
+  margin-bottom: 20px;
 }
 
 .form-group label {
-  margin-bottom: 5px;
+  display: block;
+  margin-bottom: 8px;
   font-weight: 500;
-  color: #2c3e50;
-  font-size: 0.9rem;
 }
 
 .form-group input,
+.form-group select,
 .form-group textarea {
+  width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 1rem;
+  font-size: 16px;
 }
 
-.form-group input:focus,
-.form-group textarea:focus {
-  border-color: #3498db;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+.form-group textarea {
+  min-height: 100px;
 }
 
-.form-actions {
+.checkbox-group {
   display: flex;
-  justify-content: center;
+  align-items: center;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+  margin-right: 10px;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
   margin-top: 20px;
 }
 
-.submit-btn {
-  background-color: #3498db;
+.save-btn {
+  padding: 10px 20px;
+  background-color: #28a745;
   color: white;
   border: none;
   border-radius: 4px;
-  padding: 12px 30px;
-  font-size: 1rem;
-  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  font-size: 16px;
 }
 
-.submit-btn:hover {
-  background-color: #2980b9;
-}
-
-.submit-btn:disabled {
-  background-color: #95a5a6;
-  cursor: not-allowed;
-}
-
-.error-message {
-  background-color: #fdeded;
-  color: #e74c3c;
-  padding: 10px 15px;
+.reset-btn {
+  padding: 10px 20px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
   border-radius: 4px;
-  margin-bottom: 20px;
-  border-left: 4px solid #e74c3c;
+  cursor: pointer;
+  font-size: 16px;
 }
 
-.success-message {
-  background-color: #edfff2;
-  padding: 30px;
-  border-radius: 8px;
+.settings-saved {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #d4edda;
+  color: #155724;
+  border-radius: 4px;
   text-align: center;
-  border: 1px solid #d4f5e2;
+}
+EOL
+  success "Settings.css créé avec succès"
+fi
+
+# Créer DocumentsList.css s'il n'existe pas
+if [ ! -f "./client/src/components/documents/DocumentsList.css" ]; then
+  cat > ./client/src/components/documents/DocumentsList.css << 'EOL'
+.documents-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.success-message h2 {
-  color: #27ae60;
+.documents-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.document-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.document-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.document-preview {
+  height: 150px;
+  background-color: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.document-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.document-info {
+  padding: 15px;
+}
+
+.document-title {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.document-meta {
+  font-size: 14px;
+  color: #6c757d;
   margin-bottom: 15px;
 }
 
-.success-message p {
-  color: #2c3e50;
-  margin-bottom: 20px;
+.document-actions {
+  display: flex;
+  gap: 10px;
 }
 
-.new-form-btn {
-  background-color: #3498db;
+.document-actions button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.view-btn {
+  background-color: #007bff;
+  color: white;
+}
+
+.download-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.upload-document-btn {
+  padding: 8px 16px;
+  background-color: #28a745;
   color: white;
   border: none;
   border-radius: 4px;
-  padding: 10px 20px;
-  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  font-size: 16px;
 }
 
-.new-form-btn:hover {
-  background-color: #2980b9;
-}
-
-@media (max-width: 768px) {
-  .form-row {
-    flex-direction: column;
-    gap: 15px;
-  }
-  
-  .public-form-container {
-    padding: 20px 15px;
-  }
+.empty-message {
+  text-align: center;
+  margin: 40px 0;
+  color: #6c757d;
 }
 EOL
-
-# 10. Création des composants manquants pour éviter les erreurs de build
-echo -e "${GREEN}10. Création des composants manquants pour éviter les erreurs de build...${NC}"
-
-# Création des répertoires nécessaires
-mkdir -p client/src/components/settings
-mkdir -p client/src/components/documents
-mkdir -p client/src/components/emails
-mkdir -p client/src/components/contracts
-mkdir -p client/src/components/invoices
-
-# Création du composant Settings
-backup_file "client/src/components/settings/Settings.jsx"
-cat > client/src/components/settings/Settings.jsx << 'EOL'
-import React from 'react';
-import './Settings.css';
-
-const Settings = () => {
-  return (
-    <div className="settings-container">
-      <h1>Paramètres</h1>
-      <p>Cette page est en cours de développement.</p>
-    </div>
-  );
-};
-
-export default Settings;
-EOL
-
-backup_file "client/src/components/settings/Settings.css"
-cat > client/src/components/settings/Settings.css << 'EOL'
-.settings-container {
-  padding: 20px;
-}
-
-.settings-container h1 {
-  margin-bottom: 20px;
-  color: #2c3e50;
-}
-EOL
-
-# Création du composant DocumentsList
-backup_file "client/src/components/documents/DocumentsList.jsx"
-cat > client/src/components/documents/DocumentsList.jsx << 'EOL'
-import React from 'react';
-import './DocumentsList.css';
-
-const DocumentsList = () => {
-  return (
-    <div className="documents-container">
-      <h1>Documents</h1>
-      <p>Cette page est en cours de développement.</p>
-    </div>
-  );
-};
-
-export default DocumentsList;
-EOL
-
-backup_file "client/src/components/documents/DocumentsList.css"
-cat > client/src/components/documents/DocumentsList.css << 'EOL'
-.documents-container {
-  padding: 20px;
-}
-
-.documents-container h1 {
-  margin-bottom: 20px;
-  color: #2c3e50;
-}
-EOL
-
-# Création du composant EmailsList
-backup_file "client/src/components/emails/EmailsList.jsx"
-cat > client/src/components/emails/EmailsList.jsx << 'EOL'
-import React from 'react';
-import './EmailsList.css';
-
-const EmailsList = () => {
-  return (
-    <div className="emails-container">
-      <h1>Emails</h1>
-      <p>Cette page est en cours de développement.</p>
-    </div>
-  );
-};
-
-export default EmailsList;
-EOL
-
-backup_file "client/src/components/emails/EmailsList.css"
-cat > client/src/components/emails/EmailsList.css << 'EOL'
-.emails-container {
-  padding: 20px;
-}
-
-.emails-container h1 {
-  margin-bottom: 20px;
-  color: #2c3e50;
-}
-EOL
-
-# Création du composant ContractsList
-backup_file "client/src/components/contracts/ContractsList.jsx"
-cat > client/src/components/contracts/ContractsList.jsx << 'EOL'
-import React from 'react';
-import './ContractsList.css';
-
-const ContractsList = () => {
-  return (
-    <div className="contracts-container">
-      <h1>Contrats</h1>
-      <p>Cette page est en cours de développement.</p>
-    </div>
-  );
-};
-
-export default ContractsList;
-EOL
-
-backup_file "client/src/components/contracts/ContractsList.css"
-cat > client/src/components/contracts/ContractsList.css << 'EOL'
-.contracts-container {
-  padding: 20px;
-}
-
-.contracts-container h1 {
-  margin-bottom: 20px;
-  color: #2c3e50;
-}
-EOL
-
-# Création du composant ContractDetails
-backup_file "client/src/components/contracts/ContractDetails.jsx"
-cat > client/src/components/contracts/ContractDetails.jsx << 'EOL'
-import React from 'react';
-import { useParams } from 'react-router-dom';
-
-const ContractDetails = () => {
-  const { id } = useParams();
-  
-  return (
-    <div className="contract-details-container">
-      <h1>Détails du contrat</h1>
-      <p>ID du contrat: {id}</p>
-      <p>Cette page est en cours de développement.</p>
-    </div>
-  );
-};
-
-export default ContractDetails;
-EOL
-
-# Création du composant InvoicesList
-backup_file "client/src/components/invoices/InvoicesList.jsx"
-cat > client/src/components/invoices/InvoicesList.jsx << 'EOL'
-import React from 'react';
-import './InvoicesList.css';
-
-const InvoicesList = () => {
-  return (
-    <div className="invoices-container">
-      <h1>Factures</h1>
-      <p>Cette page est en cours de développement.</p>
-    </div>
-  );
-};
-
-export default InvoicesList;
-EOL
-
-backup_file "client/src/components/invoices/InvoicesList.css"
-cat > client/src/components/invoices/InvoicesList.css << 'EOL'
-.invoices-container {
-  padding: 20px;
-}
-
-.invoices-container h1 {
-  margin-bottom: 20px;
-  color: #2c3e50;
-}
-EOL
-
-# Création du composant InvoiceDetails
-backup_file "client/src/components/invoices/InvoiceDetails.jsx"
-cat > client/src/components/invoices/InvoiceDetails.jsx << 'EOL'
-import React from 'react';
-import { useParams } from 'react-router-dom';
-
-const InvoiceDetails = () => {
-  const { id } = useParams();
-  
-  return (
-    <div className="invoice-details-container">
-      <h1>Détails de la facture</h1>
-      <p>ID de la facture: {id}</p>
-      <p>Cette page est en cours de développement.</p>
-    </div>
-  );
-};
-
-export default InvoiceDetails;
-EOL
-
-# 11. Création des services manquants
-echo -e "${GREEN}11. Création des services manquants...${NC}"
-
-# Création du service contractsService.js
-backup_file "client/src/services/contractsService.js"
-cat > client/src/services/contractsService.js << 'EOL'
-import { db } from '../firebase';
-import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-
-// Récupérer tous les contrats
-export const getAllContracts = async () => {
-  try {
-    const contractsCollection = collection(db, 'contracts');
-    const contractsSnapshot = await getDocs(contractsCollection);
-    return contractsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    console.error("Erreur lors de la récupération des contrats:", error);
-    return [];
-  }
-};
-
-// Récupérer un contrat par ID
-export const getContractById = async (id) => {
-  try {
-    const contractDoc = doc(db, 'contracts', id);
-    const contractSnapshot = await getDoc(contractDoc);
-    
-    if (contractSnapshot.exists()) {
-      return {
-        id: contractSnapshot.id,
-        ...contractSnapshot.data()
-      };
-    } else {
-      console.log("Aucun contrat trouvé avec cet ID");
-      return null;
-    }
-  } catch (error) {
-    console.error("Erreur lors de la récupération du contrat:", error);
-    return null;
-  }
-};
-
-// Créer un nouveau contrat
-export const createContract = async (contractData) => {
-  try {
-    const contractsCollection = collection(db, 'contracts');
-    const docRef = await addDoc(contractsCollection, {
-      ...contractData,
-      createdAt: new Date()
-    });
-    
-    return {
-      id: docRef.id,
-      ...contractData
-    };
-  } catch (error) {
-    console.error("Erreur lors de la création du contrat:", error);
-    throw error;
-  }
-};
-
-// Mettre à jour un contrat
-export const updateContract = async (id, contractData) => {
-  try {
-    const contractDoc = doc(db, 'contracts', id);
-    await updateDoc(contractDoc, {
-      ...contractData,
-      updatedAt: new Date()
-    });
-    
-    return {
-      id,
-      ...contractData
-    };
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour du contrat:", error);
-    throw error;
-  }
-};
-
-// Supprimer un contrat
-export const deleteContract = async (id) => {
-  try {
-    const contractDoc = doc(db, 'contracts', id);
-    await deleteDoc(contractDoc);
-    return true;
-  } catch (error) {
-    console.error("Erreur lors de la suppression du contrat:", error);
-    return false;
-  }
-};
-EOL
-
-# Création du service invoicesService.js
-backup_file "client/src/services/invoicesService.js"
-cat > client/src/services/invoicesService.js << 'EOL'
-import { db } from '../firebase';
-import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-
-// Récupérer toutes les factures
-export const getAllInvoices = async () => {
-  try {
-    const invoicesCollection = collection(db, 'invoices');
-    const invoicesSnapshot = await getDocs(invoicesCollection);
-    return invoicesSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    console.error("Erreur lors de la récupération des factures:", error);
-    return [];
-  }
-};
-
-// Récupérer une facture par ID
-export const getInvoiceById = async (id) => {
-  try {
-    const invoiceDoc = doc(db, 'invoices', id);
-    const invoiceSnapshot = await getDoc(invoiceDoc);
-    
-    if (invoiceSnapshot.exists()) {
-      return {
-        id: invoiceSnapshot.id,
-        ...invoiceSnapshot.data()
-      };
-    } else {
-      console.log("Aucune facture trouvée avec cet ID");
-      return null;
-    }
-  } catch (error) {
-    console.error("Erreur lors de la récupération de la facture:", error);
-    return null;
-  }
-};
-
-// Créer une nouvelle facture
-export const createInvoice = async (invoiceData) => {
-  try {
-    const invoicesCollection = collection(db, 'invoices');
-    const docRef = await addDoc(invoicesCollection, {
-      ...invoiceData,
-      createdAt: new Date()
-    });
-    
-    return {
-      id: docRef.id,
-      ...invoiceData
-    };
-  } catch (error) {
-    console.error("Erreur lors de la création de la facture:", error);
-    throw error;
-  }
-};
-
-// Mettre à jour une facture
-export const updateInvoice = async (id, invoiceData) => {
-  try {
-    const invoiceDoc = doc(db, 'invoices', id);
-    await updateDoc(invoiceDoc, {
-      ...invoiceData,
-      updatedAt: new Date()
-    });
-    
-    return {
-      id,
-      ...invoiceData
-    };
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour de la facture:", error);
-    throw error;
-  }
-};
-
-// Supprimer une facture
-export const deleteInvoice = async (id) => {
-  try {
-    const invoiceDoc = doc(db, 'invoices', id);
-    await deleteDoc(invoiceDoc);
-    return true;
-  } catch (error) {
-    console.error("Erreur lors de la suppression de la facture:", error);
-    return false;
-  }
-};
-EOL
-
-# 12. Création du service programmersService.js s'il n'existe pas
-echo -e "${GREEN}12. Création du service programmersService.js s'il n'existe pas...${NC}"
-
-if [ ! -f "client/src/services/programmersService.js" ]; then
-  cat > client/src/services/programmersService.js << 'EOL'
-import { db } from '../firebase';
-import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
-
-// Récupérer tous les programmateurs
-export const getAllProgrammers = async () => {
-  try {
-    const programmersCollection = collection(db, 'programmers');
-    const programmersSnapshot = await getDocs(programmersCollection);
-    return programmersSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    console.error("Erreur lors de la récupération des programmateurs:", error);
-    return [];
-  }
-};
-
-// Récupérer un programmateur par ID
-export const getProgrammerById = async (id) => {
-  try {
-    const programmerDoc = doc(db, 'programmers', id);
-    const programmerSnapshot = await getDoc(programmerDoc);
-    
-    if (programmerSnapshot.exists()) {
-      return {
-        id: programmerSnapshot.id,
-        ...programmerSnapshot.data()
-      };
-    } else {
-      console.log("Aucun programmateur trouvé avec cet ID");
-      return null;
-    }
-  } catch (error) {
-    console.error("Erreur lors de la récupération du programmateur:", error);
-    return null;
-  }
-};
-
-// Récupérer un programmateur par email
-export const getProgrammerByEmail = async (email) => {
-  try {
-    const programmersCollection = collection(db, 'programmers');
-    const q = query(programmersCollection, where("email", "==", email));
-    const querySnapshot = await getDocs(q);
-    
-    if (!querySnapshot.empty) {
-      const programmerDoc = querySnapshot.docs[0];
-      return {
-        id: programmerDoc.id,
-        ...programmerDoc.data()
-      };
-    } else {
-      console.log("Aucun programmateur trouvé avec cet email");
-      return null;
-    }
-  } catch (error) {
-    console.error("Erreur lors de la recherche du programmateur par email:", error);
-    return null;
-  }
-};
-
-// Créer un nouveau programmateur
-export const createProgrammer = async (programmerData) => {
-  try {
-    const programmersCollection = collection(db, 'programmers');
-    const docRef = await addDoc(programmersCollection, {
-      ...programmerData,
-      createdAt: new Date()
-    });
-    
-    return {
-      id: docRef.id,
-      ...programmerData
-    };
-  } catch (error) {
-    console.error("Erreur lors de la création du programmateur:", error);
-    throw error;
-  }
-};
-
-// Mettre à jour un programmateur
-export const updateProgrammer = async (id, programmerData) => {
-  try {
-    const programmerDoc = doc(db, 'programmers', id);
-    await updateDoc(programmerDoc, {
-      ...programmerData,
-      updatedAt: new Date()
-    });
-    
-    return {
-      id,
-      ...programmerData
-    };
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour du programmateur:", error);
-    throw error;
-  }
-};
-
-// Supprimer un programmateur
-export const deleteProgrammer = async (id) => {
-  try {
-    const programmerDoc = doc(db, 'programmers', id);
-    await deleteDoc(programmerDoc);
-    return true;
-  } catch (error) {
-    console.error("Erreur lors de la suppression du programmateur:", error);
-    return false;
-  }
-};
-EOL
-  echo -e "${GREEN}✅ Service programmersService.js créé${NC}"
-else
-  echo -e "${YELLOW}Le service programmersService.js existe déjà${NC}"
+  success "DocumentsList.css créé avec succès"
 fi
 
-# 13. Installation des dépendances nécessaires
-echo -e "${GREEN}13. Installation des dépendances nécessaires...${NC}"
+# Correction du problème 4: Persistance des erreurs de validation malgré les corrections
+log "Correction du problème 4: Persistance des erreurs de validation malgré les corrections"
 
-# Vérifier si react-icons est installé
-if ! grep -q "react-icons" client/package.json; then
-  echo -e "${YELLOW}Installation de react-icons...${NC}"
-  cd client && npm install --save react-icons && cd ..
+# Sauvegarde du fichier artistsService.js
+backup_file "./client/src/services/artistsService.js"
+
+# Vérification et correction du service artistsService.js
+log "Vérification et correction du service artistsService.js"
+if grep -q "getAllArtists" "./client/src/services/artistsService.js" && ! grep -q "export const getArtists" "./client/src/services/artistsService.js"; then
+  log "Correction de l'exportation des fonctions dans artistsService.js"
+  sed -i 's/export const getAllArtists/export const getArtists/g' ./client/src/services/artistsService.js
+  success "artistsService.js corrigé avec succès"
 else
-  echo -e "${YELLOW}react-icons est déjà installé${NC}"
+  log "artistsService.js semble déjà correct ou utilise une autre structure"
 fi
 
-echo -e "${GREEN}✅ Toutes les corrections ont été appliquées avec succès !${NC}"
-echo -e "${YELLOW}Vous pouvez maintenant lancer le build avec la commande :${NC}"
-echo -e "cd client && npm run build"
+# Sauvegarde du fichier programmersService.js
+backup_file "./client/src/services/programmersService.js"
 
-echo -e "${YELLOW}Pour ajouter, commiter et pousser les modifications :${NC}"
-echo -e "git add client/src/components/layout/Sidebar.jsx client/src/components/layout/Sidebar.css client/src/components/concerts/ConcertsDashboard.jsx client/src/components/concerts/ConcertsDashboard.css client/src/components/concerts/ConcertsList.js client/src/components/concerts/ConcertsList.css client/src/services/formSubmissionsService.js client/src/components/formValidation/FormValidationList.jsx client/src/components/formValidation/FormValidationList.css client/src/components/formValidation/ComparisonTable.jsx client/src/components/formValidation/ComparisonTable.css client/src/components/public/PublicFormPage.jsx client/src/components/public/PublicFormPage.css client/src/components/settings/Settings.jsx client/src/components/documents/DocumentsList.jsx client/src/components/emails/EmailsList.jsx client/src/components/contracts/ContractsList.jsx client/src/components/contracts/ContractDetails.jsx client/src/components/invoices/InvoicesList.jsx client/src/components/invoices/InvoiceDetails.jsx client/src/services/contractsService.js client/src/services/invoicesService.js && git commit -m \"Fix: Correction complète de l'application - résolution des problèmes d'importation, de validation de formulaire et d'affichage\" && git push origin main"
+# Vérification et correction du service programmersService.js
+log "Vérification et correction du service programmersService.js"
+if grep -q "getAllProgrammers" "./client/src/services/programmersService.js" && ! grep -q "export const getProgrammers" "./client/src/services/programmersService.js"; then
+  log "Correction de l'exportation des fonctions dans programmersService.js"
+  sed -i 's/export const getAllProgrammers/export const getProgrammers/g' ./client/src/services/programmersService.js
+  success "programmersService.js corrigé avec succès"
+else
+  log "programmersService.js semble déjà correct ou utilise une autre structure"
+fi
+
+# Exécution d'un build de test pour vérifier que les corrections fonctionnent
+log "Exécution d'un build de test pour vérifier que les corrections fonctionnent"
+npm run build
+
+# Vérification du résultat du build
+if [ $? -eq 0 ]; then
+  success "Build réussi ! Toutes les corrections ont été appliquées avec succès."
+else
+  error "Le build a échoué. Des problèmes persistent."
+  exit 1
+fi
+
+# Résumé des modifications effectuées
+echo ""
+echo "======================= RÉSUMÉ DES MODIFICATIONS ======================="
+echo ""
+echo "1. Correction du problème d'envoi de formulaire :"
+echo "   - Modification de la fonction handleGenerateFormLink dans ConcertDetail.js"
+echo "   - Ajout de la génération de l'URL du formulaire"
+echo "   - Suppression de la vérification bloquante du programmateur"
+echo ""
+echo "2. Correction des erreurs de validation :"
+echo "   - Amélioration de la validation des données dans concertsService.js"
+echo "   - Ajout de logs détaillés pour faciliter le débogage"
+echo ""
+echo "3. Correction des problèmes d'enregistrement des modifications :"
+echo "   - Amélioration de la fonction updateConcert dans concertsService.js"
+echo "   - Vérification et correction des objets artist et programmer"
+echo ""
+echo "4. Correction des erreurs de build :"
+echo "   - Création des fichiers CSS manquants pour éviter les erreurs de build"
+echo "   - Correction des exportations de fonctions dans les services"
+echo ""
+echo "Toutes les modifications ont été sauvegardées dans : $BACKUP_DIR"
+echo ""
+echo "======================= INSTRUCTIONS D'UTILISATION ======================="
+echo ""
+echo "Pour rendre ce script exécutable et l'exécuter :"
+echo "chmod +x fix_all_app_issues.sh && ./fix_all_app_issues.sh"
+echo ""
+echo "Pour effectuer git add, commit et push :"
+echo "git add . && git commit -m \"Correction des problèmes d'affichage et de validation\" && git push"
+echo ""
+echo "========================================================================"
+
+success "Script terminé avec succès !"

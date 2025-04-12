@@ -3,12 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getConcertById, updateConcert, deleteConcert } from '../../services/concertsService';
 import { getArtists } from '../../services/artistsService';
 import { getProgrammers } from '../../services/programmersService';
-import './ConcertDetail.css';
+
 
 const ConcertDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [concert, setConcert] = useState(null);
+  const [artists, setArtists] = useState([]);
+  const [programmers, setProgrammers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -26,9 +28,7 @@ const ConcertDetail = () => {
     status: 'En attente',
     notes: ''
   });
-  const [artists, setArtists] = useState([]);
-  const [programmers, setProgrammers] = useState([]);
-  
+
   // Statuts possibles pour un concert
   const statuses = [
     'En attente',
@@ -40,6 +40,16 @@ const ConcertDetail = () => {
     'Annulé'
   ];
   
+  // Générer les options pour les heures (00h à 23h)
+  const hours = Array.from({ length: 24 }, (_, i) => 
+    i < 10 ? `0${i}` : `${i}`
+  );
+  
+  // Générer les options pour les minutes (00 à 59)
+  const minutes = Array.from({ length: 60 }, (_, i) => 
+    i < 10 ? `0${i}` : `${i}`
+  );
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -53,165 +63,143 @@ const ConcertDetail = () => {
           throw new Error('Concert non trouvé');
         }
         
+        console.log('Concert récupéré:', concertData);
         setConcert(concertData);
         
-        // Préparer les données pour le formulaire d'édition
+        // Initialiser le formulaire avec les données du concert
         setFormData({
           artist: concertData.artist || { id: '', name: '' },
           programmer: concertData.programmer || { id: '', name: '', structure: '' },
-          date: concertData.date ? concertData.date.toISOString().split('T')[0] : '',
+          date: concertData.date || '',
           time: concertData.time || '',
           venue: concertData.venue || '',
           city: concertData.city || '',
-          price: concertData.price || '',
+          price: concertData.price ? concertData.price.toString() : '',
           status: concertData.status || 'En attente',
           notes: concertData.notes || ''
         });
         
-        // Préparer l'URL du formulaire
+        // Récupérer les artistes pour le formulaire d'édition
+        console.log("Tentative de récupération des artistes...");
+        const artistsData = await getArtists();
+        console.log("Artistes récupérés:", artistsData);
+        setArtists(artistsData);
+        
+        // Récupérer les programmateurs pour le formulaire d'édition
+        console.log("Tentative de récupération des programmateurs...");
+        const programmersData = await getProgrammers();
+        console.log("Programmateurs récupérés:", programmersData);
+        setProgrammers(programmersData);
+        
+        // Générer l'URL du formulaire directement avec l'ID du concert
         const baseUrl = window.location.origin;
         setFormUrl(`${baseUrl}/#/form/${id}`);
         
-        // Récupérer la liste des artistes et des programmateurs pour le formulaire d'édition
-        const artistsList = await getArtists();
-        const programmersList = await getProgrammers();
-        
-        setArtists(artistsList);
-        setProgrammers(programmersList);
-        
         setLoading(false);
       } catch (err) {
-        console.error("Erreur lors de la récupération des données:", err);
+        console.error('Erreur lors de la récupération du concert:', err);
         setError(err.message);
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [id]);
-  
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    // Mise à jour du state en fonction du champ modifié
-    if (name === 'artistId') {
-      // Trouver l'artiste correspondant à l'ID sélectionné
+    if (name === 'artist') {
       const selectedArtist = artists.find(artist => artist.id === value);
-      
-      setFormData(prev => ({
-        ...prev,
+      setFormData({
+        ...formData,
         artist: {
-          id: value,
-          name: selectedArtist ? selectedArtist.name : ''
+          id: selectedArtist.id,
+          name: selectedArtist.name
         }
-      }));
-    } else if (name === 'programmerId') {
-      // Trouver le programmateur correspondant à l'ID sélectionné
+      });
+    } else if (name === 'programmer') {
       const selectedProgrammer = programmers.find(programmer => programmer.id === value);
-      
-      setFormData(prev => ({
-        ...prev,
+      setFormData({
+        ...formData,
         programmer: {
-          id: value,
-          name: selectedProgrammer ? selectedProgrammer.name : '',
-          structure: selectedProgrammer ? selectedProgrammer.structure || '' : ''
+          id: selectedProgrammer.id,
+          name: selectedProgrammer.name,
+          structure: selectedProgrammer.structure || ''
         }
-      }));
+      });
+    } else if (name === 'hour' || name === 'minute') {
+      // Gérer les sélections d'heure et de minute
+      const currentTime = formData.time ? formData.time.split(':') : ['00', '00'];
+      const hour = name === 'hour' ? value : currentTime[0];
+      const minute = name === 'minute' ? value : currentTime[1];
+      
+      setFormData({
+        ...formData,
+        time: `${hour}:${minute}`
+      });
     } else {
-      // Pour les autres champs, mise à jour directe
-      setFormData(prev => ({
-        ...prev,
+      setFormData({
+        ...formData,
         [name]: value
-      }));
+      });
     }
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     try {
       setLoading(true);
       
-      // Préparer les données à envoyer
-      const updatedConcert = {
-        artist: formData.artist,
-        programmer: formData.programmer,
-        date: formData.date ? new Date(formData.date) : null,
-        time: formData.time,
-        venue: formData.venue,
-        city: formData.city,
-        price: formData.price,
-        status: formData.status,
-        notes: formData.notes
+      // Convertir price en nombre
+      const concertData = {
+        ...formData,
+        price: parseFloat(formData.price) || 0
       };
       
-      console.log("Données à mettre à jour:", updatedConcert);
+      console.log("Données du concert à mettre à jour:", concertData);
       
       // Utiliser le service Firebase pour mettre à jour le concert
-      await updateConcert(id, updatedConcert);
+      await updateConcert(id, concertData);
       
-      // Mettre à jour l'état local
-      setConcert({
-        id,
-        ...updatedConcert
-      });
+      // Récupérer les données mises à jour
+      const updatedData = await getConcertById(id);
+      setConcert(updatedData);
       
       setIsEditing(false);
       setLoading(false);
-      
-      // Afficher un message de succès
-      alert("Concert mis à jour avec succès !");
     } catch (err) {
       console.error("Erreur lors de la mise à jour du concert:", err);
       setError(err.message);
       setLoading(false);
-      alert(`Erreur lors de la mise à jour du concert: ${err.message}`);
     }
   };
-  
+
   const handleDelete = async () => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce concert ?")) {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce concert ?')) {
       try {
         setLoading(true);
         
         // Utiliser le service Firebase pour supprimer le concert
         await deleteConcert(id);
         
-        setLoading(false);
-        
-        // Rediriger vers la liste des concerts
         navigate('/concerts');
       } catch (err) {
         console.error("Erreur lors de la suppression du concert:", err);
         setError(err.message);
         setLoading(false);
-        alert(`Erreur lors de la suppression du concert: ${err.message}`);
       }
     }
   };
-  
+
+  // Nouvelle fonction simplifiée pour générer le lien du formulaire
   const handleGenerateFormLink = () => {
     try {
-      console.log("Génération du lien de formulaire pour le concert:", concert);
-      
-      // Vérifier si le concert a un artiste associé
-      if (!concert.artist || !concert.artist.id) {
-        console.warn("Ce concert n'a pas d'artiste associé");
-        // Continuer quand même, ce n'est pas bloquant
-      }
-      
       // Vérifier si le concert a un programmateur associé
       if (!concert.programmer || !concert.programmer.id) {
-        console.warn("Ce concert n'a pas de programmateur associé");
-        // Continuer quand même, ce n'est pas bloquant
+        alert("Ce concert n'a pas de programmateur associé. Veuillez d'abord ajouter un programmateur.");
+        return;
       }
-      
-      // Générer l'URL du formulaire
-      const baseUrl = window.location.origin;
-      const formLink = `${baseUrl}/#/form/${id}`;
-      setFormUrl(formLink);
-      
-      console.log("Lien de formulaire généré:", formLink);
       
       // Afficher la modal avec le lien direct
       setShowLinkModal(true);
@@ -221,7 +209,7 @@ const ConcertDetail = () => {
       alert("Une erreur est survenue lors de la génération du lien de formulaire. Veuillez réessayer.");
     }
   };
-  
+
   const handleCopyLink = () => {
     if (!formUrl) return;
     
@@ -235,36 +223,33 @@ const ConcertDetail = () => {
         alert("Impossible de copier le lien. Veuillez le sélectionner et le copier manuellement.");
       });
   };
-  
+
   const closeLinkModal = () => {
     setShowLinkModal(false);
     setLinkCopied(false);
   };
-  
-  if (loading && !concert) {
-    return <div className="loading">Chargement...</div>;
-  }
-  
-  if (error) {
-    return <div className="error">Erreur: {error}</div>;
-  }
-  
-  if (!concert) {
-    return <div className="not-found">Concert non trouvé</div>;
-  }
-  
+
+  if (loading && !concert) return <div className="loading">Chargement des détails du concert...</div>;
+  if (error) return <div className="error-message">Erreur: {error}</div>;
+  if (!concert) return <div className="not-found">Concert non trouvé</div>;
+
+  // Extraire l'heure et les minutes du temps actuel pour le formulaire d'édition
+  const currentTime = formData.time ? formData.time.split(':') : ['', ''];
+  const currentHour = currentTime[0];
+  const currentMinute = currentTime[1];
+
   return (
     <div className="concert-detail-container">
-      <h1>Détails du Concert</h1>
+      <h2>Détails du Concert</h2>
       
       {isEditing ? (
-        <form onSubmit={handleSubmit} className="concert-form">
+        <form onSubmit={handleSubmit} className="edit-form">
           <div className="form-group">
-            <label htmlFor="artistId">Artiste *</label>
+            <label htmlFor="artist">Artiste *</label>
             <select
-              id="artistId"
-              name="artistId"
-              value={formData.artist?.id || ''}
+              id="artist"
+              name="artist"
+              value={formData.artist.id}
               onChange={handleInputChange}
               required
             >
@@ -276,18 +261,18 @@ const ConcertDetail = () => {
           </div>
           
           <div className="form-group">
-            <label htmlFor="programmerId">Programmateur *</label>
+            <label htmlFor="programmer">Programmateur *</label>
             <select
-              id="programmerId"
-              name="programmerId"
-              value={formData.programmer?.id || ''}
+              id="programmer"
+              name="programmer"
+              value={formData.programmer.id}
               onChange={handleInputChange}
               required
             >
               <option value="">Sélectionner un programmateur</option>
               {programmers.map(programmer => (
                 <option key={programmer.id} value={programmer.id}>
-                  {programmer.name} {programmer.structure ? `(${programmer.structure})` : ''}
+                  {programmer.name} ({programmer.structure || 'Structure non spécifiée'})
                 </option>
               ))}
             </select>
@@ -305,16 +290,37 @@ const ConcertDetail = () => {
             />
           </div>
           
-          <div className="form-group">
-            <label htmlFor="time">Heure *</label>
-            <input
-              type="time"
-              id="time"
-              name="time"
-              value={formData.time}
-              onChange={handleInputChange}
-              required
-            />
+          <div className="form-group time-selects">
+            <label>Heure *</label>
+            <div className="time-inputs">
+              <select
+                id="hour"
+                name="hour"
+                value={currentHour}
+                onChange={handleInputChange}
+                required
+                aria-label="Heure"
+              >
+                <option value="">Heure</option>
+                {hours.map(hour => (
+                  <option key={hour} value={hour}>{hour}h</option>
+                ))}
+              </select>
+              
+              <select
+                id="minute"
+                name="minute"
+                value={currentMinute}
+                onChange={handleInputChange}
+                required
+                aria-label="Minute"
+              >
+                <option value="">Minute</option>
+                {minutes.map(minute => (
+                  <option key={minute} value={minute}>{minute}</option>
+                ))}
+              </select>
+            </div>
           </div>
           
           <div className="form-group">
@@ -351,6 +357,8 @@ const ConcertDetail = () => {
               name="price"
               value={formData.price}
               onChange={handleInputChange}
+              min="0"
+              step="0.01"
               placeholder="Prix en euros"
             />
           </div>
@@ -395,7 +403,7 @@ const ConcertDetail = () => {
           <div className="concert-info">
             <div className="info-row">
               <span className="info-label">Artiste:</span>
-              <span className="info-value">{concert.artist?.name || 'Non spécifié'}</span>
+              <span className="info-value">{concert.artist || 'Non spécifié'}</span>
             </div>
             
             <div className="info-row">
