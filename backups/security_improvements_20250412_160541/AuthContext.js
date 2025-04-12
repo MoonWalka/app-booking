@@ -8,7 +8,7 @@ const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
 // Configuration pour le mode bypass d'authentification
-const BYPASS_AUTH = process.env.REACT_APP_BYPASS_AUTH === "false" ? false : true; // Maintenu à true par défaut pour les tests // Mettre à false pour activer l'authentification réelle
+const BYPASS_AUTH = true; // Mettre à false pour activer l'authentification réelle
 const TEST_USER = {
   id: 'test-user-id',
   email: 'test@example.com',

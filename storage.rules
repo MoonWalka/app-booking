@@ -1,0 +1,31 @@
+// Règles de sécurité pour le stockage Firebase
+// Ces règles équilibrent sécurité et accessibilité pour les tests
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Règle par défaut : refuser l'accès à tous
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+    
+    // Règles pour les images d'artistes
+    match /artists/{artistId}/{fileName} {
+      // Permettre la lecture à tous les utilisateurs authentifiés
+      allow read: if request.auth != null;
+      
+      // Permettre l'écriture aux utilisateurs authentifiés
+      // Note: En production, cette règle devrait être plus restrictive
+      allow write: if request.auth != null;
+    }
+    
+    // Règles pour les documents de concerts
+    match /concerts/{concertId}/{fileName} {
+      // Permettre la lecture à tous les utilisateurs authentifiés
+      allow read: if request.auth != null;
+      
+      // Permettre l'écriture aux utilisateurs authentifiés
+      // Note: En production, cette règle devrait être plus restrictive
+      allow write: if request.auth != null;
+    }
+  }
+}
