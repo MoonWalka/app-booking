@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 
 import App from './App';
 import { HashRouter } from 'react-router-dom';
-import from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 import PublicFormPage from './components/public/PublicFormPage';
 import FormSubmittedPage from './components/public/FormSubmittedPage';
 
