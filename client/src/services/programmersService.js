@@ -227,3 +227,35 @@ export const getProgrammersByToken = async (commonToken) => {
     throw error;
   }
 };
+
+/**
+ * Récupère un programmateur par son email
+ * @param {string} email - Email du programmateur
+ * @returns {Promise<Object|null>} Données du programmateur ou null si non trouvé
+ */
+export const getProgrammerByEmail = async (email) => {
+  try {
+    console.log(`[getProgrammerByEmail] Recherche du programmateur avec email ${email}`);
+    
+    // Créer une requête pour trouver le programmateur par email
+    const programmersRef = collection(db, PROGRAMMERS_COLLECTION);
+    const q = query(programmersRef, where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const programmerDoc = querySnapshot.docs[0];
+      const programmerData = {
+        id: programmerDoc.id,
+        ...programmerDoc.data()
+      };
+      console.log(`[getProgrammerByEmail] Programmateur trouvé:`, programmerData);
+      return programmerData;
+    }
+    
+    console.log(`[getProgrammerByEmail] Aucun programmateur trouvé avec l'email ${email}`);
+    return null;
+  } catch (error) {
+    console.error(`[getProgrammerByEmail] Erreur lors de la recherche du programmateur avec email ${email}:`, error);
+    return null;
+  }
+};

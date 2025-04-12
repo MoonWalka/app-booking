@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getConcertById, updateConcert, deleteConcert } from '../../services/concertsService';
 import { getArtists } from '../../services/artistsService';
 import { getProgrammers } from '../../services/programmersService';
-import './ConcertDetail.css';
+// 
 
 const ConcertDetail = () => {
   const { id } = useParams();
