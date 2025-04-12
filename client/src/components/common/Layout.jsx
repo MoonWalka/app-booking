@@ -108,14 +108,14 @@ const Layout = () => {
           </div>
           
           <div className="user-menu">
-            {currentUser && (
-              <>
-                <span className="user-name">{currentUser.name || 'Utilisateur'}</span>
-                <button onClick={handleLogout} className="logout-btn">
-                  Déconnexion
-                </button>
-              </>
-            )}
+          {currentUser && (
+  <>
+    <span className="user-name">{currentUser.name || 'Utilisateur'}</span>
+    <button onClick={handleLogout} className="logout-btn">
+      Déconnexion
+    </button>
+  </>
+)}
           </div>
         </header>
         
