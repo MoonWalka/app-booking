@@ -1,11 +1,12 @@
 // client/src/components/common/Layout.js
+console.log("Layout - currentUser:", currentUser); // ajouté par chat gpt
 import React from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
+
 const Layout = () => {
   const { currentUser, logout } = useAuth();
-  console.log("Layout - currentUser:", currentUser); // Console log déplacé à un endroit approprié
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -108,14 +109,14 @@ const Layout = () => {
           </div>
           
           <div className="user-menu">
-            {currentUser ? (
-              <div className="user-menu-content">
-                <span className="user-name">{currentUser && currentUser.name ? currentUser.name : 'Utilisateur'}</span>
-                <button onClick={handleLogout} className="logout-btn">
-                  Déconnexion
-                </button>
-              </div>
-            ) : null}
+          {currentUser && (
+  <>
+   <span className="user-name">{currentUser?.name || 'Utilisateur'}</span>
+    <button onClick={handleLogout} className="logout-btn">
+      Déconnexion
+    </button>
+  </>
+)}
           </div>
         </header>
         
