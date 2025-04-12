@@ -54,7 +54,6 @@ export const AuthProvider = ({ children }) => {
   console.log('AuthContext - Bypass effectif pour cette route:', effectiveBypass);
   
   const [currentUser, setCurrentUser] = useState(effectiveBypass ? TEST_USER : null);
-  const [currentUser, setCurrentUser] = useState(effectiveBypass ? TEST_USER : null);
 
   // S'assurer que currentUser n'est jamais undefined
   useEffect(() => {
