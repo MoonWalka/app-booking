@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getArtists } from '../../services/artistsService';
-import { getProgrammers } from '../../services/programmersService';
-import { getConcerts } from '../../services/concertsService';
+import from './services/programmersService';
+import from './services/concertsService';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
 

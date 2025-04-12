@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '../../context/AuthContext';
+import from './context/AuthContext';
 
 // Composant PublicRoute qui rend son contenu indépendamment de l'état d'authentification
 const PublicRoute = ({ children }) => {

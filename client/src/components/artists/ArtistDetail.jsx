@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getArtistById, deleteArtist } from '../../services/artistsService';
-import { getConcertsByArtist } from '../../services/concertsService';
+import from './services/concertsService';
 
 
 const ArtistDetail = () => {

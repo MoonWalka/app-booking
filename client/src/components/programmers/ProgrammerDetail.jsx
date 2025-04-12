@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getProgrammerById, deleteProgrammer, updateProgrammer } from '../../services/programmersService';
+import from './services/programmersService';
 
 
 const ProgrammerDetail = () => {

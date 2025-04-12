@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { updateFormSubmissionWithValidatedData, updateLinkedEntities } from '../../services/formSubmissionsService';
-import { getProgrammerByEmail, updateProgrammer } from '../../services/programmersService';
+import from './services/programmersService';
 
 
 const ComparisonTable = ({ submission, onValidationComplete }) => {

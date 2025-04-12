@@ -1,26 +1,55 @@
-// client/src/firebase.js
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
-// Configuration Firebase
-// Utilisation de variables d'environnement pour améliorer la sécurité
-// Les valeurs par défaut sont utilisées si les variables d'environnement ne sont pas définies
+// Configuration Firebase à partir des variables d'environnement
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyCt994en0glR_WVbxxkDATXM25QV7HKovA",
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "app-booking-26571.firebaseapp.com",
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "app-booking-26571",
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "app-booking-26571.firebasestorage.app",
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "985724562753",
-  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:985724562753:web:83a093ebd7a7034a9a85c0",
-  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-LC94BW3MWX"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
+// Initialiser Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const db = getFirestore(app);
-const auth = getAuth(app);
 
-export { app, db, auth };
+// Exporter les services Firebase
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+
+// Utilitaire de logging sécurisé
+export const secureLog = (message, data = null) => {
+  // Ne pas logger en production
+  if (process.env.REACT_APP_ENV === 'production') return;
+  
+  // Masquer les informations sensibles
+  const sanitizeData = (obj) => {
+    if (!obj) return obj;
+    
+    const sanitized = { ...obj };
+    
+    // Liste des clés sensibles à masquer
+    const sensitiveKeys = ['password', 'token', 'apiKey', 'secret', 'credential'];
+    
+    Object.keys(sanitized).forEach(key => {
+      // Masquer les valeurs des clés sensibles
+      if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk.toLowerCase()))) {
+        sanitized[key] = '***MASKED***';
+      }
+      // Récursion pour les objets imbriqués
+      else if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
+        sanitized[key] = sanitizeData(sanitized[key]);
+      }
+    });
+    
+    return sanitized;
+  };
+  
+  console.log(message, data ? sanitizeData(data) : '');
+};
+
+export default app;

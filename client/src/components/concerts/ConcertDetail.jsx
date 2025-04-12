@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getConcertById, updateConcert, deleteConcert } from '../../services/concertsService';
+import from './services/concertsService';
 import { getArtists } from '../../services/artistsService';
-import { getProgrammers } from '../../services/programmersService';
+import from './services/programmersService';
 // 
 
 const ConcertDetail = () => {
